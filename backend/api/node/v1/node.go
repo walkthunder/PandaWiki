@@ -56,3 +56,11 @@ type NodePermissionEditReq struct {
 
 type NodePermissionEditResp struct {
 }
+
+type NodeRestudyReq struct {
+	NodeIds []string `json:"node_ids" validate:"required,min=1"`
+	KbId    string   `json:"kb_id" validate:"required"`
+}
+
+type NodeRestudyResp struct {
+}

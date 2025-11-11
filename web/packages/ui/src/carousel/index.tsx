@@ -125,7 +125,7 @@ const StyledTab = styled(Tab)(({ theme }) => ({
   },
   '&.Mui-selected': {
     backgroundColor: theme.palette.primary.main,
-    color: theme.palette.background.default,
+    color: theme.palette.primary.contrastText,
     fontWeight: 500,
   },
 }));

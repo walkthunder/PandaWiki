@@ -1,7 +1,7 @@
 'use client';
-import { Box, Skeleton, Stack } from '@mui/material';
 import { useTiptap } from '@ctzhian/tiptap';
 import { Icon } from '@ctzhian/ui';
+import { Box, Skeleton, Stack } from '@mui/material';
 import { useState } from 'react';
 import Header from './Header';
 import Toolbar from './Toolbar';
@@ -61,11 +61,11 @@ const LoadingEditorWrap = () => {
           </Stack>
           <Stack direction={'row'} alignItems={'center'} gap={2} sx={{ mb: 4 }}>
             <Stack direction={'row'} alignItems={'center'} gap={0.5}>
-              <Icon type='icon-a-shijian2' sx={{ color: 'text.auxiliary' }} />
+              <Icon type='icon-a-shijian2' sx={{ color: 'text.tertiary' }} />
               <Skeleton variant='text' width={130} height={24} />
             </Stack>
             <Stack direction={'row'} alignItems={'center'} gap={0.5}>
-              <Icon type='icon-ziti' sx={{ color: 'text.auxiliary' }} />
+              <Icon type='icon-ziti' sx={{ color: 'text.tertiary' }} />
               <Skeleton variant='text' width={80} height={24} />
             </Stack>
           </Stack>

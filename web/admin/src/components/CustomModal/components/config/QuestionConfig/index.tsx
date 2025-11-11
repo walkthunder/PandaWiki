@@ -1,8 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { CommonItem, StyledCommonWrapper } from '../../components/StyledCommon';
 import { TextField } from '@mui/material';
 import { Controller, useForm } from 'react-hook-form';
-import FaqDragList from './DragList';
+import DragList from '../../components/DragList';
+import SortableItem from '../../components/SortableItem';
+import Item from './Item';
 import type { ConfigProps } from '../type';
 import { useAppSelector } from '@/store';
 import useDebounceAppPreviewData from '@/hooks/useDebounceAppPreviewData';
@@ -35,6 +37,12 @@ const FaqConfig = ({ setIsEdit, id }: ConfigProps) => {
     setValue('list', newList);
     setIsEdit(true);
   };
+
+  // 稳定的 SortableItemComponent 引用
+  const ItemSortableComponent = useMemo(
+    () => (props: any) => <SortableItem {...props} ItemComponent={Item} />,
+    [],
+  );
 
   useEffect(() => {
     reset(
@@ -88,10 +96,12 @@ const FaqConfig = ({ setIsEdit, id }: ConfigProps) => {
         {list.length === 0 ? (
           <Empty />
         ) : (
-          <FaqDragList
+          <DragList
             data={list}
             onChange={handleListChange}
             setIsEdit={setIsEdit}
+            SortableItemComponent={ItemSortableComponent}
+            ItemComponent={Item}
           />
         )}
       </CommonItem>

@@ -2986,6 +2986,21 @@ definitions:
           $ref: '#/definitions/domain.NodeGroupDetail'
         type: array
     type: object
+  v1.NodeRestudyReq:
+    properties:
+      kb_id:
+        type: string
+      node_ids:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - kb_id
+    - node_ids
+    type: object
+  v1.NodeRestudyResp:
+    type: object
   v1.ResetPasswordReq:
     properties:
       id:
@@ -4374,6 +4389,36 @@ paths:
       summary: Recommend Nodes
       tags:
       - node
+  /api/v1/node/restudy:
+    post:
+      consumes:
+      - application/json
+      description: 文档重新学习
+      operationId: v1-NodeRestudy
+      parameters:
+      - description: para
+        in: body
+        name: param
+        required: true
+        schema:
+          $ref: '#/definitions/v1.NodeRestudyReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/v1.NodeRestudyResp'
+              type: object
+      security:
+      - bearerAuth: []
+      summary: 文档重新学习
+      tags:
+      - Node
   /api/v1/node/summary:
     post:
       consumes:

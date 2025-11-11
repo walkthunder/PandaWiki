@@ -56,7 +56,7 @@ const light = {
   text: {
     primary: '#21222D',
     secondary: 'rgba(33,34,35,0.7)',
-    auxiliary: 'rgba(33,34,35,0.5)',
+    tertiary: '#646a73',
     slave: 'rgba(33,34,35,0.3)',
     disabled: 'rgba(33,34,35,0.2)',
     inverse: '#FFFFFF',

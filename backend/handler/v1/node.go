@@ -47,6 +47,7 @@ func NewNodeHandler(
 	group.POST("/batch_move", h.BatchMoveNode)
 
 	group.GET("/recommend_nodes", h.RecommendNodes)
+	group.POST("/restudy", h.NodeRestudy)
 
 	// node permission
 	group.GET("/permission", h.NodePermission)
@@ -382,5 +383,34 @@ func (h *NodeHandler) NodePermissionEdit(c echo.Context) error {
 	if err != nil {
 		return h.NewResponseWithError(c, "update node permission failed", err)
 	}
+	return h.NewResponseWithData(c, nil)
+}
+
+// NodeRestudy 文档重新学习
+//
+//	@Tags			Node
+//	@Summary		文档重新学习
+//	@Description	文档重新学习
+//	@ID				v1-NodeRestudy
+//	@Accept			json
+//	@Produce		json
+//	@Security		bearerAuth
+//	@Param			param	body		v1.NodeRestudyReq	true	"para"
+//	@Success		200		{object}	domain.Response{data=v1.NodeRestudyResp}
+//	@Router			/api/v1/node/restudy [post]
+func (h *NodeHandler) NodeRestudy(c echo.Context) error {
+	var req v1.NodeRestudyReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "request params is invalid", err)
+	}
+
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request params failed", err)
+	}
+
+	if err := h.usecase.NodeRestudy(c.Request().Context(), &req); err != nil {
+		return h.NewResponseWithError(c, "node restudy failed", err)
+	}
+
 	return h.NewResponseWithData(c, nil)
 }

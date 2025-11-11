@@ -30,7 +30,7 @@ const HeadingIcon = [
 
 const HeadingSx = [
   { fontSize: 14, fontWeight: 700, color: 'text.secondary' },
-  { fontSize: 14, fontWeight: 400, color: 'text.auxiliary' },
+  { fontSize: 14, fontWeight: 400, color: 'text.tertiary' },
   { fontSize: 14, fontWeight: 400, color: 'text.disabled' },
 ];
 
@@ -117,7 +117,7 @@ const Toc = ({
           sx={{
             fontSize: 14,
             fontWeight: 'bold',
-            color: 'text.auxiliary',
+            color: 'text.tertiary',
             mb: 1,
             p: 1,
             pb: 0,

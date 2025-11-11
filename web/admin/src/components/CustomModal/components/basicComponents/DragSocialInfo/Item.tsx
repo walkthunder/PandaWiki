@@ -1,8 +1,8 @@
 import UploadFile from '@/components/UploadFile';
 import { DomainSocialMediaAccount } from '@/request/types';
+import { Icon } from '@ctzhian/ui';
 import {
   Box,
-  FormControl,
   IconButton,
   MenuItem,
   Select,
@@ -11,7 +11,6 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from '@mui/material';
-import { Icon } from '@ctzhian/ui';
 import {
   CSSProperties,
   Dispatch,
@@ -113,7 +112,7 @@ const Item = forwardRef<HTMLDivElement, SocialInfoProps>(
                         setIsEdit(true);
                       }}
                       sx={{
-                        color: 'text.auxiliary',
+                        color: 'text.tertiary',
                         ':hover': { color: 'error.main' },
                         flexShrink: 0,
                         width: '28px',

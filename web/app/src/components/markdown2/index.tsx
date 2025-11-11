@@ -1,6 +1,5 @@
 'use client';
 
-import { useStore } from '@/provider';
 import { copyText } from '@/utils';
 import { Box, Dialog, useTheme } from '@mui/material';
 import mk from '@vscode/markdown-it-katex';
@@ -16,7 +15,11 @@ import React, {
   useState,
 } from 'react';
 import { useSmartScroll } from '@/hooks';
-import { createImageRenderer } from './imageRenderer';
+import {
+  clearImageBlobCache,
+  createImageRenderer,
+  getImageBlobUrl,
+} from './imageRenderer';
 import { incrementalRender } from './incrementalRenderer';
 import { createMermaidRenderer } from './mermaidRenderer';
 import {
@@ -73,12 +76,12 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
   autoScroll = true,
 }) => {
   const theme = useTheme();
-  const { themeMode = 'light' } = useStore();
+  const themeMode = theme.palette.mode;
 
   // 状态管理
   const [showThink, setShowThink] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewImgSrc, setPreviewImgSrc] = useState('');
+  const [previewImgBlobUrl, setPreviewImgBlobUrl] = useState('');
 
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
@@ -90,15 +93,10 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
   // 使用智能滚动 hook
   const { scrollToBottom } = useSmartScroll({
     container: '.conversation-container',
-    threshold: 10,
+    threshold: 50, // 距离底部 50px 内认为是在底部附近
     behavior: 'smooth',
     enabled: autoScroll,
   });
-
-  // ==================== 事件处理函数 ====================
-  const handleCodeClick = useCallback((code: string) => {
-    copyText(code);
-  }, []);
 
   const handleThinkToggle = useCallback(() => {
     setShowThink(prev => !prev);
@@ -110,6 +108,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
    */
   const handleImageLoad = useCallback((index: number, html: string) => {
     imageRenderCacheRef.current.set(index, html);
+    // 图片加载完成后，useSmartScroll 的 ResizeObserver 会自动触发滚动
   }, []);
 
   /**
@@ -117,6 +116,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
    */
   const handleImageError = useCallback((index: number, html: string) => {
     imageRenderCacheRef.current.set(index, html);
+    // 图片加载失败后，useSmartScroll 的 ResizeObserver 会自动触发滚动
   }, []);
 
   // 创建图片渲染器
@@ -126,7 +126,9 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
         onImageLoad: handleImageLoad,
         onImageError: handleImageError,
         onImageClick: (src: string) => {
-          setPreviewImgSrc(src);
+          // 尝试获取缓存的 blob URL，如果不存在则使用原始 src
+          const blobUrl = getImageBlobUrl(src);
+          setPreviewImgBlobUrl(blobUrl || src);
           setPreviewOpen(true);
         },
         imageRenderCache: imageRenderCacheRef.current,
@@ -182,15 +184,6 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
           ? defaultRender(tokens, idx, options, env, renderer)
           : `<pre><code>${code}</code></pre>`;
 
-        // 添加点击复制功能
-        // result = result.replace(
-        //   /<pre[^>]*>/,
-        //   `<pre style="cursor: pointer; position: relative;" onclick="window.handleCodeCopy && window.handleCodeCopy(\`${code.replace(
-        //     /`/g,
-        //     '\\`'
-        //   )}\`)">`
-        // );
-
         return result;
       };
 
@@ -198,7 +191,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
       md.renderer.rules.code_inline = (tokens, idx) => {
         const token = tokens[idx];
         const code = token.content;
-        return `<code onclick="window.handleCodeCopy && window.handleCodeCopy('${code}')" style="cursor: pointer;">${code}</code>`;
+        return `<code  style="cursor: pointer;">${code}</code>`;
       };
 
       // 自定义标题渲染（h1 -> h2）
@@ -321,7 +314,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
 
       setupCustomHtmlHandlers();
     },
-    [renderImage, renderMermaid, renderThinking, showThink, theme],
+    [renderImage, renderMermaid, renderThinking, theme],
   );
 
   // ==================== Effects ====================
@@ -331,15 +324,6 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
       mdRef.current = createMarkdownIt();
     }
   }, []);
-
-  // 设置全局函数
-  useEffect(() => {
-    (window as any).handleCodeCopy = handleCodeClick;
-
-    return () => {
-      delete (window as any).handleCodeCopy;
-    };
-  }, [handleCodeClick]);
 
   // 主要的内容渲染 Effect
   useEffect(() => {
@@ -367,6 +351,39 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
       }
     }
   }, [content, customizeRenderer, scrollToBottom]);
+
+  // 添加代码块点击复制功能
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+
+      // 检查是否点击了代码块
+      const preElement = target.closest('pre.hljs');
+      if (preElement) {
+        const codeElement = preElement.querySelector('code');
+        if (codeElement) {
+          const code = codeElement.textContent || '';
+          copyText(code.replace(/\n$/, ''));
+        }
+      }
+
+      // 检查是否点击了行内代码
+      if (target.tagName === 'CODE' && !target.closest('pre')) {
+        const code = target.textContent || '';
+        copyText(code);
+      }
+    };
+
+    container.addEventListener('click', handleClick);
+
+    return () => {
+      clearImageBlobCache();
+      container.removeEventListener('click', handleClick);
+    };
+  }, []);
 
   // ==================== 组件样式 ====================
   const componentStyles = {
@@ -445,11 +462,12 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
         open={previewOpen}
         onClose={() => {
           setPreviewOpen(false);
-          setPreviewImgSrc('');
+          setPreviewImgBlobUrl('');
         }}
       >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={previewImgSrc}
+          src={previewImgBlobUrl}
           alt='preview'
           style={{ width: '100%', height: '100%' }}
         />

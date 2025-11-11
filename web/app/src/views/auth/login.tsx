@@ -49,6 +49,19 @@ import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+function isWeComByUA() {
+  if (typeof navigator === 'undefined') {
+    return false;
+  }
+  const ua = navigator.userAgent.toLowerCase();
+  // 1. 必须包含 MicroMessenger (表示微信/企业微信内核)
+  // 2. 必须包含 wxwork 或 wecom (表示企业微信)
+  return (
+    ua.includes('micromessenger') &&
+    (ua.includes('wxwork') || ua.includes('wecom'))
+  );
+}
+
 export default function Login() {
   const searchParams = useSearchParams();
   const [password, setPassword] = useState('');
@@ -126,6 +139,7 @@ export default function Login() {
     clearCookie();
     postShareProV1AuthWecom({
       redirect_url: redirectUrl,
+      is_app: isWeComByUA(),
     }).then(res => {
       window.location.href = res.url || '/';
     });

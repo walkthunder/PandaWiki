@@ -18,7 +18,8 @@ import (
 
 const (
 	// AuthURL api doc https://developer.work.weixin.qq.com/document/path/98152
-	AuthURL       = "https://login.work.weixin.qq.com/wwlogin/sso/login"
+	AuthWebURL    = "https://login.work.weixin.qq.com/wwlogin/sso/login"
+	AuthAPPURL    = "https://open.weixin.qq.com/connect/oauth2/authorize"
 	TokenURL      = "https://qyapi.weixin.qq.com/cgi-bin/gettoken"
 	UserInfoURL   = "https://qyapi.weixin.qq.com/cgi-bin/auth/getuserinfo"
 	UserDetailURL = "https://qyapi.weixin.qq.com/cgi-bin/user/get"
@@ -28,11 +29,6 @@ const (
 	UserListUrl  = "https://qyapi.weixin.qq.com/cgi-bin/user/list"
 	callbackPath = "/share/pro/v1/openapi/wecom/callback"
 )
-
-var oauthEndpoint = oauth2.Endpoint{
-	AuthURL:  AuthURL,
-	TokenURL: TokenURL,
-}
 
 // Client 企业微信客户端
 type Client struct {
@@ -115,17 +111,24 @@ type UserListResponse struct {
 	} `json:"userlist"`
 }
 
-func NewClient(ctx context.Context, logger *log.Logger, corpID, corpSecret, agentID, redirectURI string, cache *cache.Cache) (*Client, error) {
+func NewClient(ctx context.Context, logger *log.Logger, corpID, corpSecret, agentID, redirectURI string, cache *cache.Cache, isApp bool) (*Client, error) {
 	redirectURL, _ := url.Parse(redirectURI)
 	redirectURL.Path = callbackPath
 	redirectURI = redirectURL.String()
+	authUrl := AuthWebURL
+	if isApp {
+		authUrl = AuthAPPURL
+	}
 
 	oauthConfig := &oauth2.Config{
 		ClientID:     corpID,
 		ClientSecret: corpSecret,
 		RedirectURL:  redirectURI,
-		Endpoint:     oauthEndpoint,
-		Scopes:       []string{"snsapi_privateinfo"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  authUrl,
+			TokenURL: TokenURL,
+		},
+		Scopes: []string{"snsapi_privateinfo"},
 	}
 
 	return &Client{
@@ -150,7 +153,11 @@ func (c *Client) GenerateAuthURL(state string) string {
 	params.Set("agentid", c.agentID)
 	params.Set("state", state)
 
-	return fmt.Sprintf("%s?%s", AuthURL, params.Encode())
+	authUrl := fmt.Sprintf("%s?%s", c.oauthConfig.Endpoint.AuthURL, params.Encode())
+	if c.oauthConfig.Endpoint.AuthURL == AuthAPPURL {
+		authUrl += "#wechat_redirect"
+	}
+	return authUrl
 }
 
 // GetAccessToken 获取企业微信访问令牌

@@ -137,9 +137,7 @@ const ActionMenu = ({
         {record.status! !== -1 && (
           <MenuItem onClick={handleReject}>拒绝</MenuItem>
         )}
-        <MenuItem color='error' onClick={handleDelete}>
-          删除
-        </MenuItem>
+        <MenuItem onClick={handleDelete}>删除</MenuItem>
       </Menu>
     </>
   );
@@ -164,11 +162,8 @@ const Comments = ({
     useState<DomainWebAppCommentSettings | null>(null);
 
   const isEnableReview = useMemo(() => {
-    return !!(
-      appSetting?.moderation_enable &&
-      (license.edition === 1 || license.edition === 2)
-    );
-  }, [appSetting, license]);
+    return !!(license.edition === 1 || license.edition === 2);
+  }, [license]);
 
   useEffect(() => {
     setShowCommentsFilter(isEnableReview);
@@ -311,7 +306,8 @@ const Comments = ({
       title: '操作',
       width: 120,
       render: (text: string, record: DomainCommentListItem) => {
-        return isEnableReview ? (
+        return isEnableReview &&
+          (appSetting?.moderation_enable || record.status === 0) ? (
           <ActionMenu
             record={record}
             onDeleteComment={onDeleteComment}

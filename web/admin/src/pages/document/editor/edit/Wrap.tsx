@@ -3,6 +3,7 @@ import Emoji from '@/components/Emoji';
 import { postApiV1CreationTabComplete, putApiV1NodeDetail } from '@/request';
 import { V1NodeDetailResp } from '@/request/types';
 import { useAppSelector } from '@/store';
+import { completeIncompleteLinks } from '@/utils';
 import {
   EditorMarkdown,
   MarkdownEditorRef,
@@ -117,19 +118,6 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
     });
   };
 
-  const handleExport = async (type: string) => {
-    const value = editorRef?.getContent() || '';
-    if (!value) return;
-    const blob = new Blob([value], { type: `text/${type}` });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${nodeDetail?.name}.${type}`;
-    a.click();
-    URL.revokeObjectURL(url);
-    message.success('导出成功');
-  };
-
   const handleUpload = async (
     file: File,
     onProgress?: (progress: { progress: number }) => void,
@@ -207,8 +195,31 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
     onAiWritingGetSuggestion: handleAiWritingGetSuggestion,
   });
 
+  const handleExport = useCallback(
+    async (type: string) => {
+      let value = editorRef?.getContent() || '';
+      if (isMarkdown) {
+        value = nodeDetail?.content || '';
+      }
+      if (!value) return;
+      const content = completeIncompleteLinks(value);
+      const blob = new Blob([content], { type: `text/${type}` });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${nodeDetail?.name}.${type}`;
+      a.click();
+      URL.revokeObjectURL(url);
+      message.success('导出成功');
+    },
+    [editorRef, nodeDetail?.content, nodeDetail?.name, isMarkdown],
+  );
+
   const checkIfEdited = useCallback(() => {
-    const currentContent = editorRef?.getContent() || '';
+    let currentContent = editorRef?.getContent() || '';
+    if (isMarkdown) {
+      currentContent = nodeDetail?.content || '';
+    }
     const currentSummary = summary;
     const currentEmoji = nodeDetail?.meta?.emoji || '';
 
@@ -218,7 +229,13 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
       currentEmoji !== initialStateRef.current.emoji;
 
     setIsEditing(hasChanges);
-  }, [editorRef, summary, nodeDetail?.meta?.emoji, isMarkdown]);
+  }, [
+    editorRef,
+    summary,
+    nodeDetail?.meta?.emoji,
+    nodeDetail?.content,
+    isMarkdown,
+  ]);
 
   const handleAiGenerate = useCallback(() => {
     if (editorRef.editor) {
@@ -235,10 +252,13 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
 
   const changeCatalogItem = useCallback(() => {
     if (editorRef && editorRef.editor) {
-      const content = editorRef.getContent();
-      updateDetail({
-        content: content,
-      });
+      let content = nodeDetail?.content || '';
+      if (!isMarkdown) {
+        content = editorRef.getContent();
+        updateDetail({
+          content: content,
+        });
+      }
       onSave(content);
       initialStateRef.current = {
         content: content,
@@ -247,28 +267,24 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
       };
       setIsEditing(false);
     }
-  }, [id, editorRef, onSave, summary, nodeDetail?.meta?.emoji, isMarkdown]);
+  }, [
+    id,
+    editorRef,
+    onSave,
+    summary,
+    nodeDetail?.meta?.emoji,
+    nodeDetail?.content,
+    isMarkdown,
+  ]);
 
   const handleGlobalSave = useCallback(
     (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
         event.preventDefault();
-        if (editorRef && editorRef.editor) {
-          const content = editorRef.getContent();
-          updateDetail({
-            content: content,
-          });
-          onSave(content);
-          initialStateRef.current = {
-            content: content,
-            summary: summary,
-            emoji: nodeDetail?.meta?.emoji || '',
-          };
-          setIsEditing(false);
-        }
+        changeCatalogItem();
       }
     },
-    [editorRef, onSave, id, summary, nodeDetail?.meta?.emoji, isMarkdown],
+    [changeCatalogItem],
   );
 
   const renderEditorTitleEmojiSummary = () => {
@@ -540,11 +556,14 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
   useEffect(() => {
     const handleTabClose = () => {
       if (isEditing) {
-        const content = editorRef?.getContent() || '';
+        let content = nodeDetail?.content || '';
+        if (!isMarkdown) {
+          content = editorRef.getContent();
+          updateDetail({
+            content: content,
+          });
+        }
         onSave(content);
-        updateDetail({
-          content: content,
-        });
         // 更新初始状态引用
         initialStateRef.current = {
           content: content,
@@ -555,9 +574,14 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
     };
     const handleVisibilityChange = () => {
       if (document.hidden && isEditing) {
-        const content = editorRef?.getContent() || '';
+        let content = nodeDetail?.content || '';
+        if (!isMarkdown) {
+          content = editorRef.getContent();
+          updateDetail({
+            content: content,
+          });
+        }
         onSave(content);
-        updateDetail({});
         // 更新初始状态引用
         initialStateRef.current = {
           content: content,
@@ -572,7 +596,14 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
       window.removeEventListener('beforeunload', handleTabClose);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [editorRef, isEditing, summary, nodeDetail?.meta?.emoji]);
+  }, [
+    editorRef,
+    isEditing,
+    summary,
+    nodeDetail?.meta?.emoji,
+    nodeDetail?.content,
+    isMarkdown,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -630,17 +661,18 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
               flex: 1,
             }}
           >
-            <Box sx={{}}>{renderEditorTitleEmojiSummary()}</Box>
+            <Box>{renderEditorTitleEmojiSummary()}</Box>
             <EditorMarkdown
               ref={markdownEditorRef}
               editor={editorRef.editor}
               value={nodeDetail?.content || ''}
+              onUpload={handleUpload}
               onAceChange={value => {
                 updateDetail({
                   content: value,
                 });
               }}
-              height='calc(100vh - 340px)'
+              height='calc(100vh - 360px)'
             />
           </Box>
         ) : (

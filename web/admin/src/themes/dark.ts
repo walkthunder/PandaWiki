@@ -51,7 +51,7 @@ const dark = {
   text: {
     primary: '#fff',
     secondary: 'rgba(255,255,255,0.7)',
-    auxiliary: 'rgba(255,255,255,0.5)',
+    tertiary: 'rgba(255,255,255,0.5)',
     disabled: 'rgba(255,255,255,0.26)',
     slave: 'rgba(255,255,255,0.05)',
     inverseAuxiliary: 'rgba(0,0,0,0.5)',

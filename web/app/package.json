@@ -25,7 +25,6 @@
     "highlight.js": "^11.11.1",
     "html-react-parser": "^5.2.5",
     "html-to-image": "^1.11.13",
-    "import-in-the-middle": "^1.14.2",
     "js-cookie": "^3.0.5",
     "katex": "^0.16.22",
     "markdown-it": "13.0.1",
@@ -42,7 +41,6 @@
     "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
-    "require-in-the-middle": "^7.5.2",
     "uuid": "^11.1.0"
   },
   "devDependencies": {

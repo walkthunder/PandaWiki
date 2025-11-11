@@ -1,11 +1,22 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { FC } from 'react';
-import Item, { ItemProps } from './Item';
+import { ComponentType } from 'react';
 
-type SortableItemProps = ItemProps & {};
+export interface SortableItemProps<T extends { id?: string | null }> {
+  id: string;
+  item: T;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ItemComponent: ComponentType<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+}
 
-const SortableItem: FC<SortableItemProps> = ({ item, ...rest }) => {
+function SortableItem<T extends { id?: string | null }>({
+  id,
+  item,
+  ItemComponent,
+  ...rest
+}: SortableItemProps<T>) {
   const {
     isDragging,
     attributes,
@@ -13,7 +24,7 @@ const SortableItem: FC<SortableItemProps> = ({ item, ...rest }) => {
     setNodeRef,
     transform,
     transition,
-  } = useSortable({ id: item.id! });
+  } = useSortable({ id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -21,7 +32,7 @@ const SortableItem: FC<SortableItemProps> = ({ item, ...rest }) => {
   };
 
   return (
-    <Item
+    <ItemComponent
       ref={setNodeRef}
       style={style}
       withOpacity={isDragging}
@@ -33,6 +44,6 @@ const SortableItem: FC<SortableItemProps> = ({ item, ...rest }) => {
       {...rest}
     />
   );
-};
+}
 
 export default SortableItem;

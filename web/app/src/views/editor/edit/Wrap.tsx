@@ -267,10 +267,10 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
                 gap={0.5}
                 sx={{
                   fontSize: 12,
-                  color: 'text.auxiliary',
+                  color: 'text.tertiary',
                   cursor: 'text',
                   ':hover': {
-                    color: 'text.auxiliary',
+                    color: 'text.tertiary',
                   },
                 }}
               >
@@ -286,7 +286,7 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
               direction={'row'}
               alignItems={'center'}
               gap={0.5}
-              sx={{ fontSize: 12, color: 'text.auxiliary' }}
+              sx={{ fontSize: 12, color: 'text.tertiary' }}
             >
               <IconZiti />
               {characterCount} 字

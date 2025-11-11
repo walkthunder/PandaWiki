@@ -573,3 +573,30 @@ func (u *NodeUsecase) SyncRagNodeStatus(ctx context.Context) error {
 
 	return nil
 }
+
+func (u *NodeUsecase) NodeRestudy(ctx context.Context, req *v1.NodeRestudyReq) error {
+	nodeReleases, err := u.nodeRepo.GetLatestNodeReleaseByNodeIDs(ctx, req.KbId, req.NodeIds)
+	if err != nil {
+		return fmt.Errorf("get latest node release failed: %w", err)
+	}
+
+	for _, nodeRelease := range nodeReleases {
+		if nodeRelease.DocID == "" {
+			continue
+		}
+		if err := u.ragRepo.AsyncUpdateNodeReleaseVector(ctx, []*domain.NodeReleaseVectorRequest{
+			{
+				KBID:          nodeRelease.KBID,
+				NodeReleaseID: nodeRelease.ID,
+				Action:        "upsert",
+			},
+		}); err != nil {
+			u.logger.Error("async update node release vector failed",
+				log.String("node_release_id", nodeRelease.ID),
+				log.Error(err))
+			continue
+		}
+	}
+
+	return nil
+}

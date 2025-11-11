@@ -1623,10 +1623,37 @@ export interface V1NodePermissionResp {
   visitable_groups?: DomainNodeGroupDetail[];
 }
 
+export interface V1NodeRestudyReq {
+  kb_id?: string;
+  node_ids?: string[];
+}
+
+export type V1NodeRestudyResp = Record<string, any>;
+
 export interface V1ResetPasswordReq {
   id: string;
   /** @minLength 8 */
   new_password: string;
+}
+
+export interface V1ShareNodeDetailResp {
+  content?: string;
+  created_at?: string;
+  creator_account?: string;
+  creator_id?: string;
+  editor_account?: string;
+  editor_id?: string;
+  id?: string;
+  kb_id?: string;
+  meta?: DomainNodeMeta;
+  name?: string;
+  parent_id?: string;
+  permissions?: DomainNodePermissions;
+  publisher_account?: string;
+  publisher_id?: string;
+  status?: DomainNodeStatus;
+  type?: DomainNodeType;
+  updated_at?: string;
 }
 
 export interface V1StatCountResp {

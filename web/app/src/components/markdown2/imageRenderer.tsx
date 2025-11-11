@@ -1,8 +1,55 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { styled, SvgIcon, SvgIconProps } from '@mui/material';
+
+// ==================== 图片数据缓存 ====================
+// 全局图片 blob URL 缓存，避免重复请求 OSS
+const imageBlobCache = new Map<string, string>();
+
+// 下载图片并转换为 blob URL
+const fetchImageAsBlob = async (src: string): Promise<string> => {
+  // 检查缓存
+  if (imageBlobCache.has(src)) {
+    return imageBlobCache.get(src)!;
+  }
+
+  try {
+    const response = await fetch(src, {
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'omit',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+
+    // 缓存 blob URL
+    imageBlobCache.set(src, blobUrl);
+
+    return blobUrl;
+  } catch (error) {
+    console.error('Error fetching image as blob:', error);
+    throw error;
+  }
+};
+
+// 导出获取图片 blob URL 的函数
+export const getImageBlobUrl = (src: string): string | null => {
+  return imageBlobCache.get(src) || null;
+};
+
+export const clearImageBlobCache = () => {
+  imageBlobCache.forEach(url => {
+    URL.revokeObjectURL(url);
+  });
+  imageBlobCache.clear();
+};
 
 const StyledErrorContainer = styled('div')(({ theme }) => ({
   display: 'flex',
@@ -22,7 +69,7 @@ const StyledErrorContainer = styled('div')(({ theme }) => ({
   fontSize: '14px',
 }));
 
-const StyledErrorText = styled('div')(({ theme }) => ({
+const StyledErrorText = styled('div')(() => ({
   fontSize: '12px',
   marginBottom: 16,
 }));
@@ -52,7 +99,7 @@ export const ImageErrorIcon = (props: SvgIconProps) => {
 };
 
 // 错误展示组件
-const ImageErrorDisplay = () => (
+const ImageErrorDisplay: React.FC = () => (
   <StyledErrorContainer>
     <ImageErrorIcon
       sx={{ color: 'var(--mui-palette-text-tertiary)', fontSize: 160 }}
@@ -85,6 +132,7 @@ const ImageComponent: React.FC<ImageComponentProps> = ({
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>(
     'loading',
   );
+  const [blobUrl, setBlobUrl] = useState<string>('');
 
   // 基础样式对象
   const baseStyleObj = {
@@ -97,6 +145,28 @@ const ImageComponent: React.FC<ImageComponentProps> = ({
     boxSizing: 'content-box' as const,
     backgroundColor: 'var(--color-canvas-default)',
   };
+
+  // 获取图片 blob URL
+  useEffect(() => {
+    let mounted = true;
+    fetchImageAsBlob(src)
+      .then(url => {
+        if (mounted) {
+          setBlobUrl(url);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch image blob:', err);
+        if (mounted) {
+          // 如果获取 blob 失败，回退到使用原始 URL
+          setBlobUrl(src);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [src]);
 
   // 解析自定义样式
   const parseStyleString = (styleStr: string) => {
@@ -160,16 +230,31 @@ const ImageComponent: React.FC<ImageComponentProps> = ({
     <>
       {status === 'error' ? (
         <ImageErrorDisplay />
-      ) : (
+      ) : blobUrl ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
         <img
-          src={src}
+          src={blobUrl}
           alt={alt || 'markdown-img'}
           referrerPolicy='no-referrer'
           onLoad={handleLoad}
           onError={handleError}
-          onClick={() => onImageClick(src)}
+          onClick={() => onImageClick(src)} // 传递原始 src 用于预览
           {...getOtherProps()}
         />
+      ) : (
+        // 加载中显示占位符
+        <div
+          style={{
+            ...baseStyleObj,
+            minHeight: '100px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#999',
+          }}
+        >
+          加载中...
+        </div>
       )}
     </>
   );
@@ -211,7 +296,7 @@ export const createImageRenderer = (options: ImageRendererOptions) => {
           img.addEventListener('click', () => {
             try {
               onImageClick(img.src);
-            } catch (e) {
+            } catch {
               // noop
             }
           });
@@ -227,10 +312,6 @@ export const createImageRenderer = (options: ImageRendererOptions) => {
     requestAnimationFrame(() => {
       const placeholder = document.querySelector(
         `.image-container-${imageIndex}`,
-      );
-      console.log(
-        `Looking for placeholder with index ${imageIndex}:`,
-        placeholder,
       );
       if (placeholder) {
         const root = createRoot(placeholder);

@@ -1,10 +1,10 @@
 'use client';
 import { V1NodeDetailResp } from '@/request/types';
+import { Ellipsis, Icon } from '@ctzhian/ui';
+import { Box, Button, Skeleton, Stack } from '@mui/material';
 import { IconBaocun } from '@panda-wiki/icons';
-import { Box, Button, IconButton, Skeleton, Stack } from '@mui/material';
-import { Ellipsis, Icon, message } from '@ctzhian/ui';
 import dayjs from 'dayjs';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useWrapContext } from '..';
 
 interface HeaderProps {
@@ -46,7 +46,7 @@ const Header = ({ edit, detail, handleSave }: HeaderProps) => {
             onClick={() => setCatalogOpen(true)}
             sx={{
               cursor: 'pointer',
-              color: 'text.auxiliary',
+              color: 'text.tertiary',
               ':hover': {
                 color: 'text.primary',
               },
@@ -78,7 +78,7 @@ const Header = ({ edit, detail, handleSave }: HeaderProps) => {
               direction={'row'}
               alignItems={'center'}
               gap={0.5}
-              sx={{ fontSize: 12, color: 'text.auxiliary' }}
+              sx={{ fontSize: 12, color: 'text.tertiary' }}
             >
               <IconBaocun sx={{ fontSize: 12 }} />
               {nodeDetail?.updated_at ? (

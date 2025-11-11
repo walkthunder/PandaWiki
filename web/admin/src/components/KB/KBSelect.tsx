@@ -3,7 +3,6 @@ import { useURLSearchParams } from '@/hooks';
 import { ConstsUserRole } from '@/request/types';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { setKbC, setKbId } from '@/store/slices/config';
-import custom from '@/themes/custom';
 import { Ellipsis, Icon, message } from '@ctzhian/ui';
 import {
   Box,
@@ -117,7 +116,7 @@ const KBSelect = () => {
               borderRadius: '5px',
               bgcolor: 'background.paper3',
               '&:hover': {
-                bgcolor: custom.selectedMenuItemBgColor,
+                bgcolor: 'rgba(50,72,242,0.1)',
               },
             }}
             fullWidth

@@ -83,7 +83,7 @@ export default function ContributePreviewModal(
               ? '新增'
               : '修改'}
           </Box>
-          <Box sx={{ fontSize: 14, color: 'text.auxiliary', fontWeight: 400 }}>
+          <Box sx={{ fontSize: 14, color: 'text.tertiary', fontWeight: 400 }}>
             {dayjs(row?.created_at).fromNow()}
           </Box>
         </Stack>
