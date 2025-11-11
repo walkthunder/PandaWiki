@@ -63,20 +63,48 @@ const CardListen = ({
 
   // 验证证书文件内容
   const validateCertificate = (content: string): boolean => {
-    return (
-      content.includes('-----BEGIN CERTIFICATE-----') &&
-      content.includes('-----END CERTIFICATE-----')
-    );
+    // 检查是否包含证书开始和结束标记
+    if (
+      !content.includes('-----BEGIN CERTIFICATE-----') ||
+      !content.includes('-----END CERTIFICATE-----')
+    ) {
+      return false;
+    }
+
+    // 检查是否不包含私钥标记
+    if (
+      content.includes('-----BEGIN PRIVATE KEY-----') ||
+      content.includes('-----BEGIN RSA PRIVATE KEY-----')
+    ) {
+      return false;
+    }
+
+    return true;
   };
 
   // 验证私钥文件内容
   const validatePrivateKey = (content: string): boolean => {
-    return (
-      (content.includes('-----BEGIN PRIVATE KEY-----') &&
-        content.includes('-----END PRIVATE KEY-----')) ||
-      (content.includes('-----BEGIN RSA PRIVATE KEY-----') &&
-        content.includes('-----END RSA PRIVATE KEY-----'))
-    );
+    // 检查是否包含私钥开始和结束标记
+    if (
+      !(
+        (content.includes('-----BEGIN PRIVATE KEY-----') &&
+          content.includes('-----END PRIVATE KEY-----')) ||
+        (content.includes('-----BEGIN RSA PRIVATE KEY-----') &&
+          content.includes('-----END RSA PRIVATE KEY-----'))
+      )
+    ) {
+      return false;
+    }
+
+    // 检查是否不包含证书标记
+    if (
+      content.includes('-----BEGIN CERTIFICATE-----') ||
+      content.includes('-----END CERTIFICATE-----')
+    ) {
+      return false;
+    }
+
+    return true;
   };
 
   const onSubmit = handleSubmit(value => {
@@ -92,7 +120,9 @@ const CardListen = ({
       if (value.httpsCert) {
         // 验证证书格式
         if (!validateCertificate(value.httpsCert)) {
-          message.error('证书文件格式不正确，请上传有效的证书文件');
+          message.error(
+            '证书文件格式不正确，请上传有效的证书文件（不应包含私钥内容）',
+          );
           return;
         }
         formData.public_key = value.httpsCert;
@@ -103,7 +133,9 @@ const CardListen = ({
       if (value.httpsKey) {
         // 验证私钥格式
         if (!validatePrivateKey(value.httpsKey)) {
-          message.error('私钥文件格式不正确，请上传有效的私钥文件');
+          message.error(
+            '私钥文件格式不正确，请上传有效的私钥文件（不应包含证书内容）',
+          );
           return;
         }
         formData.private_key = value.httpsKey;

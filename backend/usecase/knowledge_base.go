@@ -83,70 +83,70 @@ func (u *KnowledgeBaseUsecase) CreateKnowledgeBase(ctx context.Context, req *dom
 
 // validateSSLCertificates 验证SSL证书和私钥是否有效且匹配
 func validateSSLCertificates(certPEM, keyPEM string) error {
-	// 解析证书
-	certBlock, _ := pem.Decode([]byte(certPEM))
-	if certBlock == nil {
-		return fmt.Errorf("无法解析证书PEM数据")
-	}
-	
-	if certBlock.Type != "CERTIFICATE" {
-		return fmt.Errorf("证书PEM类型不正确: %s", certBlock.Type)
-	}
-	
-	cert, err := x509.ParseCertificate(certBlock.Bytes)
-	if err != nil {
-		return fmt.Errorf("无法解析证书: %v", err)
-	}
-	
-	// 检查证书版本（必须是版本3）
-	if cert.Version != 3 {
-		return fmt.Errorf("证书必须是版本3 (X.509 v3)，当前版本: %d", cert.Version)
-	}
-	
-	// 解析私钥
-	keyBlock, _ := pem.Decode([]byte(keyPEM))
-	if keyBlock == nil {
-		return fmt.Errorf("无法解析私钥PEM数据")
-	}
-	
-	var parsedKey crypto.PrivateKey
-	switch keyBlock.Type {
-	case "RSA PRIVATE KEY":
-		parsedKey, err = x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
-	case "PRIVATE KEY":
-		parsedKey, err = x509.ParsePKCS8PrivateKey(keyBlock.Bytes)
-	default:
-		return fmt.Errorf("私钥PEM类型不支持: %s", keyBlock.Type)
-	}
-	
-	if err != nil {
-		return fmt.Errorf("无法解析私钥: %v", err)
-	}
-	
-	// 验证证书和私钥是否匹配
-	switch pub := cert.PublicKey.(type) {
-	case *rsa.PublicKey:
-		if priv, ok := parsedKey.(*rsa.PrivateKey); ok {
-			if pub.N.Cmp(priv.N) != 0 || pub.E != priv.E {
-				return fmt.Errorf("证书和私钥不匹配")
-			}
-		} else {
-			return fmt.Errorf("私钥类型与证书公钥不匹配")
-		}
-	default:
-		return fmt.Errorf("不支持的公钥类型")
-	}
-	
-	// 检查证书是否过期
-	now := time.Now()
-	if now.Before(cert.NotBefore) {
-		return fmt.Errorf("证书尚未生效，生效时间: %v", cert.NotBefore)
-	}
-	if now.After(cert.NotAfter) {
-		return fmt.Errorf("证书已过期，过期时间: %v", cert.NotAfter)
-	}
-	
-	return nil
+    // 验证证书PEM格式
+    certBlock, _ := pem.Decode([]byte(certPEM))
+    if certBlock == nil {
+        return fmt.Errorf("无法解析证书PEM数据，请确保上传的是有效的证书文件")
+    }
+    
+    if certBlock.Type != "CERTIFICATE" {
+        return fmt.Errorf("证书PEM类型不正确: %s，请确保上传的是证书文件而非私钥", certBlock.Type)
+    }
+    
+    cert, err := x509.ParseCertificate(certBlock.Bytes)
+    if err != nil {
+        return fmt.Errorf("无法解析证书: %v", err)
+    }
+    
+    // 检查证书版本（必须是版本3）
+    if cert.Version != 3 {
+        return fmt.Errorf("证书必须是版本3 (X.509 v3)，当前版本: %d", cert.Version)
+    }
+    
+    // 验证私钥PEM格式
+    keyBlock, _ := pem.Decode([]byte(keyPEM))
+    if keyBlock == nil {
+        return fmt.Errorf("无法解析私钥PEM数据，请确保上传的是有效的私钥文件")
+    }
+    
+    var parsedKey crypto.PrivateKey
+    switch keyBlock.Type {
+    case "RSA PRIVATE KEY":
+        parsedKey, err = x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
+    case "PRIVATE KEY":
+        parsedKey, err = x509.ParsePKCS8PrivateKey(keyBlock.Bytes)
+    default:
+        return fmt.Errorf("私钥PEM类型不支持: %s，请确保上传的是私钥文件而非证书", keyBlock.Type)
+    }
+    
+    if err != nil {
+        return fmt.Errorf("无法解析私钥: %v", err)
+    }
+    
+    // 验证证书和私钥是否匹配
+    switch pub := cert.PublicKey.(type) {
+    case *rsa.PublicKey:
+        if priv, ok := parsedKey.(*rsa.PrivateKey); ok {
+            if pub.N.Cmp(priv.N) != 0 || pub.E != priv.E {
+                return fmt.Errorf("证书和私钥不匹配，请确保上传的是配对的证书和私钥文件")
+            }
+        } else {
+            return fmt.Errorf("私钥类型与证书公钥不匹配")
+        }
+    default:
+        return fmt.Errorf("不支持的公钥类型")
+    }
+    
+    // 检查证书是否过期
+    now := time.Now()
+    if now.Before(cert.NotBefore) {
+        return fmt.Errorf("证书尚未生效，生效时间: %v", cert.NotBefore)
+    }
+    if now.After(cert.NotAfter) {
+        return fmt.Errorf("证书已过期，过期时间: %v", cert.NotAfter)
+    }
+    
+    return nil
 }
 
 func (u *KnowledgeBaseUsecase) GetKnowledgeBaseList(ctx context.Context) ([]*domain.KnowledgeBaseListItem, error) {
@@ -166,6 +166,15 @@ func (u *KnowledgeBaseUsecase) GetKnowledgeBaseListByUserId(ctx context.Context)
 }
 
 func (u *KnowledgeBaseUsecase) UpdateKnowledgeBase(ctx context.Context, req *domain.UpdateKnowledgeBaseReq) error {
+	// 如果提供了SSL证书和私钥，验证它们
+	if req.AccessSettings != nil && 
+	   len(req.AccessSettings.PublicKey) > 0 && 
+	   len(req.AccessSettings.PrivateKey) > 0 {
+		if err := validateSSLCertificates(req.AccessSettings.PublicKey, req.AccessSettings.PrivateKey); err != nil {
+			return fmt.Errorf("SSL证书验证失败: %v", err)
+		}
+	}
+	
 	isChange, err := u.repo.UpdateKnowledgeBase(ctx, req)
 	if err != nil {
 		return err
