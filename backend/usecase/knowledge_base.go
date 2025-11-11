@@ -2,6 +2,10 @@ package usecase
 
 import (
 	"context"
+	"crypto"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"time"
 
@@ -49,6 +53,14 @@ func (u *KnowledgeBaseUsecase) CreateKnowledgeBase(ctx context.Context, req *dom
 	if err != nil {
 		return "", err
 	}
+	
+	// 验证SSL证书和私钥（如果提供了）
+	if len(req.PublicKey) > 0 && len(req.PrivateKey) > 0 {
+		if err := validateSSLCertificates(req.PublicKey, req.PrivateKey); err != nil {
+			return "", fmt.Errorf("SSL证书验证失败: %v", err)
+		}
+	}
+	
 	kbID := uuid.New().String()
 	kb := &domain.KnowledgeBase{
 		ID:        kbID,
@@ -67,6 +79,74 @@ func (u *KnowledgeBaseUsecase) CreateKnowledgeBase(ctx context.Context, req *dom
 		return "", err
 	}
 	return kbID, nil
+}
+
+// validateSSLCertificates 验证SSL证书和私钥是否有效且匹配
+func validateSSLCertificates(certPEM, keyPEM string) error {
+	// 解析证书
+	certBlock, _ := pem.Decode([]byte(certPEM))
+	if certBlock == nil {
+		return fmt.Errorf("无法解析证书PEM数据")
+	}
+	
+	if certBlock.Type != "CERTIFICATE" {
+		return fmt.Errorf("证书PEM类型不正确: %s", certBlock.Type)
+	}
+	
+	cert, err := x509.ParseCertificate(certBlock.Bytes)
+	if err != nil {
+		return fmt.Errorf("无法解析证书: %v", err)
+	}
+	
+	// 检查证书版本（必须是版本3）
+	if cert.Version != 3 {
+		return fmt.Errorf("证书必须是版本3 (X.509 v3)，当前版本: %d", cert.Version)
+	}
+	
+	// 解析私钥
+	keyBlock, _ := pem.Decode([]byte(keyPEM))
+	if keyBlock == nil {
+		return fmt.Errorf("无法解析私钥PEM数据")
+	}
+	
+	var parsedKey crypto.PrivateKey
+	switch keyBlock.Type {
+	case "RSA PRIVATE KEY":
+		parsedKey, err = x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
+	case "PRIVATE KEY":
+		parsedKey, err = x509.ParsePKCS8PrivateKey(keyBlock.Bytes)
+	default:
+		return fmt.Errorf("私钥PEM类型不支持: %s", keyBlock.Type)
+	}
+	
+	if err != nil {
+		return fmt.Errorf("无法解析私钥: %v", err)
+	}
+	
+	// 验证证书和私钥是否匹配
+	switch pub := cert.PublicKey.(type) {
+	case *rsa.PublicKey:
+		if priv, ok := parsedKey.(*rsa.PrivateKey); ok {
+			if pub.N.Cmp(priv.N) != 0 || pub.E != priv.E {
+				return fmt.Errorf("证书和私钥不匹配")
+			}
+		} else {
+			return fmt.Errorf("私钥类型与证书公钥不匹配")
+		}
+	default:
+		return fmt.Errorf("不支持的公钥类型")
+	}
+	
+	// 检查证书是否过期
+	now := time.Now()
+	if now.Before(cert.NotBefore) {
+		return fmt.Errorf("证书尚未生效，生效时间: %v", cert.NotBefore)
+	}
+	if now.After(cert.NotAfter) {
+		return fmt.Errorf("证书已过期，过期时间: %v", cert.NotAfter)
+	}
+	
+	return nil
 }
 
 func (u *KnowledgeBaseUsecase) GetKnowledgeBaseList(ctx context.Context) ([]*domain.KnowledgeBaseListItem, error) {

@@ -46,18 +46,24 @@ func createSelfSignedCerts() error {
 		return fmt.Errorf("failed to generate private key: %v", err)
 	}
 
-	// Create certificate template
+	// Create certificate template with proper X.509 v3 extensions
+	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
+	if err != nil {
+		return fmt.Errorf("failed to generate serial number: %v", err)
+	}
+
 	template := x509.Certificate{
-		SerialNumber: big.NewInt(1),
+		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			CommonName: "pandawiki.docs.baizhi.cloud",
 		},
 		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(10, 0, 0), // Certificate valid for 10 year
-		IsCA:                  true,
-		BasicConstraintsValid: true,
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		NotAfter:              time.Now().AddDate(10, 0, 0), // Certificate valid for 10 years
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+		IsCA:                  false,
 		DNSNames:              []string{"pandawiki.docs.baizhi.cloud"},
 	}
 
