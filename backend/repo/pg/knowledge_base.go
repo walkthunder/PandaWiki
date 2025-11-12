@@ -87,20 +87,9 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 			}
 		}
 		if len(kb.AccessSettings.PublicKey) > 0 && len(kb.AccessSettings.PrivateKey) > 0 {
-			// 验证证书和私钥没有被颠倒
-			certContent := kb.AccessSettings.PublicKey
-			keyContent := kb.AccessSettings.PrivateKey
-			
-			// 检查证书内容是否以正确的标记开始
-			if len(certContent) >= 27 && certContent[:27] != "-----BEGIN CERTIFICATE-----" {
-				// 交换证书和私钥（修复可能的数据错误）
-				certContent, keyContent = keyContent, certContent
-				r.logger.Info("Swapped certificate and key for kb", "kb_id", kb.ID)
-			}
-			
 			certs = append(certs, map[string]any{
-				"certificate": certContent,
-				"key":         keyContent,
+				"certificate": kb.AccessSettings.PublicKey,
+				"key":         kb.AccessSettings.PrivateKey,
 				"tags":        []string{kb.ID},
 			})
 		}
