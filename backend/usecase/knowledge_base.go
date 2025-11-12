@@ -48,21 +48,41 @@ func NewKnowledgeBaseUsecase(repo *pg.KnowledgeBaseRepository, nodeRepo *pg.Node
 }
 
 func (u *KnowledgeBaseUsecase) CreateKnowledgeBase(ctx context.Context, req *domain.CreateKnowledgeBaseReq) (string, error) {
+	u.logger.Info("开始创建知识库", "name", req.Name)
+	
 	// create kb in vector store
 	datasetID, err := u.rag.CreateKnowledgeBase(ctx)
 	if err != nil {
+		u.logger.Error("创建向量数据库失败", "error", err)
 		return "", err
 	}
+	u.logger.Info("向量数据库创建成功", "dataset_id", datasetID)
 	
 	// 验证并自动纠正SSL证书和私钥（如果提供了）
 	if len(req.PublicKey) > 0 && len(req.PrivateKey) > 0 {
+		u.logger.Info("检测到SSL证书配置，开始验证", 
+			"cert_length", len(req.PublicKey),
+			"key_length", len(req.PrivateKey),
+		)
+		
 		correctedCert, correctedKey, err := validateAndFixSSLCertificates(req.PublicKey, req.PrivateKey)
 		if err != nil {
+			u.logger.Error("SSL证书验证失败", "error", err)
 			return "", err
 		}
+		
+		// 检查是否发生了纠正
+		if correctedCert != req.PublicKey || correctedKey != req.PrivateKey {
+			u.logger.Info("SSL证书和私钥顺序已自动纠正")
+		} else {
+			u.logger.Info("SSL证书和私钥验证通过")
+		}
+		
 		// 使用纠正后的证书和私钥
 		req.PublicKey = correctedCert
 		req.PrivateKey = correctedKey
+	} else {
+		u.logger.Info("未配置SSL证书")
 	}
 	
 	kbID := uuid.New().String()
@@ -91,17 +111,18 @@ func validateAndFixSSLCertificates(certPEM, keyPEM string) (string, string, erro
 	// 首先尝试正常顺序验证
 	err := validateSSLCertificates(certPEM, keyPEM)
 	if err == nil {
+		// 正常顺序验证成功
 		return certPEM, keyPEM, nil
 	}
 	
 	// 如果验证失败，尝试交换证书和私钥再验证
-	err = validateSSLCertificates(keyPEM, certPEM)
-	if err == nil {
-		// 交换成功，返回纠正后的顺序
+	err2 := validateSSLCertificates(keyPEM, certPEM)
+	if err2 == nil {
+		// 交换后验证成功，说明用户上传时颠倒了
 		return keyPEM, certPEM, nil
 	}
 	
-	// 两种顺序都失败，返回原始错误
+	// 两种顺序都失败，返回第一次的错误（更准确）
 	return "", "", fmt.Errorf("SSL证书验证失败: %v", err)
 }
 
@@ -190,14 +211,31 @@ func (u *KnowledgeBaseUsecase) GetKnowledgeBaseListByUserId(ctx context.Context)
 }
 
 func (u *KnowledgeBaseUsecase) UpdateKnowledgeBase(ctx context.Context, req *domain.UpdateKnowledgeBaseReq) error {
+	u.logger.Info("开始更新知识库", "kb_id", req.ID)
+	
 	// 如果提供了SSL证书和私钥，验证并自动纠正它们
 	if req.AccessSettings != nil && 
 	   len(req.AccessSettings.PublicKey) > 0 && 
 	   len(req.AccessSettings.PrivateKey) > 0 {
+		u.logger.Info("检测到SSL证书更新，开始验证", 
+			"kb_id", req.ID,
+			"cert_length", len(req.AccessSettings.PublicKey),
+			"key_length", len(req.AccessSettings.PrivateKey),
+		)
+		
 		correctedCert, correctedKey, err := validateAndFixSSLCertificates(req.AccessSettings.PublicKey, req.AccessSettings.PrivateKey)
 		if err != nil {
+			u.logger.Error("SSL证书验证失败", "kb_id", req.ID, "error", err)
 			return err
 		}
+		
+		// 检查是否发生了纠正
+		if correctedCert != req.AccessSettings.PublicKey || correctedKey != req.AccessSettings.PrivateKey {
+			u.logger.Info("SSL证书和私钥顺序已自动纠正", "kb_id", req.ID)
+		} else {
+			u.logger.Info("SSL证书和私钥验证通过", "kb_id", req.ID)
+		}
+		
 		// 使用纠正后的证书和私钥
 		req.AccessSettings.PublicKey = correctedCert
 		req.AccessSettings.PrivateKey = correctedKey

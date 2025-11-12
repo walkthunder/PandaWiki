@@ -57,7 +57,10 @@ func NewKnowledgeBaseRepository(db *pg.DB, config *config.Config, logger *log.Lo
 }
 
 func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Context, kbList []*domain.KnowledgeBaseListItem) error {
+	r.logger.Info("开始同步知识库配置到Caddy", "kb_count", len(kbList))
+	
 	if len(kbList) == 0 {
+		r.logger.Info("知识库列表为空，跳过同步")
 		return nil
 	}
 	firstKB := kbList[0]
@@ -68,6 +71,8 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 	certs := make([]map[string]any, 0)
 	portHostKBMap := make(map[string]map[string]*domain.KnowledgeBaseListItem)
 	httpPorts := make(map[string]struct{})
+	
+	r.logger.Info("开始遍历知识库列表，收集端口和证书配置")
 	for _, kb := range kbList {
 		for _, port := range kb.AccessSettings.Ports {
 			httpPorts[fmt.Sprintf(":%d", port)] = struct{}{}
@@ -86,15 +91,37 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 				portHostKBMap[fmt.Sprintf(":%d", sslPort)][host] = kb
 			}
 		}
+		
+		// 检查并收集SSL证书配置
 		if len(kb.AccessSettings.PublicKey) > 0 && len(kb.AccessSettings.PrivateKey) > 0 {
+			r.logger.Info("发现知识库配置了SSL证书", 
+				"kb_id", kb.ID, 
+				"kb_name", kb.Name,
+				"cert_length", len(kb.AccessSettings.PublicKey),
+				"key_length", len(kb.AccessSettings.PrivateKey),
+				"cert_preview", kb.AccessSettings.PublicKey[:min(50, len(kb.AccessSettings.PublicKey))],
+				"key_preview", kb.AccessSettings.PrivateKey[:min(50, len(kb.AccessSettings.PrivateKey))],
+			)
+			
 			certs = append(certs, map[string]any{
 				"certificate": kb.AccessSettings.PublicKey,
 				"key":         kb.AccessSettings.PrivateKey,
 				"tags":        []string{kb.ID},
 			})
+		} else {
+			r.logger.Info("知识库未配置SSL证书", 
+				"kb_id", kb.ID, 
+				"kb_name", kb.Name,
+				"has_public_key", len(kb.AccessSettings.PublicKey) > 0,
+				"has_private_key", len(kb.AccessSettings.PrivateKey) > 0,
+			)
 		}
 	}
+	
+	r.logger.Info("证书收集完成", "total_certs", len(certs))
 	socketPath := r.config.CaddyAPI
+	r.logger.Info("Caddy配置信息", "socket_path", socketPath)
+	
 	// sync kb to caddy
 	// create server for each port
 	subnetPrefix := r.config.SubnetPrefix
@@ -104,6 +131,13 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 	api := fmt.Sprintf("%s.2:8000", subnetPrefix)
 	app := fmt.Sprintf("%s.112:3010", subnetPrefix)
 	staticFile := fmt.Sprintf("%s.12:9000", subnetPrefix) // minio
+	
+	r.logger.Info("后端服务地址配置", 
+		"api", api, 
+		"app", app, 
+		"static_file", staticFile,
+	)
+	
 	servers := make(map[string]any, 0)
 	for port, hostKBMap := range portHostKBMap {
 		trustProxies := make([]string, 0)
@@ -260,40 +294,86 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 			"servers": servers,
 		},
 	}
+	
+	// 构建TLS配置
 	if len(certs) > 0 {
+		r.logger.Info("添加TLS证书配置到Caddy", "cert_count", len(certs))
 		apps["tls"] = map[string]any{
 			"certificates": map[string]any{
 				"load_pem": certs,
 			},
 		}
+		
+		// 打印每个证书的详细信息
+		for i, cert := range certs {
+			certStr, _ := json.Marshal(cert)
+			r.logger.Info("证书配置详情", 
+				"index", i, 
+				"tags", cert["tags"],
+				"cert_length", len(cert["certificate"].(string)),
+				"key_length", len(cert["key"].(string)),
+			)
+		}
+	} else {
+		r.logger.Info("没有SSL证书需要配置")
 	}
+	
 	config := map[string]any{
 		"apps": apps,
 	}
 	newBody, _ := json.Marshal(config)
+	
+	r.logger.Info("Caddy配置JSON生成完成", "config_size", len(newBody))
+	r.logger.Info("准备通过Unix Socket连接Caddy", "socket_path", socketPath)
+	
 	tr := &http.Transport{
 		DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-			return net.Dial("unix", socketPath)
+			r.logger.Info("正在建立Unix Socket连接", "socket", socketPath)
+			conn, err := net.Dial("unix", socketPath)
+			if err != nil {
+				r.logger.Error("Unix Socket连接失败", "error", err, "socket", socketPath)
+				return nil, err
+			}
+			r.logger.Info("Unix Socket连接成功")
+			return conn, nil
 		},
 	}
 	client := &http.Client{
 		Transport: tr,
 		Timeout:   5 * time.Second,
 	}
+	
 	req, err := http.NewRequest("POST", "http://unix/load", bytes.NewBuffer(newBody))
 	if err != nil {
+		r.logger.Error("创建HTTP请求失败", "error", err)
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	
+	r.logger.Info("发送配置到Caddy", "method", "POST", "url", "/load", "body_size", len(newBody))
+	
 	resp, err := client.Do(req)
 	if err != nil {
+		r.logger.Error("发送请求到Caddy失败", "error", err)
 		return fmt.Errorf("failed to send request: %w", err)
 	}
+	defer resp.Body.Close()
+	
+	body, _ := io.ReadAll(resp.Body)
+	
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		r.logger.Error("failed to update caddy config", "error", string(body))
+		r.logger.Error("Caddy返回错误状态", 
+			"status_code", resp.StatusCode, 
+			"status", resp.Status,
+			"response_body", string(body),
+		)
 		return domain.ErrSyncCaddyConfigFailed
 	}
+	
+	r.logger.Info("配置同步到Caddy成功", 
+		"status_code", resp.StatusCode,
+		"response_body", string(body),
+	)
 	return nil
 }
 
@@ -749,4 +829,12 @@ func (r *KnowledgeBaseRepository) GetKBPermByUserId(ctx context.Context, kbId st
 
 		return kbUser.Perm, nil
 	}
+}
+
+// min 返回两个整数中的较小值
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
