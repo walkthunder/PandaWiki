@@ -263,6 +263,10 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 			flushBuffer(ctx, "data")
 		}
 
+		// 后处理：替换回答中的 /node/node-id 链接为三方原始 URL
+		nodeURLMap := domain.BuildNodeURLMap(rankedNodes)
+		answer = domain.ReplaceNodeLinks(answer, nodeURLMap)
+
 		// save assistant answer to conversation message
 
 		if err := u.conversationUsecase.CreateChatConversationMessage(ctx, req.KBID, &domain.ConversationMessage{

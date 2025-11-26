@@ -333,6 +333,7 @@ func (u *LLMUsecase) GetRankNodes(
 						NodeSummary:   docNode.Meta.Summary,
 						NodeEmoji:     docNode.Meta.Emoji,
 						NodePathNames: docNode.PathNames,
+						OriginalURL:   docNode.OriginalURL, // 填充原始 URL
 						Chunks:        []*domain.NodeContentChunk{record},
 					}
 					rankedNodes = append(rankedNodes, rankNodeChunk)

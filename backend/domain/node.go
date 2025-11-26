@@ -49,6 +49,7 @@ type Node struct {
 	ParentID    string          `json:"parent_id"`
 	Position    float64         `json:"position"`
 	DocID       string          `json:"doc_id"` // DEPRECATED: for rag service
+	OriginalURL string          `json:"original_url"`           // 三方网站的原始链接
 	CreatorId   string          `json:"creator_id"`
 	EditorId    string          `json:"editor_id"`
 	EditTime    time.Time       `json:"edit_time"`
@@ -193,10 +194,15 @@ type RankedNodeChunks struct {
 	NodeSummary   string
 	NodeEmoji     string
 	NodePathNames []string
+	OriginalURL   string // 三方网站的原始链接
 	Chunks        []*NodeContentChunk
 }
 
 func (n *RankedNodeChunks) GetURL(baseURL string) string {
+	// 优先使用原始 URL，如果不存在则使用内部链接
+	if n.OriginalURL != "" {
+		return n.OriginalURL
+	}
 	return fmt.Sprintf("%s/node/%s", baseURL, n.NodeID)
 }
 
@@ -285,6 +291,7 @@ type NodeRelease struct {
 	EditorId    string `json:"editor_id"`
 	NodeID      string `json:"node_id" gorm:"index"`
 	DocID       string `json:"doc_id" gorm:"index"` // for rag service
+	OriginalURL string `json:"original_url"`         // 三方网站的原始链接
 
 	Type NodeType `json:"type"`
 
