@@ -12,13 +12,26 @@ import (
 	"time"
 )
 
-const (
-	keyFile  = "/app/etc/nginx/ssl/panda-wiki.key" // Key file path
-	certFile = "/app/etc/nginx/ssl/panda-wiki.crt" // Certificate file path
-)
+func getSSLPath(filename string) string {
+	if dir := os.Getenv("SSL_DIR"); dir != "" {
+		return dir + "/" + filename
+	}
+	return "/app/etc/nginx/ssl/" + filename
+}
+
+func getKeyFile() string {
+	return getSSLPath("panda-wiki.key")
+}
+
+func getCertFile() string {
+	return getSSLPath("panda-wiki.crt")
+}
 
 // check init cert
 func CheckInitCert() error {
+	keyFile := getKeyFile()
+	certFile := getCertFile()
+	
 	// Check both key and cert files
 	keyExists := false
 	certExists := false
@@ -67,41 +80,47 @@ func createSelfSignedCerts() error {
 		return fmt.Errorf("failed to create certificate: %v", err)
 	}
 
-	// ensure dir /app/etc/nginx/ssl exists
-	if err := os.MkdirAll("/app/etc/nginx/ssl", 0o755); err != nil {
+	// ensure ssl dir exists
+	sslDir := os.Getenv("SSL_DIR")
+	if sslDir == "" {
+		sslDir = "/app/etc/nginx/ssl"
+	}
+	if err := os.MkdirAll(sslDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create ssl dir: %v", err)
 	}
 
 	// Write certificate file with appropriate permissions
-	certFile, err := os.Create("/app/etc/nginx/ssl/panda-wiki.crt")
+	certFilePath := getCertFile()
+	certFileHandle, err := os.Create(certFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to create cert file: %v", err)
 	}
-	defer certFile.Close()
+	defer certFileHandle.Close()
 
 	// Set certificate file permissions to 644 (readable by all)
-	if err := certFile.Chmod(0o644); err != nil {
+	if err := certFileHandle.Chmod(0o644); err != nil {
 		return fmt.Errorf("failed to set cert file permissions: %v", err)
 	}
 
-	err = pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
+	err = pem.Encode(certFileHandle, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
 	if err != nil {
 		return fmt.Errorf("failed to encode certificate: %v", err)
 	}
 
 	// Write private key file with appropriate permissions
-	keyFile, err := os.Create("/app/etc/nginx/ssl/panda-wiki.key")
+	keyFilePath := getKeyFile()
+	keyFileHandle, err := os.Create(keyFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to create key file: %v", err)
 	}
-	defer keyFile.Close()
+	defer keyFileHandle.Close()
 
 	// Set private key file permissions to 600 (owner read/write)
-	if err := keyFile.Chmod(0o600); err != nil {
+	if err := keyFileHandle.Chmod(0o600); err != nil {
 		return fmt.Errorf("failed to set key file permissions: %v", err)
 	}
 
-	err = pem.Encode(keyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)})
+	err = pem.Encode(keyFileHandle, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)})
 	if err != nil {
 		return fmt.Errorf("failed to encode private key: %v", err)
 	}

@@ -1,0 +1,14 @@
+# 本地开发代理配置
+# 使用 Nginx 替代 Caddy（Caddy 在 macOS 上有兼容性问题）
+
+services:
+  local-proxy:
+    image: nginx:alpine
+    container_name: panda-wiki-local-proxy
+    ports:
+      - "3000:3000"   # 知识库访问端口
+      - "2443:2443"   # 管理后台端口
+    volumes:
+      - ./local-dev-proxy.conf:/etc/nginx/conf.d/default.conf:ro
+    network_mode: host
+    restart: unless-stopped

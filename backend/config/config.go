@@ -220,6 +220,10 @@ func overrideWithEnv(c *Config) {
 			fmt.Fprintf(os.Stderr, "Invalid log level: %s with err: %s\n", env, err)
 		}
 	}
+	// caddy api
+	if env, exists := os.LookupEnv("CADDY_API"); exists {
+		c.CaddyAPI = env
+	}
 }
 
 func (*Config) GetString(key string) string {

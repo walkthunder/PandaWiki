@@ -95,6 +95,11 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 		}
 	}
 	socketPath := r.config.CaddyAPI
+	// skip caddy sync if socket path is empty (for local development)
+	if socketPath == "" {
+		r.logger.Info("skipping caddy sync: socket path is empty")
+		return nil
+	}
 	// sync kb to caddy
 	// create server for each port
 	subnetPrefix := r.config.SubnetPrefix

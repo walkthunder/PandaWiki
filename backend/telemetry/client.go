@@ -18,9 +18,15 @@ import (
 )
 
 const (
-	machineIDFile  = "/data/.machine_id"
 	reportInterval = time.Hour
 )
+
+var machineIDFile = func() string {
+	if dir := os.Getenv("DATA_DIR"); dir != "" {
+		return filepath.Join(dir, ".machine_id")
+	}
+	return "/data/.machine_id"
+}()
 
 // Client is the telemetry client
 type Client struct {

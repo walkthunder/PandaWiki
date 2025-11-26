@@ -6,7 +6,12 @@ import { middleware as homeMiddleware } from './middleware/home';
 
 const proxyShare = async (request: NextRequest) => {
   // 转发到 process.env.TARGET
-  const kb_id = request.headers.get('x-kb-id') || process.env.DEV_KB_ID || '';
+  // 优先级：header > URL参数 > 环境变量
+  const kb_id =
+    request.headers.get('x-kb-id') ||
+    request.nextUrl.searchParams.get('kb_id') ||
+    process.env.DEV_KB_ID ||
+    '';
 
   const targetOrigin = process.env.TARGET!;
   const targetUrl = new URL(
@@ -45,9 +50,20 @@ export async function middleware(request: NextRequest) {
     return;
   }
 
+  // 获取 KB-ID（优先级：header > URL参数 > 环境变量）
+  const kb_id =
+    request.headers.get('x-kb-id') ||
+    url.searchParams.get('kb_id') ||
+    process.env.DEV_KB_ID ||
+    '';
+
   const headers: Record<string, string> = {};
   for (const [key, value] of request.headers.entries()) {
     headers[key] = value;
+  }
+  // 确保 KB-ID 在 headers 中
+  if (kb_id) {
+    headers['x-kb-id'] = kb_id;
   }
 
   let sessionId = request.cookies.get('x-pw-session-id')?.value || '';
@@ -64,6 +80,11 @@ export async function middleware(request: NextRequest) {
     response = await proxyShare(request);
   } else {
     response = await homeMiddleware(request, headers, sessionId);
+  }
+
+  // 将 KB-ID 添加到响应 headers 中，供服务端组件使用
+  if (kb_id) {
+    response.headers.set('x-kb-id', kb_id);
   }
 
   if (needSetSessionId) {

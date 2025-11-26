@@ -821,12 +821,19 @@ func (r *NodeRepository) TraverseNodesByCursor(ctx context.Context, callback fun
 func (r *NodeRepository) CreateNodeReleases(ctx context.Context, kbID, userId string, nodeIDs []string) ([]string, error) {
 	releaseIDs := make([]string, 0)
 	if err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// update node status to published and return node ids
+		// update node status to published
+		if err := tx.Model(&domain.Node{}).
+			Where("kb_id = ?", kbID).
+			Where("id IN ?", nodeIDs).
+			Update("status", domain.NodeStatusReleased).Error; err != nil {
+			return err
+		}
+		
+		// get updated nodes
 		var updatedNodes []*domain.Node
 		if err := tx.Model(&domain.Node{}).
 			Where("kb_id = ?", kbID).
 			Where("id IN ?", nodeIDs).
-			Update("status", domain.NodeStatusReleased).
 			Find(&updatedNodes).Error; err != nil {
 			return err
 		}
@@ -842,6 +849,7 @@ func (r *NodeRepository) CreateNodeReleases(ctx context.Context, kbID, userId st
 				PublisherId: userId,
 				EditorId:    updatedNode.EditorId,
 				NodeID:      updatedNode.ID,
+				DocID:       "", // will be updated by RAG service later
 				Type:        updatedNode.Type,
 				Name:        updatedNode.Name,
 				Meta:        updatedNode.Meta,
@@ -855,7 +863,7 @@ func (r *NodeRepository) CreateNodeReleases(ctx context.Context, kbID, userId st
 			releaseIDs = append(releaseIDs, nodeRelease.ID)
 		}
 
-		if err := tx.CreateInBatches(&nodeReleases, 100).Error; err != nil {
+		if err := tx.Omit("original_url").CreateInBatches(&nodeReleases, 100).Error; err != nil {
 			return err
 		}
 		return nil
