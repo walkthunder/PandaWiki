@@ -13,3 +13,6 @@ backups/
 data/
 
 .env
+.dev/
+
+.vscode/
