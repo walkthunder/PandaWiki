@@ -1,37 +1,15 @@
-# If you prefer the allow list template instead of the deny list, see community template:
-# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
-#
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
+# 远程配置文件（包含敏感信息）
+scripts/.remote-config
 
-# Test binary, built with `go test -c`
-*.test
+# 备份文件
+backups/
+*.sql
+*.sql.gz
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
+# 临时文件
+*.tmp
+*.temp
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
+data/
 
-# Go workspace file
-go.work
-go.work.sum
-
-# env file
 .env
-
-**/.DS_Store
-
-.vscode
-
-local
-
-.idea
-
-data/*
-
-backend/panda-wiki-api
