@@ -1,0 +1,94 @@
+services:
+  postgres:
+    container_name: panda-wiki-postgres
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-postgres:17.5
+    restart: always
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "panda-wiki", "-d", "panda-wiki"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    environment:
+      - POSTGRES_USER=panda-wiki
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=panda-wiki
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    networks:
+      panda-wiki:
+        ipv4_address: "${SUBNET_PREFIX:-169.254.15}.10"
+
+  minio:
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-minio:RELEASE.2025-04-22T22-12-26Z-cpuv1
+    container_name: panda-wiki-minio
+    restart: always
+    command: ["minio", "server", "/data", "--console-address", ":9001"]
+    volumes:
+      - ./data/minio:/data
+    environment:
+      - MINIO_ACCESS_KEY=s3panda-wiki
+      - MINIO_SECRET_KEY=${S3_SECRET_KEY}
+    networks:
+      panda-wiki:
+        ipv4_address: "${SUBNET_PREFIX:-169.254.15}.12"
+
+  qdrant:
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-qdrant:v1.14.1
+    container_name: panda-wiki-qdrant
+    restart: always
+    volumes:
+      - ./data/qdrant:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
+    networks:
+      panda-wiki:
+        ipv4_address: "${SUBNET_PREFIX:-169.254.15}.14"
+
+  nats:
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-nats:2.11.3-alpine
+    container_name: panda-wiki-nats
+    restart: always
+    command: ["nats-server", "-c", "/etc/nats/nats.conf", "--user", "panda-wiki", "--pass", "${NATS_PASSWORD}"]
+    volumes:
+      - ./data/nats:/data
+    networks:
+      panda-wiki:
+        ipv4_address: "${SUBNET_PREFIX:-169.254.15}.13"
+
+  raglite:
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-raglite:1-4-1
+    container_name: panda-wiki-raglite
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data/raglite:/data
+    environment:
+      - GIN_MODE=release
+      - DATABASE_HOST=panda-wiki-postgres
+      - DATABASE_USER=panda-wiki
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+      - MINIO_HOST=panda-wiki-minio:9000
+      - MINIO_USER=s3panda-wiki
+      - MINIO_PASSWORD=${S3_SECRET_KEY}
+      - QDRANT_HOST=panda-wiki-qdrant
+      - QDRANT_API_KEY=${QDRANT_API_KEY}
+      - MQ_NATS_URL=nats://panda-wiki-nats:4222
+      - MQ_NATS_USER=panda-wiki
+      - MQ_NATS_PASSWORD=${NATS_PASSWORD}
+    depends_on:
+      - postgres
+      - minio
+      - qdrant
+      - nats
+    networks:
+      panda-wiki:
+        ipv4_address: "${SUBNET_PREFIX:-169.254.15}.18"
+
+networks:
+  panda-wiki:
+    ipam:
+      driver: default
+      config:
+        - subnet: "${SUBNET_PREFIX:-169.254.15}.0/24"

@@ -1,0 +1,13 @@
+PyMuPDF
+pdfplumber
+pytesseract
+opencv-python
+numpy
+transformers
+torch
+Pillow
+pyyaml
+tqdm
+pytest
+hypothesis
+cos-python-sdk-v5

@@ -1,0 +1,25 @@
+# 批量 PDF 转 Markdown 配置文件示例
+
+# 输入目录（包含 PDF 文件）
+input_dir: ./pdfs
+
+# 输出目录
+output_dir: ./outputs
+
+# 是否递归扫描子目录
+recursive: false
+
+# 最大并发转换数（建议设置为 CPU 核心数的 75%）
+max_workers: 4
+
+# 是否启用 OCR（光学字符识别）
+enable_ocr: true
+
+# 是否启用图像提取
+enable_image_extraction: true
+
+# 是否跳过已存在的输出文件
+skip_existing: false
+
+# 页面分隔符（用于分隔不同页面的内容）
+page_delimiter: "<||WXb23TXrUn3Rxz00yNNr89HV||>"
