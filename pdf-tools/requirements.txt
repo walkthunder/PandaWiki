@@ -10,3 +10,4 @@ pyyaml
 tqdm
 pytest
 hypothesis
+cos-python-sdk-v5
