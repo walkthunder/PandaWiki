@@ -14,9 +14,12 @@ import {
   Tabs,
   Tab,
 } from '@mui/material';
+import LanguageIcon from '@mui/icons-material/Language';
 import AiQaContent from './AiQaContent';
 import SearchDocContent from './SearchDocContent';
+import WebSearchContent from './WebSearchContent';
 import { useStore } from '@/provider';
+import { SearchMode } from './types';
 
 interface SearchSuggestion {
   id: string;
@@ -77,13 +80,25 @@ const StyledTab = styled(Tab)(({ theme }) => ({
 
 const QaModal: React.FC<QaModalProps> = () => {
   const { qaModalOpen, setQaModalOpen, kbDetail, mobile } = useStore();
-  const [searchMode, setSearchMode] = useState<'chat' | 'search'>('chat');
+  const [searchMode, setSearchMode] = useState<SearchMode>('chat');
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const aiQaInputRef = useRef<HTMLInputElement>(null);
   const searchParams = useSearchParams();
   const onClose = () => {
     setQaModalOpen?.(false);
   };
+
+  // 处理标签切换，确保平滑过渡
+  const handleTabChange = (newMode: SearchMode) => {
+    setIsTransitioning(true);
+    setSearchMode(newMode);
+    setTimeout(() => setIsTransitioning(false), 300);
+  };
+
+  // 根据 searchMode 动态调整模态框尺寸
+  const modalMaxWidth = searchMode === 'web-search' ? '95vw' : 800;
+  const modalMaxHeight = searchMode === 'web-search' ? '95vh' : '100%';
 
   const placeholder = useMemo(() => {
     return (
@@ -126,7 +141,7 @@ const QaModal: React.FC<QaModalProps> = () => {
     if (cid || ask) {
       setQaModalOpen?.(true);
     }
-  }, []);
+  }, [searchParams, setQaModalOpen]);
 
   return (
     <Modal
@@ -144,14 +159,15 @@ const QaModal: React.FC<QaModalProps> = () => {
           display: 'flex',
           flexDirection: 'column',
           flex: 1,
-          maxWidth: 800,
-          maxHeight: '100%',
+          maxWidth: modalMaxWidth,
+          maxHeight: modalMaxHeight,
           backgroundColor: lighten(theme.palette.background.default, 0.05),
           borderRadius: '10px',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
           overflow: 'hidden',
           outline: 'none',
           pb: 2,
+          transition: 'max-width 0.3s ease, max-height 0.3s ease',
         })}
         onClick={e => e.stopPropagation()}
       >
@@ -169,7 +185,7 @@ const QaModal: React.FC<QaModalProps> = () => {
           <StyledTabs
             value={searchMode}
             onChange={(_, value) => {
-              setSearchMode(value as 'chat' | 'search');
+              handleTabChange(value as SearchMode);
             }}
             variant='scrollable'
             scrollButtons={false}
@@ -187,10 +203,19 @@ const QaModal: React.FC<QaModalProps> = () => {
               label={
                 <Stack direction='row' gap={0.5} alignItems='center'>
                   <IconJinsousuo sx={{ fontSize: 16 }} />
-                  {!mobile && <span>仅搜索文档</span>}
+                  {!mobile && <span>文档检索</span>}
                 </Stack>
               }
               value='search'
+            />
+            <StyledTab
+              label={
+                <Stack direction='row' gap={0.5} alignItems='center'>
+                  <LanguageIcon sx={{ fontSize: 16 }} />
+                  {!mobile && <span>互联网检索</span>}
+                </Stack>
+              }
+              value='web-search'
             />
           </StyledTabs>
 
@@ -224,6 +249,8 @@ const QaModal: React.FC<QaModalProps> = () => {
             flex: 1,
             display: searchMode === 'chat' ? 'flex' : 'none',
             flexDirection: 'column',
+            opacity: isTransitioning ? 0.5 : 1,
+            transition: 'opacity 0.3s ease-in-out',
           }}
         >
           <AiQaContent
@@ -238,9 +265,23 @@ const QaModal: React.FC<QaModalProps> = () => {
             flex: 1,
             display: searchMode === 'search' ? 'flex' : 'none',
             flexDirection: 'column',
+            opacity: isTransitioning ? 0.5 : 1,
+            transition: 'opacity 0.3s ease-in-out',
           }}
         >
           <SearchDocContent inputRef={inputRef} placeholder={placeholder} />
+        </Box>
+        <Box
+          sx={{
+            px: 3,
+            flex: 1,
+            display: searchMode === 'web-search' ? 'flex' : 'none',
+            flexDirection: 'column',
+            opacity: isTransitioning ? 0.5 : 1,
+            transition: 'opacity 0.3s ease-in-out',
+          }}
+        >
+          <WebSearchContent isMobile={mobile} />
         </Box>
 
         {/* 底部AI生成提示 */}
