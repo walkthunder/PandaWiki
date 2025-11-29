@@ -16,3 +16,8 @@ data/
 .dev/
 
 .vscode/
+
+
+pdf-tools/outputs/
+pdf-tools/logs/
+pdf-tools/docs/
