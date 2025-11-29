@@ -13,7 +13,8 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { WebSearchContentProps } from './types';
 
 const WebSearchContent: React.FC<WebSearchContentProps> = ({
-  url = 'http://124.221.46.229:6080/c/new?endpoint=Deepseek&model=deepseek-chat',
+  url = process.env.WEB_SEARCH_URL ||
+    'http://124.221.46.229:6080/c/new?endpoint=Deepseek&model=deepseek-chat',
   onLoad,
   onError,
   isMobile = false,
