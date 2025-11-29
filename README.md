@@ -14,6 +14,14 @@
  ./deploy/remote-deploy.sh
  ```
 
+## 部署
+
+### web/app
+
+下面的 .env 文件中，注意本地直接启动的TARGET，跟docker compose 部署的TARGET的配置是不同的 Host:
+- 本地开发建议直接用 localhost
+- docker compose 的时候，用 panda-wiki-api
+
 
  ## TODO
 
