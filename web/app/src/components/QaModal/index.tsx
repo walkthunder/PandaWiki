@@ -96,9 +96,9 @@ const QaModal: React.FC<QaModalProps> = () => {
     setTimeout(() => setIsTransitioning(false), 300);
   };
 
-  // 根据 searchMode 动态调整模态框尺寸
-  const modalMaxWidth = searchMode === 'web-search' ? '95vw' : 800;
-  const modalMaxHeight = searchMode === 'web-search' ? '95vh' : '100%';
+  // 弹窗铺满整个屏幕
+  const modalWidth = '100vw';
+  const modalHeight = '100vh';
 
   const placeholder = useMemo(() => {
     return (
@@ -150,24 +150,19 @@ const QaModal: React.FC<QaModalProps> = () => {
       sx={{
         display: 'flex',
         justifyContent: 'center',
-        alignItems: 'flex-start',
-        p: 2,
+        alignItems: 'center',
+        p: 0,
       }}
     >
       <Box
         sx={theme => ({
           display: 'flex',
           flexDirection: 'column',
-          flex: 1,
-          maxWidth: modalMaxWidth,
-          maxHeight: modalMaxHeight,
+          width: modalWidth,
+          height: modalHeight,
           backgroundColor: lighten(theme.palette.background.default, 0.05),
-          borderRadius: '10px',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
           overflow: 'hidden',
           outline: 'none',
-          pb: 2,
-          transition: 'max-width 0.3s ease, max-height 0.3s ease',
         })}
         onClick={e => e.stopPropagation()}
       >
