@@ -73,7 +73,7 @@
   }
 }
 
-/* 标题增强 - 渐变文字 + 动画 */
+/* 标题增强 - 渐变文字（移除动画） */
 .mui-1eq0j8f {
   /* 使用渐变色作为背景，但保留文字颜色 */
   background: linear-gradient(135deg, #4285F4 0%, #357AE8 50%, #2A67D6 100%) !important;
@@ -82,7 +82,8 @@
   /* 修复：使用半透明而非完全透明，让文字可见 */
   -webkit-text-fill-color: #4285F4 !important;
   color: #4285F4 !important;
-  animation: fadeInDown 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  /* 移除动画 */
+  /* animation: fadeInDown 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important; */
   position: relative !important;
   letter-spacing: -0.5px !important;
   /* 添加文字阴影增强可读性 */
@@ -100,9 +101,10 @@
   }
 }
 
-/* 描述文字增强 */
+/* 描述文字增强（移除动画） */
 .mui-d4lagq {
-  animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.2s backwards !important;
+  /* 移除动画 */
+  /* animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.2s backwards !important; */
   line-height: 1.8 !important;
   color: rgba(0, 0, 0, 0.75) !important;
 }
