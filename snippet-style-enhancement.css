@@ -1,0 +1,788 @@
+/* ========================================
+   无线随申查 - 视觉增强样式
+   ======================================== */
+
+/* 全局优化 */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 顶部导航栏增强 - 毛玻璃效果 */
+.mui-f4iiet {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-bottom: 1px solid rgba(66, 133, 244, 0.1) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.03) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Logo增强 - 悬停效果 */
+.mui-1fn1tjj {
+  transition: all 0.3s ease !important;
+}
+
+.mui-1fn1tjj:hover {
+  transform: translateY(-2px);
+}
+
+.mui-1fn1tjj img {
+  transition: transform 0.3s ease;
+}
+
+.mui-1fn1tjj:hover img {
+  transform: rotate(-5deg) scale(1.05);
+}
+
+/* 背景容器增强 - 动态渐变 */
+.mui-1x3niqi {
+  position: relative !important;
+  overflow: hidden !important;
+  /* 移动端修复：移除负边距，避免与导航栏重叠 */
+  margin-top: 0 !important;
+  padding-top: 64px !important; /* 为导航栏留出空间 */
+}
+
+.mui-1x3niqi::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(66, 133, 244, 0.08) 0%,
+    rgba(66, 133, 244, 0.03) 50%,
+    rgba(66, 133, 244, 0.08) 100%
+  );
+  animation: gradientShift 15s ease infinite;
+  z-index: 1;
+  pointer-events: none;
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.05) rotate(2deg);
+  }
+}
+
+/* 标题增强 - 渐变文字 + 动画 */
+.mui-1eq0j8f {
+  /* 使用渐变色作为背景，但保留文字颜色 */
+  background: linear-gradient(135deg, #4285F4 0%, #357AE8 50%, #2A67D6 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  /* 修复：使用半透明而非完全透明，让文字可见 */
+  -webkit-text-fill-color: #4285F4 !important;
+  color: #4285F4 !important;
+  animation: fadeInDown 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative !important;
+  letter-spacing: -0.5px !important;
+  /* 添加文字阴影增强可读性 */
+  text-shadow: 0 2px 10px rgba(66, 133, 244, 0.2) !important;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 描述文字增强 */
+.mui-d4lagq {
+  animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.2s backwards !important;
+  line-height: 1.8 !important;
+  color: rgba(0, 0, 0, 0.75) !important;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 搜索框容器增强 - 3D效果 */
+.mui-14pi0he {
+  animation: scaleIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.4s backwards !important;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 8px 30px rgba(66, 133, 244, 0.15), 
+              0 2px 10px rgba(0, 0, 0, 0.05) !important;
+  /* 移动端优化：减少内边距 */
+  padding: 16px !important;
+  /* 修复：确保内容不溢出 */
+  box-sizing: border-box !important;
+}
+
+.mui-14pi0he:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 12px 40px rgba(66, 133, 244, 0.25), 
+              0 4px 15px rgba(0, 0, 0, 0.08) !important;
+  border-color: rgba(66, 133, 244, 0.6) !important;
+}
+
+.mui-14pi0he:focus-within {
+  transform: translateY(-4px) scale(1.01) !important;
+  box-shadow: 0 15px 50px rgba(66, 133, 244, 0.3), 
+              0 5px 20px rgba(0, 0, 0, 0.1) !important;
+  border-color: #4285F4 !important;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 输入框增强 */
+.mui-5a00ah input,
+.mui-d8i322 {
+  transition: all 0.3s ease !important;
+  font-size: 15px !important;
+  color: rgba(0, 0, 0, 0.87) !important;
+  /* 移动端优化：减少内边距 */
+  padding: 12px 0 !important;
+  line-height: 1.5 !important;
+  /* 修复：防止textarea过高 */
+  min-height: auto !important;
+  max-height: 120px !important;
+  overflow-y: auto !important;
+  resize: none !important;
+}
+
+.mui-5a00ah input::placeholder,
+.mui-d8i322::placeholder {
+  color: rgba(0, 0, 0, 0.4) !important;
+  transition: all 0.3s ease !important;
+}
+
+.mui-5a00ah input:focus::placeholder,
+.mui-d8i322:focus::placeholder {
+  color: rgba(0, 0, 0, 0.3) !important;
+  transform: translateX(5px);
+}
+
+/* 热点问题标签增强 - 悬浮动画 */
+.mui-1awpkdb {
+  animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.6s backwards !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+  flex: 1 !important;
+}
+
+.mui-15br0ju {
+  display: inline-block;
+  padding: 10px 20px !important;
+  background: rgba(66, 133, 244, 0.08) !important;
+  border: 1px solid rgba(66, 133, 244, 0.2) !important;
+  border-radius: 25px !important;
+  color: #4285F4 !important;
+  font-size: 14px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  cursor: pointer !important;
+  position: relative !important;
+  overflow: hidden !important;
+  animation: float 3s ease-in-out infinite !important;
+}
+
+.mui-15br0ju::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(66, 133, 244, 0.15);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.mui-15br0ju:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.mui-15br0ju:hover {
+  background: rgba(66, 133, 244, 0.15) !important;
+  border-color: rgba(66, 133, 244, 0.4) !important;
+  transform: translateY(-3px) !important;
+  box-shadow: 0 6px 20px rgba(66, 133, 244, 0.25) !important;
+  color: #2A67D6 !important;
+}
+
+.mui-15br0ju:active {
+  transform: translateY(-1px) scale(0.98) !important;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* AI智能问答按钮增强 */
+.mui-16ky6fx {
+  position: relative !important;
+  overflow: hidden !important;
+  background: linear-gradient(135deg, #4285F4 0%, #357AE8 100%) !important;
+  box-shadow: 0 4px 15px rgba(66, 133, 244, 0.3) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.3px !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+.mui-16ky6fx::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.mui-16ky6fx:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 8px 25px rgba(66, 133, 244, 0.4) !important;
+  background: linear-gradient(135deg, #357AE8 0%, #2A67D6 100%) !important;
+}
+
+.mui-16ky6fx:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.mui-16ky6fx:active {
+  transform: translateY(0) scale(0.98) !important;
+}
+
+/* 登录/智能问答导航按钮增强 */
+.mui-1szf08v,
+.mui-e19soo {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border: 1px solid rgba(66, 133, 244, 0.2) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.mui-1szf08v::after,
+.mui-e19soo::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  background: linear-gradient(135deg, #4285F4 0%, #357AE8 100%);
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: -1;
+}
+
+.mui-1szf08v:hover::after,
+.mui-e19soo:hover::after {
+  height: 100%;
+}
+
+.mui-1szf08v:hover,
+.mui-e19soo:hover {
+  color: #FFFFFF !important;
+  border-color: #4285F4 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.2) !important;
+}
+
+/* 页脚增强 */
+.mui-j6yucl {
+  background: linear-gradient(180deg, rgba(66, 133, 244, 0.02) 0%, rgba(66, 133, 244, 0.05) 100%) !important;
+  border-top: 1px solid rgba(66, 133, 244, 0.1) !important;
+}
+
+/* 侧边栏内容增强 */
+.mui-1iu8qki {
+  animation: fadeInLeft 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.3s backwards !important;
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.mui-1ppkopx {
+  transition: color 0.3s ease !important;
+}
+
+.mui-1ppkopx:hover {
+  color: #4285F4 !important;
+}
+
+/* 平滑滚动 */
+html {
+  scroll-behavior: smooth;
+  /* 移动端优化 */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/* 响应式优化 - 移动端 */
+
+/* 平板设备 (600px - 899px) */
+@media (max-width: 899.95px) {
+  /* 修复：背景区域上边距 */
+  .mui-1x3niqi {
+    margin-top: 0 !important;
+    padding-top: 70px !important;
+  }
+  
+  /* 主内容区 */
+  .mui-15tsxb4 {
+    padding-top: 60px !important;
+    padding-bottom: 60px !important;
+  }
+  
+  /* 标题适配 */
+  .mui-1eq0j8f {
+    font-size: 40px !important;
+    letter-spacing: -0.3px !important;
+    margin-bottom: 16px !important;
+  }
+  
+  /* 描述文字 */
+  .mui-d4lagq {
+    font-size: 15px !important;
+    line-height: 1.7 !important;
+    margin-bottom: 32px !important;
+  }
+  
+  /* 搜索框容器 */
+  .mui-14pi0he {
+    padding: 14px !important;
+  }
+  
+  /* 输入框 */
+  .mui-d8i322 {
+    padding: 10px 0 !important;
+    font-size: 14px !important;
+  }
+  
+  /* 热点问题区域 */
+  .mui-14droko {
+    margin-top: 12px !important;
+    gap: 10px !important;
+  }
+  
+  /* 热点问题标签 */
+  .mui-15br0ju {
+    padding: 8px 16px !important;
+    font-size: 13px !important;
+  }
+  
+  /* 导航栏 */
+  .mui-f4iiet {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    height: 56px !important;
+  }
+  
+  /* Logo文字 */
+  .mui-bk9fzy {
+    font-size: 18px !important;
+  }
+}
+
+/* 手机设备 (< 600px) - 重点优化 */
+@media (max-width: 599.95px) {
+  /* 修复：背景区域 - 移除负边距，预留导航空间 */
+  .mui-1x3niqi {
+    margin-top: 0 !important;
+    padding-top: 60px !important;
+  }
+  
+  /* 主内容区 - 减少上下边距 */
+  .mui-15tsxb4 {
+    padding-top: 30px !important;
+    padding-bottom: 40px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    gap: 24px !important;
+  }
+  
+  /* 标题 - 更小尺寸 */
+  .mui-1eq0j8f {
+    font-size: 32px !important;
+    letter-spacing: -0.2px !important;
+    margin-bottom: 12px !important;
+    line-height: 1.2 !important;
+  }
+  
+  /* 描述文字 */
+  .mui-d4lagq {
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+    margin-bottom: 20px !important;
+  }
+  
+  /* 搜索框 - 减少内边距 */
+  .mui-14pi0he {
+    padding: 12px !important;
+  }
+  
+  .mui-14pi0he:hover {
+    transform: none !important;
+    box-shadow: 0 8px 30px rgba(66, 133, 244, 0.15), 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+  }
+  
+  /* 输入框 - 减少内边距 */
+  .mui-d8i322 {
+    font-size: 14px !important;
+    padding: 8px 0 !important;
+    min-height: 20px !important;
+  }
+  
+  /* 热点问题区域 - 垂直布局 */
+  .mui-14droko {
+    flex-direction: column !important;
+    gap: 10px !important;
+    margin-top: 10px !important;
+  }
+  
+  .mui-1awpkdb {
+    gap: 8px !important;
+  }
+  
+  /* 热点问题标签 */
+  .mui-15br0ju {
+    padding: 8px 14px !important;
+    font-size: 12px !important;
+    animation: none !important; /* 移动端禁用浮动动画 */
+  }
+  
+  /* AI问答按钮 - 全宽 */
+  .mui-16ky6fx {
+    width: 100% !important;
+    padding: 11px 20px !important;
+    font-size: 14px !important;
+    justify-content: center !important;
+  }
+  
+  /* 导航栏 - 减小高度 */
+  .mui-f4iiet {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    height: 56px !important;
+  }
+  
+  /* Logo区域 */
+  .mui-1fn1tjj {
+    gap: 8px !important;
+  }
+  
+  .mui-1fn1tjj img {
+    height: 28px !important;
+  }
+  
+  .mui-bk9fzy {
+    font-size: 16px !important;
+  }
+  
+  /* 导航按钮 */
+  .mui-1lbakcg {
+    gap: 6px !important;
+  }
+  
+  .mui-1szf08v,
+  .mui-e19soo {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+  }
+  
+  /* 禁用部分动画效果 */
+  .mui-15br0ju:hover {
+    transform: translateY(-1px) !important;
+  }
+  
+  .mui-16ky6fx:hover {
+    transform: translateY(-1px) !important;
+  }
+}
+
+/* 超小屏幕设备 (< 400px) */
+@media (max-width: 399.95px) {
+  /* 背景区域 */
+  .mui-1x3niqi {
+    padding-top: 56px !important;
+  }
+  
+  /* 主内容区 */
+  .mui-15tsxb4 {
+    padding-top: 25px !important;
+    padding-bottom: 30px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    gap: 20px !important;
+  }
+  
+  /* 标题 */
+  .mui-1eq0j8f {
+    font-size: 28px !important;
+    margin-bottom: 10px !important;
+  }
+  
+  /* 描述 */
+  .mui-d4lagq {
+    font-size: 13px !important;
+    margin-bottom: 16px !important;
+  }
+  
+  /* 搜索框 */
+  .mui-14pi0he {
+    padding: 10px !important;
+  }
+  
+  /* 输入框 */
+  .mui-d8i322 {
+    padding: 6px 0 !important;
+    font-size: 13px !important;
+  }
+  
+  /* 热点标签 */
+  .mui-15br0ju {
+    padding: 6px 12px !important;
+    font-size: 11px !important;
+  }
+  
+  /* AI按钮 */
+  .mui-16ky6fx {
+    padding: 10px 16px !important;
+    font-size: 13px !important;
+  }
+  
+  /* 导航 */
+  .mui-bk9fzy {
+    font-size: 15px !important;
+  }
+  
+  .mui-1szf08v,
+  .mui-e19soo {
+    padding: 5px 10px !important;
+    font-size: 11px !important;
+  }
+}
+
+/* 加载动画优化 */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+
+/* 性能优化 - GPU加速 */
+.mui-14pi0he,
+.mui-15br0ju,
+.mui-16ky6fx,
+.mui-1szf08v,
+.mui-e19soo,
+.mui-1fn1tjj {
+  will-change: transform;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* 选中文本样式 */
+::selection {
+  background: rgba(66, 133, 244, 0.2);
+  color: #2A67D6;
+}
+
+::-moz-selection {
+  background: rgba(66, 133, 244, 0.2);
+  color: #2A67D6;
+}
+
+/* ========================================
+   移动端修复：Esc 按钮显示问题
+   ======================================== */
+
+/* 确保 Esc 按钮在所有设备上都显示 */
+.mui-z8whtb {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* 修复：MUI 按钮在移动端的显示 */
+.MuiButton-outlined.MuiButton-outlinedPrimary.MuiButton-sizeSmall {
+  display: inline-flex !important;
+}
+
+/* 修复：确保所有包含 "Esc" 文字的按钮都显示 */
+button.MuiButton-outlined.MuiButton-sizeSmall,
+button.MuiButtonBase-root.MuiButton-root {
+  display: inline-flex !important;
+}
+
+/* 移动端 Esc 按钮优化 */
+@media (max-width: 899.95px) {
+  /* 确保按钮可见且易于点击 */
+  .mui-z8whtb,
+  .MuiButton-outlined.MuiButton-sizeSmall,
+  button.MuiButton-outlined {
+    display: inline-flex !important;
+    min-width: 44px !important;  /* 移动端最小触摸目标 */
+    min-height: 44px !important;
+    padding: 8px 16px !important;
+  }
+  
+  /* 如果按钮在对话框/弹窗中 */
+  .MuiDialog-root .MuiButton-outlined,
+  .MuiPopover-root .MuiButton-outlined,
+  .MuiPaper-root .MuiButton-outlined {
+    display: inline-flex !important;
+    visibility: visible !important;
+  }
+  
+  /* 修复：对话框操作区域在移动端也显示 */
+  .MuiDialogActions-root,
+  .MuiDialog-actions {
+    display: flex !important;
+    visibility: visible !important;
+  }
+}
+
+/* 手机端进一步确保按钮可见 */
+@media (max-width: 599.95px) {
+  .mui-z8whtb {
+    display: inline-flex !important;
+    font-size: 13px !important;
+    padding: 6px 14px !important;
+  }
+}
+
+/* ========================================
+   移动端对话框关闭按钮样式
+   ======================================== */
+
+.mobile-dialog-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1400;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.04);
+  color: rgba(0, 0, 0, 0.54);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
+  font-family: Arial, sans-serif;
+  font-weight: 300;
+}
+
+.mobile-dialog-close-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  transform: scale(1.1);
+}
+
+.mobile-dialog-close-btn:active {
+  background: rgba(0, 0, 0, 0.12);
+  transform: scale(0.95);
+}
+
+/* 移动端优化 */
+@media (max-width: 1199.95px) {
+  .mobile-dialog-close-btn {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    font-size: 32px;
+    top: 10px;
+    right: 10px;
+  }
+}
+
+@media (max-width: 599.95px) {
+  .mobile-dialog-close-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 34px;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.06);
+  }
+  
+  .mobile-dialog-close-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: dark) {
+  .mobile-dialog-close-btn {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.7);
+  }
+  
+  .mobile-dialog-close-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.9);
+  }
+  
+  .mobile-dialog-close-btn:active {
+    background: rgba(255, 255, 255, 0.16);
+  }
+}
