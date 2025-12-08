@@ -191,7 +191,15 @@ const Welcome = () => {
     const answer = searchParams.get('answer');
     const mode = searchParams.get('mode'); // 'chat' | 'search' | 'web-search'
 
-    if (open === 'true' || open === '1') {
+    // 默认打开问答弹窗
+    let shouldOpen = true;
+
+    // 如果 URL 中明确指定 open=false 或 open=0，则不打开
+    if (open === 'false' || open === '0') {
+      shouldOpen = false;
+    }
+
+    if (shouldOpen) {
       // 如果有 answer 参数，保存到 sessionStorage
       if (answer) {
         sessionStorage.setItem('chat_search_query', answer);
