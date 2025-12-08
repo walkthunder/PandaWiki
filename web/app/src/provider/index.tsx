@@ -67,7 +67,42 @@ export default function StoreProvider({
     initialNodeList,
   );
   const [tree, setTree] = useState<ITreeItem[] | undefined>(initialTree);
-  const [qaModalOpen, setQaModalOpen] = useState(false);
+
+  // 根据 URL 参数初始化 qaModalOpen 状态，避免延迟打开
+  const [qaModalOpen, setQaModalOpen] = useState(() => {
+    // 只在客户端执行
+    if (typeof window === 'undefined') return false;
+
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const open = urlParams.get('open');
+
+      // 默认打开问答弹窗
+      let shouldOpen = true;
+
+      // 如果 URL 中明确指定 open=false 或 open=0，则不打开
+      if (open === 'false' || open === '0') {
+        shouldOpen = false;
+      }
+
+      // 如果需要打开，提前保存 mode 和 answer 到 sessionStorage
+      if (shouldOpen) {
+        const mode = urlParams.get('mode');
+        const answer = urlParams.get('answer');
+
+        if (mode && ['chat', 'search', 'web-search'].includes(mode)) {
+          sessionStorage.setItem('qa_modal_mode', mode);
+        }
+        if (answer) {
+          sessionStorage.setItem('chat_search_query', answer);
+        }
+      }
+
+      return shouldOpen;
+    } catch (e) {
+      return false;
+    }
+  });
 
   const [catalogShow, setCatalogShow] = useState(
     catalogSettings?.catalog_visible !== 2,

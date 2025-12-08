@@ -4,7 +4,6 @@ import { Banner } from '@panda-wiki/ui';
 import dynamic from 'next/dynamic';
 import { DomainRecommendNodeListResp } from '@/request/types';
 import { useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
 
 import { useStore } from '@/provider';
 
@@ -185,33 +184,7 @@ const Welcome = () => {
   const settings = kbDetail?.settings;
   const searchParams = useSearchParams();
 
-  // 处理 URL 参数，控制问答弹窗的打开状态
-  useEffect(() => {
-    const open = searchParams.get('open');
-    const answer = searchParams.get('answer');
-    const mode = searchParams.get('mode'); // 'chat' | 'search' | 'web-search'
-
-    // 默认打开问答弹窗
-    let shouldOpen = true;
-
-    // 如果 URL 中明确指定 open=false 或 open=0，则不打开
-    if (open === 'false' || open === '0') {
-      shouldOpen = false;
-    }
-
-    if (shouldOpen) {
-      // 如果有 answer 参数，保存到 sessionStorage
-      if (answer) {
-        sessionStorage.setItem('chat_search_query', answer);
-      }
-      // 如果有 mode 参数，保存到 sessionStorage
-      if (mode && ['chat', 'search', 'web-search'].includes(mode)) {
-        sessionStorage.setItem('qa_modal_mode', mode);
-      }
-      // 打开问答弹窗
-      setQaModalOpen?.(true);
-    }
-  }, [searchParams, setQaModalOpen]);
+  // URL 参数的处理已经在 provider 初始化时完成，这里不需要额外处理
   const onBannerSearch = (
     searchText: string,
     type: 'chat' | 'search' = 'chat',
