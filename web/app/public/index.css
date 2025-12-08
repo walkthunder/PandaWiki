@@ -1,14 +1,16 @@
 .page {
   background-color: rgba(255, 255, 255, 1);
   position: relative;
-  width: 1920px;
-  height: 942px;
+  width: 100%;
+  max-width: 1920px;
+  min-height: 942px;
   overflow: hidden;
+  margin: 0 auto;
 }
 
 .box_1 {
   background-color: rgba(255, 255, 255, 1);
-  width: 1920px;
+  width: 100%;
   height: 80px;
   justify-content: flex-center;
 }
@@ -81,7 +83,9 @@
 
 .text-wrapper_2 {
   background-image: url(./img/a2daabc00bb94d34aeedc20b96c9f4dd_mergeImage.png);
-  width: 1920px;
+  background-size: cover;
+  background-position: center;
+  width: 100%;
   height: 257px;
 }
 
@@ -114,19 +118,21 @@
 
 .box_2 {
   background-image: url(./img/fb69af71505d4bd4ba1c04fc07d4f8c7_mergeImage.png);
+  background-size: cover;
+  background-position: center;
   height: 606px;
   border: 1px solid rgba(151, 151, 151, 1);
   margin-top: -1px;
-  width: 1920px;
+  width: 100%;
 }
 
 .group_2 {
   position: relative;
-  width: 1920px;
+  width: 100%;
   height: 606px;
   background: url(./img/SketchPngbbfaaf02f092c411b66b09221b7d0ceb0d01eab12a6d4af5c166ca4c6c1e9104.png)
-    100% no-repeat;
-  background-size: 100% 100%;
+    center no-repeat;
+  background-size: cover;
 }
 
 .box_3 {
