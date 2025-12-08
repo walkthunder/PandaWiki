@@ -114,6 +114,18 @@ const QaModal: React.FC<QaModalProps> = () => {
     return bannerConfig?.banner_config?.hot_search || [];
   }, [kbDetail]);
 
+  // 处理 URL 参数中的 mode，设置默认打开的问答类型
+  useEffect(() => {
+    if (qaModalOpen) {
+      const savedMode = sessionStorage.getItem('qa_modal_mode') as SearchMode;
+      if (savedMode && ['chat', 'search', 'web-search'].includes(savedMode)) {
+        setSearchMode(savedMode);
+        // 清除 sessionStorage 中的 mode，避免影响下次打开
+        sessionStorage.removeItem('qa_modal_mode');
+      }
+    }
+  }, [qaModalOpen]);
+
   // modal打开时自动聚焦
   useEffect(() => {
     if (qaModalOpen) {

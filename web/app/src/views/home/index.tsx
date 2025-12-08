@@ -3,6 +3,8 @@
 import { Banner } from '@panda-wiki/ui';
 import dynamic from 'next/dynamic';
 import { DomainRecommendNodeListResp } from '@/request/types';
+import { useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
 
 import { useStore } from '@/provider';
 
@@ -181,6 +183,27 @@ const componentMap = {
 const Welcome = () => {
   const { mobile = false, kbDetail, setQaModalOpen } = useStore();
   const settings = kbDetail?.settings;
+  const searchParams = useSearchParams();
+
+  // 处理 URL 参数，控制问答弹窗的打开状态
+  useEffect(() => {
+    const open = searchParams.get('open');
+    const answer = searchParams.get('answer');
+    const mode = searchParams.get('mode'); // 'chat' | 'search' | 'web-search'
+
+    if (open === 'true' || open === '1') {
+      // 如果有 answer 参数，保存到 sessionStorage
+      if (answer) {
+        sessionStorage.setItem('chat_search_query', answer);
+      }
+      // 如果有 mode 参数，保存到 sessionStorage
+      if (mode && ['chat', 'search', 'web-search'].includes(mode)) {
+        sessionStorage.setItem('qa_modal_mode', mode);
+      }
+      // 打开问答弹窗
+      setQaModalOpen?.(true);
+    }
+  }, [searchParams, setQaModalOpen]);
   const onBannerSearch = (
     searchText: string,
     type: 'chat' | 'search' = 'chat',
