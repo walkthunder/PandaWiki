@@ -117,12 +117,15 @@ const QaModal: React.FC<QaModalProps> = () => {
   // 处理 URL 参数中的 mode，设置默认打开的问答类型
   useEffect(() => {
     if (qaModalOpen) {
-      const savedMode = sessionStorage.getItem('qa_modal_mode') as SearchMode;
-      if (savedMode && ['chat', 'search', 'web-search'].includes(savedMode)) {
-        setSearchMode(savedMode);
-        // 清除 sessionStorage 中的 mode，避免影响下次打开
-        sessionStorage.removeItem('qa_modal_mode');
-      }
+      // 使用 setTimeout 确保在下一个事件循环中执行，此时 sessionStorage 已经被设置
+      setTimeout(() => {
+        const savedMode = sessionStorage.getItem('qa_modal_mode') as SearchMode;
+        if (savedMode && ['chat', 'search', 'web-search'].includes(savedMode)) {
+          setSearchMode(savedMode);
+          // 清除 sessionStorage 中的 mode，避免影响下次打开
+          sessionStorage.removeItem('qa_modal_mode');
+        }
+      }, 0);
     }
   }, [qaModalOpen]);
 
