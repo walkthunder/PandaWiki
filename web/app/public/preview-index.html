@@ -1,12 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <title>无线随申查 - AI智能查询平台</title>
     <script src="./flexible.js"></script>
     <link rel="stylesheet" type="text/css" href="./common.css" />
     <link rel="stylesheet" type="text/css" href="./index.css" />
+    <style>
+      /* 锁定根元素字体大小，防止 flexible.js 导致布局错位 */
+      html {
+        font-size: 16px !important;
+      }
+      
+      .action-button {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+      }
+      .action-button:hover {
+        opacity: 0.8;
+        transform: translateY(-2px);
+      }
+      .action-button:active {
+        transform: translateY(0);
+      }
+      .clickable {
+        cursor: pointer;
+      }
+    </style>
   </head>
   <body>
     <div class="page flex-col">
@@ -16,7 +40,7 @@
           referrerpolicy="no-referrer"
           src="./img/SketchPng4bd058e493ad33e266b577550a3a7f02786c07cfa7ba304aaab0e8f606b23707.png"
         />
-        <div class="group_1 flex-row">
+        <a href="/home?open=true&mode=chat" class="group_1 flex-row action-button">
           <img
             class="thumbnail_1"
             referrerpolicy="no-referrer"
@@ -28,10 +52,10 @@
             referrerpolicy="no-referrer"
             src="./img/SketchPng541f76058b8d9cff0a0875812a7815db77bfe4ab996112779cd31ceaaf38febe.png"
           />
-        </div>
-        <div class="text-wrapper_1 flex-col">
+        </a>
+        <a href="/home?open=true&mode=chat" class="text-wrapper_1 flex-col action-button">
           <span class="text_2">智能问答</span>
-        </div>
+        </a>
       </div>
       <div class="text-wrapper_2 flex-col">
         <span class="text_3">无线随申查</span>
@@ -87,21 +111,21 @@
               />
             </div>
             <div class="section_1 flex-row">
-              <div class="text-wrapper_4 flex-col">
+              <a href="/home?open=true&answer=民用无人航天器无线电相关要求&mode=chat" class="text-wrapper_4 flex-col action-button">
                 <span class="text_6">民用无人航天器无线电相关要求</span>
-              </div>
+              </a>
               <div class="box_5 flex-col"></div>
               <div class="box_6 flex-col"></div>
             </div>
-            <div class="text-wrapper_5 flex-row">
+            <a href="/home?open=true&answer=民用无人航天器无线电相关要求&mode=chat" class="text-wrapper_5 flex-row action-button">
               <span class="text_7">民用无人航天器无线电相关要求</span>
-            </div>
-            <div class="text-wrapper_6 flex-col">
+            </a>
+            <a href="/home?open=true&answer=民用无人航天器无线电相关要求&mode=chat" class="text-wrapper_6 flex-col action-button">
               <span class="text_8">AI智能问答</span>
-            </div>
-            <div class="text-wrapper_7 flex-col">
-              <span class="text_9">互联网检查</span>
-            </div>
+            </a>
+            <a href="/home?open=true&mode=web-search" class="text-wrapper_7 flex-col action-button">
+              <span class="text_9">互联网检索</span>
+            </a>
           </div>
         </div>
       </div>
