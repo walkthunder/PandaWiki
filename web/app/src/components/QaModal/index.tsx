@@ -114,6 +114,18 @@ const QaModal: React.FC<QaModalProps> = () => {
     return bannerConfig?.banner_config?.hot_search || [];
   }, [kbDetail]);
 
+  // 处理 URL 参数中的 mode，设置默认打开的问答类型
+  useEffect(() => {
+    if (qaModalOpen) {
+      const savedMode = sessionStorage.getItem('qa_modal_mode') as SearchMode;
+      if (savedMode && ['chat', 'search', 'web-search'].includes(savedMode)) {
+        setSearchMode(savedMode);
+        // 清除 sessionStorage 中的 mode，避免影响下次打开
+        sessionStorage.removeItem('qa_modal_mode');
+      }
+    }
+  }, [qaModalOpen]);
+
   // modal打开时自动聚焦
   useEffect(() => {
     if (qaModalOpen) {
@@ -127,10 +139,15 @@ const QaModal: React.FC<QaModalProps> = () => {
     }
   }, [qaModalOpen, searchMode]);
 
+  // 只在弹窗关闭且没有 sessionStorage 中的 mode 时才重置为 chat
   useEffect(() => {
     if (!qaModalOpen) {
       setTimeout(() => {
-        setSearchMode('chat');
+        // 检查是否有待恢复的 mode，如果有则不重置
+        const savedMode = sessionStorage.getItem('qa_modal_mode');
+        if (!savedMode) {
+          setSearchMode('chat');
+        }
       }, 300);
     }
   }, [qaModalOpen]);

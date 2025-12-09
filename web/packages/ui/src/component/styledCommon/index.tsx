@@ -32,7 +32,7 @@ export const StyledTopicBox = styled(StyledContainer)(({ theme }) => ({
   flexDirection: 'column',
   gap: theme.spacing(8),
   alignItems: 'center',
-  padding: '90px 24px',
+  padding: '120px 24px',
   [theme.breakpoints.down('md')]: {
     paddingTop: 60,
     paddingBottom: 60,

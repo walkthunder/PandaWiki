@@ -585,14 +585,20 @@ const AiQaContent: React.FC<{
       sessionStorage.removeItem('chat_search_query');
       const newSearchParams = new URLSearchParams(searchParams.toString());
       newSearchParams.delete('cid');
-      window.history.replaceState(null, '', newSearchParams.toString());
+      const newUrl = newSearchParams.toString()
+        ? `?${newSearchParams.toString()}`
+        : window.location.pathname;
+      window.history.replaceState(null, '', newUrl);
       onSearch(searchQuery, true);
     }
     return () => {
       handleSearchAbort();
       const currentUrl = new URL(window.location.href);
       currentUrl.searchParams.delete('cid');
-      window.history.replaceState(null, '', currentUrl.toString());
+      const newUrl = currentUrl.search
+        ? `${currentUrl.pathname}${currentUrl.search}`
+        : currentUrl.pathname;
+      window.history.replaceState(null, '', newUrl);
       setTimeout(() => {
         onReset();
       });
@@ -604,7 +610,8 @@ const AiQaContent: React.FC<{
       const currentUrl = new URL(window.location.href);
       currentUrl.searchParams.delete('sid');
       currentUrl.searchParams.set('cid', conversationId);
-      window.history.replaceState(null, '', currentUrl.toString());
+      const newUrl = `${currentUrl.pathname}${currentUrl.search}`;
+      window.history.replaceState(null, '', newUrl);
     }
   }, [conversationId]);
 

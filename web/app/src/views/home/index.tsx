@@ -3,6 +3,7 @@
 import { Banner } from '@panda-wiki/ui';
 import dynamic from 'next/dynamic';
 import { DomainRecommendNodeListResp } from '@/request/types';
+import { useSearchParams } from 'next/navigation';
 
 import { useStore } from '@/provider';
 
@@ -181,6 +182,9 @@ const componentMap = {
 const Welcome = () => {
   const { mobile = false, kbDetail, setQaModalOpen } = useStore();
   const settings = kbDetail?.settings;
+  const searchParams = useSearchParams();
+
+  // URL 参数的处理已经在 provider 初始化时完成，这里不需要额外处理
   const onBannerSearch = (
     searchText: string,
     type: 'chat' | 'search' = 'chat',

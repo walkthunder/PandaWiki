@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>无线随申查 - 上海无线电监测站</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 
+                         'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
+            background: #f5f7fa;
+        }
+
+        /* 背景容器 */
+        .background-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            overflow: hidden;
+        }
+
+        .background-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 800"><defs><linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:rgb(102,126,234);stop-opacity:0.8" /><stop offset="100%" style="stop-color:rgb(118,75,162);stop-opacity:0.9" /></linearGradient></defs><path fill="url(%23grad1)" d="M0,320L48,298.7C96,277,192,235,288,229.3C384,224,480,256,576,250.7C672,245,768,203,864,197.3C960,192,1056,224,1152,213.3C1248,203,1344,149,1392,122.7L1440,96L1440,800L1392,800C1344,800,1248,800,1152,800C1056,800,960,800,864,800C768,800,672,800,576,800C480,800,384,800,288,800C192,800,96,800,48,800L0,800Z"/></svg>') no-repeat bottom;
+            background-size: cover;
+            opacity: 0.3;
+        }
+
+        .tech-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.4;
+        }
+
+        .floating-elements {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .city-skyline {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 40%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300"><rect x="50" y="150" width="60" height="150" fill="rgba(255,255,255,0.1)"/><rect x="130" y="100" width="50" height="200" fill="rgba(255,255,255,0.12)"/><rect x="200" y="120" width="70" height="180" fill="rgba(255,255,255,0.08)"/><rect x="290" y="80" width="55" height="220" fill="rgba(255,255,255,0.15)"/><rect x="365" y="140" width="45" height="160" fill="rgba(255,255,255,0.1)"/><rect x="430" y="110" width="65" height="190" fill="rgba(255,255,255,0.13)"/><rect x="515" y="90" width="50" height="210" fill="rgba(255,255,255,0.11)"/><rect x="585" y="130" width="60" height="170" fill="rgba(255,255,255,0.09)"/><rect x="665" y="70" width="70" height="230" fill="rgba(255,255,255,0.14)"/><rect x="755" y="120" width="55" height="180" fill="rgba(255,255,255,0.1)"/><rect x="830" y="100" width="50" height="200" fill="rgba(255,255,255,0.12)"/><rect x="900" y="140" width="60" height="160" fill="rgba(255,255,255,0.08)"/><rect x="980" y="85" width="65" height="215" fill="rgba(255,255,255,0.13)"/><rect x="1065" y="115" width="55" height="185" fill="rgba(255,255,255,0.11)"/></svg>') no-repeat bottom center;
+            background-size: cover;
+            opacity: 0.6;
+        }
+
+        /* 主容器 */
+        .container {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 顶部导航 */
+        .header {
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .nav-btn {
+            padding: 8px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .title {
+            font-size: 64px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 24px;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            letter-spacing: 4px;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.95);
+            max-width: 800px;
+            line-height: 1.8;
+            margin-bottom: 48px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            animation: fadeInUp 1s ease-out 0.2s backwards;
+        }
+
+        /* 搜索框 */
+        .search-container {
+            width: 100%;
+            max-width: 700px;
+            margin-bottom: 60px;
+            animation: fadeInUp 1s ease-out 0.4s backwards;
+        }
+
+        .search-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 50px;
+            padding: 6px 6px 6px 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+        }
+
+        .search-box:hover,
+        .search-box:focus-within {
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 16px;
+            padding: 16px 8px;
+            background: transparent;
+            color: #333;
+        }
+
+        .search-input::placeholder {
+            color: #999;
+        }
+
+        .search-btn {
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .search-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        /* 热点问题 */
+        .hot-topics {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: center;
+            max-width: 900px;
+            animation: fadeInUp 1s ease-out 0.6s backwards;
+        }
+
+        .topic-tag {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .topic-tag:nth-child(1) { animation-delay: 0s; }
+        .topic-tag:nth-child(2) { animation-delay: 0.5s; }
+        .topic-tag:nth-child(3) { animation-delay: 1s; }
+        .topic-tag:nth-child(4) { animation-delay: 1.5s; }
+        .topic-tag:nth-child(5) { animation-delay: 2s; }
+        .topic-tag:nth-child(6) { animation-delay: 2.5s; }
+
+        .topic-tag:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .topic-icon {
+            margin-right: 6px;
+        }
+
+        /* 页脚 */
+        .footer {
+            padding: 20px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 13px;
+            background: rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        /* 动画 */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .header {
+                padding: 15px 20px;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .logo {
+                font-size: 18px;
+            }
+
+            .logo-icon {
+                width: 28px;
+                height: 28px;
+                font-size: 16px;
+            }
+
+            .nav-buttons {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .nav-btn {
+                padding: 6px 16px;
+                font-size: 13px;
+            }
+
+            .main-content {
+                padding: 30px 15px;
+            }
+
+            .title {
+                font-size: 36px;
+                letter-spacing: 2px;
+                margin-bottom: 16px;
+            }
+
+            .subtitle {
+                font-size: 15px;
+                margin-bottom: 32px;
+                padding: 0 10px;
+            }
+
+            .search-container {
+                max-width: 100%;
+                margin-bottom: 40px;
+            }
+
+            .search-box {
+                padding: 4px 4px 4px 16px;
+            }
+
+            .search-input {
+                font-size: 14px;
+                padding: 12px 6px;
+            }
+
+            .search-btn {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+
+            .hot-topics {
+                gap: 10px;
+                max-width: 100%;
+            }
+
+            .topic-tag {
+                padding: 10px 18px;
+                font-size: 13px;
+            }
+
+            .footer {
+                font-size: 12px;
+                padding: 15px;
+            }
+
+            .city-skyline {
+                height: 30%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .title {
+                font-size: 28px;
+            }
+
+            .subtitle {
+                font-size: 14px;
+            }
+
+            .search-input {
+                font-size: 13px;
+            }
+
+            .search-btn {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+
+            .topic-tag {
+                padding: 8px 16px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景层 -->
+    <div class="background-wrapper">
+        <div class="background-overlay"></div>
+        <div class="tech-grid"></div>
+        <div class="floating-elements">
+            <div class="city-skyline"></div>
+        </div>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="container">
+        <!-- 顶部导航 -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">📡</div>
+                <span>无线随申查</span>
+            </div>
+            <div class="nav-buttons">
+                <button class="nav-btn">登录</button>
+                <button class="nav-btn">智能问答</button>
+            </div>
+        </header>
+
+        <!-- 主内容 -->
+        <main class="main-content">
+            <h1 class="title">无线随申查</h1>
+            <p class="subtitle">
+                上海无线电监测站打造的 AI 智能查询平台「无线随申查」，整合无线电站全量管理制度与合规文件，
+                通过智能检索技术，为用户提供高效、精准、权威的查询服务。
+            </p>
+
+            <!-- 搜索框 -->
+            <div class="search-container">
+                <div class="search-box">
+                    <input 
+                        type="text" 
+                        class="search-input" 
+                        placeholder="请输入您的问题..."
+                        id="searchInput"
+                    >
+                    <button class="search-btn" onclick="handleSearch()">AI 智能问答</button>
+                </div>
+            </div>
+
+            <!-- 热点问题 -->
+            <div class="hot-topics">
+                <div class="topic-tag" onclick="searchTopic(this)">
+                    <span class="topic-icon">📋</span>
+                    民用无人航天器无线电相关要求
+                </div>
+                <div class="topic-tag" onclick="searchTopic(this)">
+                    <span class="topic-icon">📡</span>
+                    无线电频率申请流程
+                </div>
+                <div class="topic-tag" onclick="searchTopic(this)">
+                    <span class="topic-icon">⚖️</span>
+                    无线电设备管理规定
+                </div>
+                <div class="topic-tag" onclick="searchTopic(this)">
+                    <span class="topic-icon">🔒</span>
+                    电磁环境保护要求
+                </div>
+                <div class="topic-tag" onclick="searchTopic(this)">
+                    <span class="topic-icon">📊</span>
+                    频谱使用许可办理
+                </div>
+                <div class="topic-tag" onclick="searchTopic(this)">
+                    <span class="topic-icon">🛡️</span>
+                    无线电干扰投诉处理
+                </div>
+            </div>
+        </main>
+
+        <!-- 页脚 -->
+        <footer class="footer">
+            © 2024 上海无线电监测站 版权所有 | 沪ICP备XXXXXXXX号
+        </footer>
+    </div>
+
+    <script>
+        // 搜索处理
+        function handleSearch() {
+            const input = document.getElementById('searchInput');
+            const query = input.value.trim();
+            if (query) {
+                console.log('搜索:', query);
+                // 这里可以添加实际的搜索逻辑
+                alert('正在搜索: ' + query);
+            }
+        }
+
+        // 热点问题点击
+        function searchTopic(element) {
+            const topic = element.textContent.trim();
+            document.getElementById('searchInput').value = topic;
+            handleSearch();
+        }
+
+        // 回车键搜索
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                handleSearch();
+            }
+        });
+    </script>
+</body>
+</html>

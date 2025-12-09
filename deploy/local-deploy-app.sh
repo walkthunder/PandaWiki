@@ -27,7 +27,7 @@ fi
 
 # 1. 构建前端代码和Docker镜像
 echo -e "${YELLOW}步骤1: 构建前端代码和Docker镜像...${NC}"
-cd web/app
+cd ../web/app
 make image
 
 # 2. 保存镜像为tar文件
