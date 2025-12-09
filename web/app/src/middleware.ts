@@ -82,6 +82,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/',
+    '/landing',
     '/home',
     '/share/:path*',
     '/chat/:path*',

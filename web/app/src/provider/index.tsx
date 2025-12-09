@@ -76,12 +76,17 @@ export default function StoreProvider({
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const open = urlParams.get('open');
+      const currentPath = window.location.pathname;
 
-      // 默认打开问答弹窗
-      let shouldOpen = true;
+      // 只在 home 页面默认打开问答弹窗
+      let shouldOpen = currentPath === '/home';
 
-      // 如果 URL 中明确指定 open=false 或 open=0，则不打开
-      if (open === 'false' || open === '0') {
+      // 如果 URL 中明确指定 open=true 或 open=1，则强制打开
+      if (open === 'true' || open === '1') {
+        shouldOpen = true;
+      }
+      // 如果 URL 中明确指定 open=false 或 open=0，则强制不打开
+      else if (open === 'false' || open === '0') {
         shouldOpen = false;
       }
 
