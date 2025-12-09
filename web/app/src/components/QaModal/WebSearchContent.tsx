@@ -27,6 +27,21 @@ const WebSearchContent: React.FC<WebSearchContentProps> = ({
     'network' | 'unavailable' | 'timeout' | 'default'
   >('default');
 
+  // 从 sessionStorage 获取问题并构建完整的 URL
+  const getIframeUrl = () => {
+    const question = sessionStorage.getItem('chat_search_query');
+    if (question) {
+      // 清除 sessionStorage 中的问题，避免重复使用
+      sessionStorage.removeItem('chat_search_query');
+      // 将问题编码并添加到 URL 中
+      const encodedQuestion = encodeURIComponent(question);
+      return `${url}&q=${encodedQuestion}`;
+    }
+    return url;
+  };
+
+  const [iframeUrl] = useState(getIframeUrl());
+
   // 处理 iframe 加载完成
   const handleLoad = () => {
     if (!isMountedRef.current) return;
@@ -51,7 +66,7 @@ const WebSearchContent: React.FC<WebSearchContentProps> = ({
     setLoading(true);
     setError(null);
     if (iframeRef.current) {
-      iframeRef.current.src = url;
+      iframeRef.current.src = iframeUrl;
     }
   };
 
@@ -199,7 +214,7 @@ const WebSearchContent: React.FC<WebSearchContentProps> = ({
 
       <iframe
         ref={iframeRef}
-        src={url}
+        src={iframeUrl}
         title='互联网检索服务'
         aria-label='互联网检索界面，用于访问外部搜索服务'
         onLoad={handleLoad}
