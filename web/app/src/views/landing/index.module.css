@@ -374,12 +374,13 @@
   margin-top: 20px;
   display: flex;
   flex-direction: row;
-  justify-content: space-around;
+  justify-content: center;
 }
 
 .box_4 {
   border-radius: 16px;
   height: 32px;
+  margin-left: 1rem;
   border: 1px solid rgba(255, 255, 255, 1);
   display: flex;
   align-items: center;
@@ -398,6 +399,7 @@
 .thumbnail_10 {
   width: 11px;
   height: 15px;
+  margin-right: 8px;
 }
 
 .textGroup_1 {
@@ -490,7 +492,7 @@
   position: absolute;
   right: 12px;
   bottom: -200px;
-  z-index: 0;
+  z-index: 1;
   transform: scale(0.7, 0.7) translateY(50px);
   opacity: 0;
 }

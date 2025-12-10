@@ -134,10 +134,16 @@ func NewConfig() (*Config, error) {
 		SubnetPrefix: "169.254.15",
 	}
 
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("./config")
-	viper.SetConfigName("config")
-	viper.SetConfigType("yml")
+	// 支持通过环境变量指定配置文件
+	configFile := os.Getenv("CONFIG_FILE")
+	if configFile != "" {
+		viper.SetConfigFile(configFile)
+	} else {
+		viper.AddConfigPath(".")
+		viper.AddConfigPath("./config")
+		viper.SetConfigName("config")
+		viper.SetConfigType("yml")
+	}
 
 	// try to read config file
 	if err := viper.ReadInConfig(); err != nil {

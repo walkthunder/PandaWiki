@@ -1,8 +1,8 @@
-# 本地开发配置文件 - 自动生成
-# 生成时间: $(date)
+# 本地开发配置文件
+# 此文件用于本地开发环境，不包含生产环境敏感信息
 
 log:
-  level: 0
+  level: 0  # debug 级别
 
 http:
   port: 8000
@@ -27,7 +27,7 @@ rag:
 
 redis:
   addr: "localhost:6379"
-  password: ""
+  password: "admin123"
 
 auth:
   type: "jwt"
@@ -43,5 +43,5 @@ sentry:
   enabled: false
   dsn: ""
 
-caddy_api: "/app/run/caddy-admin.sock"
+caddy_api: "./data/caddy/run/caddy-admin.sock"
 subnet_prefix: "169.254.15"
