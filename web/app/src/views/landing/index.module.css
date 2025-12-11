@@ -373,7 +373,6 @@
 
 .box_4 {
   border-radius: 16px;
-  width: 200px;
   height: 32px;
   border: 1px solid rgba(255, 255, 255, 1);
   display: flex;
@@ -382,12 +381,12 @@
 }
 
 .imageText_9 {
-  width: 173px;
   height: 22px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
+  padding: 0 8px;
 }
 
 .thumbnail_10 {
@@ -396,8 +395,8 @@
 }
 
 .textGroup_1 {
-  width: 154px;
   height: 22px;
+  margin-right: 8px;
   overflow-wrap: break-word;
   color: rgba(255, 255, 255, 1);
   font-size: 14px;
@@ -682,7 +681,7 @@
   background: url(/img/SketchPng4915a542a60558cc33831d80787726e1e08036e4fb2b1217c5684d7dfe7ec0e2.png) -17px -15px
     no-repeat;
   background-size: 1033px 161px;
-  margin: 0 auto;
+  margin: 1rem auto;
   display: flex;
   flex-direction: row;
   justify-content: center;

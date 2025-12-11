@@ -247,30 +247,10 @@ const Landing = () => {
               className={`${styles.box_10} ${styles.flexRow} ${styles.justifyBetween}`}
             >
               {quickQuestions.slice(0, 3).map((question, index) => {
-                const buttonClass =
-                  index === 0
-                    ? styles.box_4
-                    : index === 1
-                      ? styles.box_5
-                      : styles.box_6;
-                const imageTextClass =
-                  index === 0
-                    ? styles.imageText_9
-                    : index === 1
-                      ? styles.imageText_10
-                      : styles.imageText_11;
-                const thumbnailClass =
-                  index === 0
-                    ? styles.thumbnail_10
-                    : index === 1
-                      ? styles.thumbnail_11
-                      : styles.thumbnail_12;
-                const textGroupClass =
-                  index === 0
-                    ? styles.textGroup_1
-                    : index === 1
-                      ? styles.textGroup_2
-                      : styles.textGroup_3;
+                const buttonClass = styles.box_4;
+                const imageTextClass = styles.imageText_9;
+                const thumbnailClass = styles.thumbnail_10;
+                const textGroupClass = styles.textGroup_1;
 
                 return (
                   <button
