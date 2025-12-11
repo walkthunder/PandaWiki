@@ -37,7 +37,7 @@ export async function middleware(
     if (url.pathname === '/') {
       const homePath = await getHomePath();
       if (homePath === 'custom') {
-        return NextResponse.rewrite(new URL('/home', request.url));
+        return NextResponse.rewrite(new URL('/landing', request.url));
       } else {
         const [firstNode] = await Promise.all([getFirstNode(), getHomePath()]);
         if (firstNode) {
