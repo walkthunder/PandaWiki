@@ -16,6 +16,7 @@ const Landing = () => {
   const [questionInput, setQuestionInput] = useState('');
   const [showComingSoonModal, setShowComingSoonModal] = useState(false);
   const [showVideo, setShowVideo] = useState(true);
+  const [showStaticBg, setShowStaticBg] = useState(false);
   const [showRobot, setShowRobot] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -35,7 +36,8 @@ const Landing = () => {
     const video = videoRef.current;
     if (video) {
       const handleVideoEnd = () => {
-        setShowVideo(false);
+        // 显示静态背景，让它淡入覆盖视频
+        setShowStaticBg(true);
         // 延迟800ms后显示机器人
         setTimeout(() => {
           setShowRobot(true);
@@ -170,21 +172,19 @@ const Landing = () => {
         <div
           className={`${styles.section_3} ${styles.flexCol} ${styles.justifyEnd}`}
         >
-          {showVideo && (
-            <>
-              <video
-                ref={videoRef}
-                className={styles.videoBackground}
-                autoPlay
-                muted
-                playsInline
-              >
-                <source src='/img/10406080034425884988.mp4' type='video/mp4' />
-              </video>
-              <div className={styles.videoOverlay} />
-            </>
-          )}
-          {!showVideo && <div className={styles.staticBackground} />}
+          <video
+            ref={videoRef}
+            className={styles.videoBackground}
+            autoPlay
+            muted
+            playsInline
+          >
+            <source src='/img/10406080034425884988.mp4' type='video/mp4' />
+          </video>
+          <div className={styles.videoOverlay} />
+          <div
+            className={`${styles.staticBackground} ${showStaticBg ? styles.staticBackgroundVisible : ''}`}
+          />
           <div className={`${styles.group_6} ${styles.flexRow}`}>
             <img
               className={styles.image_8}

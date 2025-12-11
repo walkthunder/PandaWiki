@@ -215,7 +215,13 @@
   background-image: url(/img/37fd815d37694125a0c7601338f0b730_mergeImage.png);
   background-size: cover;
   background-position: center;
-  z-index: 0;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 1s ease-in-out;
+}
+
+.staticBackgroundVisible {
+  opacity: 1;
 }
 
 .videoOverlay {
@@ -225,7 +231,7 @@
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.3);
-  z-index: 1;
+  z-index: 0;
 }
 
 .group_6 {
