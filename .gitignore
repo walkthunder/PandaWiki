@@ -21,3 +21,11 @@ data/
 pdf-tools/outputs/
 pdf-tools/logs/
 pdf-tools/docs/
+
+
+DemoLanhuProject/
+web/app/LanhuProject (4)
+
+
+*.log
+*.pid

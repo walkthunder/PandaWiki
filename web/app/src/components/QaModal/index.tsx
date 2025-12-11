@@ -255,46 +255,60 @@ const QaModal: React.FC<QaModalProps> = () => {
         </Box>
 
         {/* 主内容区域 - 根据模式切换 */}
-        <Box
-          sx={{
-            px: 3,
-            flex: 1,
-            display: searchMode === 'chat' ? 'flex' : 'none',
-            flexDirection: 'column',
-            opacity: isTransitioning ? 0.5 : 1,
-            transition: 'opacity 0.3s ease-in-out',
-          }}
-        >
-          <AiQaContent
-            hotSearch={hotSearch}
-            placeholder={placeholder}
-            inputRef={aiQaInputRef}
-          />
-        </Box>
-        <Box
-          sx={{
-            px: 3,
-            flex: 1,
-            display: searchMode === 'search' ? 'flex' : 'none',
-            flexDirection: 'column',
-            opacity: isTransitioning ? 0.5 : 1,
-            transition: 'opacity 0.3s ease-in-out',
-          }}
-        >
-          <SearchDocContent inputRef={inputRef} placeholder={placeholder} />
-        </Box>
-        <Box
-          sx={{
-            px: 3,
-            flex: 1,
-            display: searchMode === 'web-search' ? 'flex' : 'none',
-            flexDirection: 'column',
-            opacity: isTransitioning ? 0.5 : 1,
-            transition: 'opacity 0.3s ease-in-out',
-          }}
-        >
-          <WebSearchContent isMobile={mobile} />
-        </Box>
+        {searchMode === 'chat' && (
+          <Box
+            sx={{
+              px: 3,
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              opacity: isTransitioning ? 0.5 : 1,
+              transition: 'opacity 0.3s ease-in-out',
+            }}
+          >
+            <AiQaContent
+              key={qaModalOpen ? 'chat-open' : 'chat-closed'}
+              hotSearch={hotSearch}
+              placeholder={placeholder}
+              inputRef={aiQaInputRef}
+            />
+          </Box>
+        )}
+        {searchMode === 'search' && (
+          <Box
+            sx={{
+              px: 3,
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              opacity: isTransitioning ? 0.5 : 1,
+              transition: 'opacity 0.3s ease-in-out',
+            }}
+          >
+            <SearchDocContent
+              key={qaModalOpen ? 'search-open' : 'search-closed'}
+              inputRef={inputRef}
+              placeholder={placeholder}
+            />
+          </Box>
+        )}
+        {searchMode === 'web-search' && (
+          <Box
+            sx={{
+              px: 3,
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              opacity: isTransitioning ? 0.5 : 1,
+              transition: 'opacity 0.3s ease-in-out',
+            }}
+          >
+            <WebSearchContent
+              key={qaModalOpen ? 'web-search-open' : 'web-search-closed'}
+              isMobile={mobile}
+            />
+          </Box>
+        )}
 
         {/* 底部AI生成提示 */}
         <Box
