@@ -27,6 +27,8 @@ fi
 
 # 1. 构建前端代码和Docker镜像
 echo -e "${YELLOW}步骤1: 构建前端代码和Docker镜像...${NC}"
+echo -e "${YELLOW}注意: Next.js会在构建时读取 .env.production 文件中的环境变量${NC}"
+echo -e "${YELLOW}确保 web/app/.env.production 中的 NEXT_PUBLIC_* 变量已正确配置${NC}"
 cd ../web/app
 make image
 

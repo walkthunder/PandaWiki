@@ -25,6 +25,7 @@ web/app/.env.local
 # 开发环境配置（可以提交，不包含敏感信息）
 # backend/config.dev.yml - 允许提交
 # web/app/.env.dev - 允许提交
+# web/app/.env.production - 允许提交（用于构建时配置）
 
 # 注意：根目录的 .env 用于 Docker Compose，开发环境可以提交
 # 生产环境需要修改密码后使用
