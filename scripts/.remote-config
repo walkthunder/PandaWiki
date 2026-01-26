@@ -1,0 +1,32 @@
+# 远程服务器配置示例
+# 复制此文件为 .remote-config 并填入实际值
+# 使用方法: source scripts/.remote-config && ./scripts/sync-remote-to-local.sh
+
+# 远程服务器地址
+export REMOTE_HOST="8.140.221.27"
+
+# 远程服务器用户名
+export REMOTE_USER="root"
+
+# 远程项目路径（PandaWiki 项目所在目录）
+export REMOTE_PATH="/root"
+
+# SSH 端口（默认 22）
+export REMOTE_PORT="22"
+
+# 可选：SSH 密钥路径（如果使用密钥认证）
+# export SSH_KEY_PATH="~/.ssh/id_rsa"
+
+# 容器网段
+SUBNET_PREFIX=169.254.15
+# 中间件密码
+POSTGRES_PASSWORD=admin123
+NATS_PASSWORD=admin123
+JWT_SECRET=admin123
+S3_SECRET_KEY=admin123
+QDRANT_API_KEY=admin123
+REDIS_PASSWORD=admin123
+# 管理后台登录密码
+ADMIN_PASSWORD=admin123
+# 管理后台访问端口
+ADMIN_PORT=2443

@@ -49,6 +49,14 @@ PandaWiki 是一款 AI 驱动的开源知识库搭建系统。
 - [部署指南](DEPLOYMENT_GUIDE.md) - 生产环境部署
 - [部署总结](DEPLOYMENT_SUMMARY.md) - 部署流程总结
 
+### 安全相关 🔒
+- [文档安全检查工具](docs/SECURITY_CHECK.md) - 检查上传文档是否包含敏感信息
+
+### 运维相关
+- [备份与恢复指南](BACKUP_GUIDE.md) - 数据备份和恢复完整方案
+- [运维脚本说明](scripts/README.md) - 巡检和备份脚本使用
+- [服务器巡检报告](SERVER_INSPECTION_REPORT.md) - 最新巡检结果
+
 ### 其他
 - [快速开始](QUICK_START.md) - 项目快速上手
 - [项目结构](PROJECT_STRUCTURE.md) - 代码结构说明
@@ -81,6 +89,17 @@ tail -f logs/app.log
 
 # 远程重启
 ./deploy/remote-deploy.sh
+```
+
+### 运维管理
+
+```bash
+# 服务器巡检
+./scripts/server-inspection.sh
+
+# 数据备份（需先部署到服务器）
+./scripts/deploy-backup-script.sh  # 部署备份脚本
+ssh root@8.140.221.27 "cd /root && ./scripts/backup-to-cos.sh"  # 执行备份
 ```
 
 ## 🔧 配置说明

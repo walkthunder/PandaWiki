@@ -29,7 +29,12 @@ fi
 echo -e "${YELLOW}步骤1: 构建前端代码和Docker镜像...${NC}"
 echo -e "${YELLOW}注意: Next.js会在构建时读取 .env.production 文件中的环境变量${NC}"
 echo -e "${YELLOW}确保 web/app/.env.production 中的 NEXT_PUBLIC_* 变量已正确配置${NC}"
-cd ../web/app
+
+# 获取脚本所在目录的绝对路径
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+
+cd "$PROJECT_ROOT/web/app"
 make image
 
 # 2. 保存镜像为tar文件
@@ -64,4 +69,4 @@ echo -e "${GREEN}本地临时文件已清理${NC}"
 echo -e "${YELLOW}步骤5: 本地部署完成! 正在执行远程部署...${NC}"
 echo -e "${GREEN}ssh $SERVER_USER@$SERVER_IP 'bash -s' < deploy/remote-deploy-app.sh${NC}"
 #5. 直接执行远程部署命令
-ssh $SERVER_USER@$SERVER_IP 'bash -s' < ../../deploy/remote-deploy-app.sh
+ssh $SERVER_USER@$SERVER_IP 'bash -s' < "$SCRIPT_DIR/remote-deploy-app.sh"

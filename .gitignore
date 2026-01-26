@@ -1,64 +1,80 @@
-# 远程配置文件（包含敏感信息）
-scripts/.remote-config
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# 备份文件
+# dependencies
+node_modules
+.pnp
+.pnp.js
+
+# testing
+coverage
+
+# next.js
+.next/
+out/
+build
+dist
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# turbo
+.turbo
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+
+# IDE
+.idea
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# OS
+Thumbs.db
+
+# Project specific
+data/
+logs/
+*.log
+backend/config.yml
+web/app/.env
+web/admin/.env
+
+# Backup files
 backups/
 *.sql
 *.sql.gz
+*.tar
+*.tar.gz
 
-# 临时文件
+# Reports (巡检报告)
+reports/
+SERVER_INSPECTION_REPORT.md
+TEST_UPLOAD_REPORT.md
+
+# Security check reports (安全检查报告 - 可能包含敏感信息)
+security-reports/
+
+# Temporary files
+tmp/
+temp/
 *.tmp
-*.temp
-
-data/
-
-.env
-
-# 环境配置文件
-# 生产环境配置（包含敏感信息，不提交）
-backend/config.yml
-web/app/.env
-
-# Next.js 本地环境配置（运行时生成，不提交）
-web/app/.env.local
-
-# 开发环境配置（可以提交，不包含敏感信息）
-# backend/config.dev.yml - 允许提交
-# web/app/.env.dev - 允许提交
-# web/app/.env.production - 允许提交（用于构建时配置）
-
-# 注意：根目录的 .env 用于 Docker Compose，开发环境可以提交
-# 生产环境需要修改密码后使用
-
-.dev/
-
-.vscode/
-
-
-local
-
-.idea
-
-data/*
-
-backend/panda-wiki-api
-
-.dev
-
-# 本地开发日志和 PID 文件
-logs/
-*.log
-*.pid
-
-pdf-tools/
-pdf-tools/outputs/
-pdf-tools/logs/
-pdf-tools/docs/
-
-
-DemoLanhuProject/
-web/app/LanhuProject (4)
-
-
-*.log
-*.pid
+*.swp
+*.swo
+*~

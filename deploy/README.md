@@ -2,6 +2,10 @@
 
 本文档说明如何使用自动化脚本来部署 PandaWiki API 服务的更新版本。
 
+## 重要文档
+
+- **[环境变量配置说明](ENVIRONMENT_VARIABLES.md)** - 了解如何正确配置前端环境变量（特别是 `NEXT_PUBLIC_*` 变量）
+
 ## 脚本组成
 
 1. [local-deploy.sh](file:///Users/aaronzheng/Projects/PandaWiki/deploy/local-deploy.sh) - 本地运行脚本（用于部署后端API服务）
@@ -149,3 +153,4 @@ ssh $SERVER_USER@$SERVER_IP "chmod +x /tmp/remote-deploy-app.sh && /tmp/remote-d
 4. 确保服务器上有足够的磁盘空间存储镜像文件
 5. 根据实际环境调整脚本中的路径和配置参数
 6. 确保在运行本地脚本之前已经提交了所有代码更改，因为构建过程会使用当前的代码状态
+7. ⚠️ **前端部署特别注意**：`NEXT_PUBLIC_*` 环境变量在构建时就被嵌入代码，必须在 `web/app/.env.production` 中正确配置。详见 [环境变量配置说明](ENVIRONMENT_VARIABLES.md)
