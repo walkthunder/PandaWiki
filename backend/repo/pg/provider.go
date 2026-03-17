@@ -23,4 +23,7 @@ var ProviderSet = wire.NewSet(
 	NewAuthRepo,
 	NewWechatRepository,
 	NewAPITokenRepo,
+	NewSystemSettingRepo,
+	NewMCPRepository,
+	NewNavRepository,
 )

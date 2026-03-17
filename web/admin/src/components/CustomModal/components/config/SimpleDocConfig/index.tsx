@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { CommonItem, StyledCommonWrapper } from '../../components/StyledCommon';
 import { TextField } from '@mui/material';
 import { Controller, useForm } from 'react-hook-form';
-import DragList from './DragList';
+import DragList from '../../components/DragList';
+import SortableItem from '../../components/SortableItem';
+import Item from './Item';
 import { Empty } from '@ctzhian/ui';
 import type { ConfigProps } from '../type';
 import { useAppSelector } from '@/store';
@@ -39,6 +41,12 @@ const SimpleDocConfigConfig = ({ setIsEdit, id }: ConfigProps) => {
     nodeRec(newList);
     setIsEdit(true);
   };
+
+  // 稳定的 SortableItemComponent 引用
+  const ItemSortableComponent = useMemo(
+    () => (props: any) => <SortableItem {...props} ItemComponent={Item} />,
+    [],
+  );
 
   useEffect(() => {
     reset(
@@ -124,6 +132,8 @@ const SimpleDocConfigConfig = ({ setIsEdit, id }: ConfigProps) => {
               setValue('nodes', value);
             }}
             setIsEdit={setIsEdit}
+            SortableItemComponent={ItemSortableComponent}
+            ItemComponent={Item}
           />
         )}
       </CommonItem>

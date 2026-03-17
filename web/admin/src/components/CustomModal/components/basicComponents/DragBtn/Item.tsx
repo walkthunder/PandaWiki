@@ -1,7 +1,7 @@
 import { CardWebHeaderBtn } from '@/api';
 import UploadFile from '@/components/UploadFile';
 import { useAppDispatch, useAppSelector } from '@/store';
-import { setAppPreviewData } from '@/store/slices/config';
+
 import {
   Box,
   Checkbox,
@@ -13,16 +13,15 @@ import {
   Stack,
   TextField,
 } from '@mui/material';
-import { Icon } from '@ctzhian/ui';
+import { IconShanchu2, IconDrag } from '@panda-wiki/icons';
 import {
   CSSProperties,
   Dispatch,
   forwardRef,
   HTMLAttributes,
   SetStateAction,
-  useEffect,
 } from 'react';
-import { Control, Controller, useForm } from 'react-hook-form';
+import { Control, Controller } from 'react-hook-form';
 
 export type ItemProps = Omit<HTMLAttributes<HTMLDivElement>, 'onChange'> & {
   item: CardWebHeaderBtn;
@@ -300,7 +299,7 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                 height: '28px',
               }}
             >
-              <Icon type='icon-shanchu2' sx={{ fontSize: '12px' }} />
+              <IconShanchu2 sx={{ fontSize: '12px' }} />
             </IconButton>
             <IconButton
               size='small'
@@ -311,7 +310,7 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
               }}
               {...dragHandleProps}
             >
-              <Icon type='icon-drag' />
+              <IconDrag sx={{ fontSize: '18px' }} />
             </IconButton>
           </Stack>
         </Stack>

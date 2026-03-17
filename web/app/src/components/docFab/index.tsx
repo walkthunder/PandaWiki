@@ -1,5 +1,6 @@
 'use client';
 import { useStore } from '@/provider';
+import { useBasePath } from '@/hooks';
 import { Modal } from '@ctzhian/ui';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -24,7 +25,7 @@ const DocFab = () => {
   const [contentType, setContentType] = useState<'html' | 'md'>('html');
   const [openSelectContentTypeModal, setOpenSelectContentTypeModal] =
     useState(false);
-
+  const basePath = useBasePath();
   if (mobile) return null;
 
   return (
@@ -38,7 +39,10 @@ const DocFab = () => {
         }}
         onOk={() => {
           setOpenSelectContentTypeModal(false);
-          window.open(`/editor?contentType=${contentType}`, '_blank');
+          window.open(
+            `${basePath}/editor?contentType=${contentType}`,
+            '_blank',
+          );
         }}
       >
         <RadioGroup
@@ -85,7 +89,7 @@ const DocFab = () => {
                 </Fab>
               </Tooltip>
             </Zoom>
-            {pathname.startsWith('/node/') && (
+            {pathname.startsWith(basePath + '/node/') && (
               <Zoom
                 in={showActions}
                 style={{ transitionDelay: showActions ? '40ms' : '0ms' }}
@@ -95,7 +99,7 @@ const DocFab = () => {
                     color='primary'
                     size='small'
                     onClick={() => {
-                      window.open(`/editor/${docId}`, '_blank');
+                      window.open(`${basePath}/editor/${docId}`, '_blank');
                     }}
                   >
                     <EditIcon />

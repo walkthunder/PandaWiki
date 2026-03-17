@@ -8,6 +8,8 @@ import { styled } from '@mui/material/styles';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import DocModal from './DocModal';
+import VersionMask from '@/components/VersionMask';
+import { PROFESSION_VERSION_PERMISSION } from '@/constant/version';
 
 import { useURLSearchParams } from '@/hooks';
 import {
@@ -46,7 +48,11 @@ const statusColorMap = {
 } as const;
 
 export default function ContributionPage() {
-  const { kb_id = '', kbDetail } = useAppSelector(state => state.config);
+  const {
+    kb_id = '',
+    nav_id = '',
+    license,
+  } = useAppSelector(state => state.config);
   const [searchParams, setSearchParams] = useURLSearchParams();
   const page = Number(searchParams.get('page') || '1');
   const pageSize = Number(searchParams.get('page_size') || '20');
@@ -73,13 +79,14 @@ export default function ContributionPage() {
     setPreviewRow(null);
   };
 
-  const handleDocModalOk = (id: string) => {
+  const handleDocModalOk = (params: { nav_id: string; parent_id: string }) => {
     setDocModalOpen(false);
     setPreviewRow(null);
     postApiProV1ContributeAudit({
       id: previewRow!.id!,
       kb_id,
-      parent_id: id,
+      nav_id: params.nav_id,
+      parent_id: params.parent_id,
       status: 'approved',
     }).then(() => {
       getData();
@@ -100,6 +107,7 @@ export default function ContributionPage() {
           postApiProV1ContributeAudit({
             id: previewRow!.id!,
             kb_id,
+            nav_id,
             status: 'approved',
           }).then(() => {
             getData();
@@ -119,6 +127,7 @@ export default function ContributionPage() {
         postApiProV1ContributeAudit({
           id: previewRow!.id!,
           kb_id,
+          nav_id,
           status: 'rejected',
         }).then(() => {
           getData();
@@ -283,111 +292,114 @@ export default function ContributionPage() {
   };
 
   useEffect(() => {
-    if (kb_id) getData();
+    if (kb_id && PROFESSION_VERSION_PERMISSION.includes(license.edition!))
+      getData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, nodeNameParam, authNameParam, kb_id]);
+  }, [page, pageSize, nodeNameParam, authNameParam, kb_id, license.edition]);
 
   return (
     <Card>
-      <Stack
-        direction='row'
-        alignItems={'center'}
-        justifyContent={'space-between'}
-        sx={{ p: 2 }}
-      >
-        <StyledSearchRow direction='row' sx={{ p: 0, flex: 1 }}>
-          <TextField
-            fullWidth
-            size='small'
-            label='文档'
-            value={searchDoc}
-            onKeyUp={e => {
-              if (e.key === 'Enter') {
-                setSearchParams({ node_name: searchDoc || '', page: '1' });
-              }
-            }}
-            onBlur={e => {
-              setSearchParams({ node_name: e.target.value, page: '1' });
-            }}
-            onChange={e => setSearchDoc(e.target.value)}
-            sx={{ width: 200 }}
-          />
-          <TextField
-            fullWidth
-            size='small'
-            label='用户'
-            value={searchUser}
-            onKeyUp={e => {
-              if (e.key === 'Enter') {
-                setSearchParams({ auth_name: searchUser || '', page: '1' });
-              }
-            }}
-            onBlur={e => {
-              setSearchParams({ auth_name: e.target.value, page: '1' });
-            }}
-            onChange={e => setSearchUser(e.target.value)}
-            sx={{ width: 200 }}
-          />
-        </StyledSearchRow>
-      </Stack>
-      <Table
-        columns={columns}
-        dataSource={data}
-        rowKey='id'
-        height='calc(100vh - 148px)'
-        size='small'
-        sx={{
-          overflow: 'hidden',
-          ...tableSx,
-          '.MuiTableContainer-root': {
-            height: 'calc(100vh - 148px - 70px)',
-          },
-        }}
-        pagination={{
-          total,
-          page,
-          pageSize,
-          onChange: (page, pageSize) => {
-            setSearchParams({
-              page: String(page),
-              page_size: String(pageSize),
-            });
-          },
-        }}
-        PaginationProps={{
-          sx: {
-            borderTop: '1px solid',
-            borderColor: 'divider',
-            p: 2,
-            '.MuiSelect-root': {
-              width: 100,
+      <VersionMask permission={PROFESSION_VERSION_PERMISSION}>
+        <Stack
+          direction='row'
+          alignItems={'center'}
+          justifyContent={'space-between'}
+          sx={{ p: 2 }}
+        >
+          <StyledSearchRow direction='row' sx={{ p: 0, flex: 1 }}>
+            <TextField
+              fullWidth
+              size='small'
+              label='文档'
+              value={searchDoc}
+              onKeyUp={e => {
+                if (e.key === 'Enter') {
+                  setSearchParams({ node_name: searchDoc || '', page: '1' });
+                }
+              }}
+              onBlur={e => {
+                setSearchParams({ node_name: e.target.value, page: '1' });
+              }}
+              onChange={e => setSearchDoc(e.target.value)}
+              sx={{ width: 200 }}
+            />
+            <TextField
+              fullWidth
+              size='small'
+              label='用户'
+              value={searchUser}
+              onKeyUp={e => {
+                if (e.key === 'Enter') {
+                  setSearchParams({ auth_name: searchUser || '', page: '1' });
+                }
+              }}
+              onBlur={e => {
+                setSearchParams({ auth_name: e.target.value, page: '1' });
+              }}
+              onChange={e => setSearchUser(e.target.value)}
+              sx={{ width: 200 }}
+            />
+          </StyledSearchRow>
+        </Stack>
+        <Table
+          columns={columns}
+          dataSource={data}
+          rowKey='id'
+          height='calc(100vh - 148px)'
+          size='small'
+          sx={{
+            overflow: 'hidden',
+            ...tableSx,
+            '.MuiTableContainer-root': {
+              height: 'calc(100vh - 148px - 70px)',
             },
-          },
-        }}
-      />
+          }}
+          pagination={{
+            total,
+            page,
+            pageSize,
+            onChange: (page, pageSize) => {
+              setSearchParams({
+                page: String(page),
+                page_size: String(pageSize),
+              });
+            },
+          }}
+          PaginationProps={{
+            sx: {
+              borderTop: '1px solid',
+              borderColor: 'divider',
+              p: 2,
+              '.MuiSelect-root': {
+                width: 100,
+              },
+            },
+          }}
+        />
 
-      {previewRow?.meta?.content_type === 'md' ? (
-        <MarkdownPreviewModal
-          open={open}
-          row={previewRow}
-          onClose={closeDialog}
-          onAccept={handleAccept}
-          onReject={handleReject}
+        {previewRow?.meta?.content_type === 'md' ? (
+          <MarkdownPreviewModal
+            open={open}
+            row={previewRow}
+            onClose={closeDialog}
+            onAccept={handleAccept}
+            onReject={handleReject}
+          />
+        ) : (
+          <ContributePreviewModal
+            open={open}
+            row={previewRow}
+            onClose={closeDialog}
+            onAccept={handleAccept}
+            onReject={handleReject}
+          />
+        )}
+        <DocModal
+          open={docModalOpen}
+          onClose={() => setDocModalOpen(false)}
+          onOk={handleDocModalOk}
         />
-      ) : (
-        <ContributePreviewModal
-          open={open}
-          row={previewRow}
-          onClose={closeDialog}
-          onAccept={handleAccept}
-          onReject={handleReject}
-        />
-      )}
-      <DocModal
-        open={docModalOpen}
-        onClose={() => setDocModalOpen(false)}
-        onOk={handleDocModalOk}
-      />
+      </VersionMask>
     </Card>
   );
 }

@@ -72,8 +72,8 @@ func (u *CommentUsecase) CreateComment(ctx context.Context, commentReq *domain.C
 	return CommentStr, nil
 }
 
-func (u *CommentUsecase) GetCommentListByNodeID(ctx context.Context, nodeID string, edition consts.LicenseEdition) (*domain.PaginatedResult[[]*domain.ShareCommentListItem], error) {
-	comments, total, err := u.CommentRepo.GetCommentList(ctx, nodeID, edition)
+func (u *CommentUsecase) GetCommentListByNodeID(ctx context.Context, nodeID string) (*domain.PaginatedResult[[]*domain.ShareCommentListItem], error) {
+	comments, total, err := u.CommentRepo.GetCommentList(ctx, nodeID)
 	if err != nil {
 		return nil, err
 	}

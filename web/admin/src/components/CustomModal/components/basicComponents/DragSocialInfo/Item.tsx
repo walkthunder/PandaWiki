@@ -1,8 +1,8 @@
 import UploadFile from '@/components/UploadFile';
 import { DomainSocialMediaAccount } from '@/request/types';
+import { IconShanchu2, IconDrag } from '@panda-wiki/icons';
 import {
   Box,
-  FormControl,
   IconButton,
   MenuItem,
   Select,
@@ -11,14 +11,12 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from '@mui/material';
-import { Icon } from '@ctzhian/ui';
 import {
   CSSProperties,
   Dispatch,
   forwardRef,
   HTMLAttributes,
   SetStateAction,
-  useId,
 } from 'react';
 import { Control, Controller } from 'react-hook-form';
 import { options } from '../../config/FooterConfig';
@@ -37,7 +35,7 @@ const Item = forwardRef<HTMLDivElement, SocialInfoProps>(
   (
     {
       item,
-      data,
+      data = [],
       control,
       setIsEdit,
       index,
@@ -49,7 +47,6 @@ const Item = forwardRef<HTMLDivElement, SocialInfoProps>(
     },
     ref,
   ) => {
-    const id = useId();
     const inlineStyles: CSSProperties = {
       opacity: withOpacity ? '0.5' : '1',
       borderRadius: '10px',
@@ -93,7 +90,7 @@ const Item = forwardRef<HTMLDivElement, SocialInfoProps>(
                       }}
                       {...dragHandleProps}
                     >
-                      <Icon type='icon-drag' />
+                      <IconDrag sx={{ fontSize: '18px' }} />
                     </IconButton>
                     <Box
                       sx={{
@@ -113,7 +110,7 @@ const Item = forwardRef<HTMLDivElement, SocialInfoProps>(
                         setIsEdit(true);
                       }}
                       sx={{
-                        color: 'text.auxiliary',
+                        color: 'text.tertiary',
                         ':hover': { color: 'error.main' },
                         flexShrink: 0,
                         width: '28px',
@@ -121,7 +118,7 @@ const Item = forwardRef<HTMLDivElement, SocialInfoProps>(
                         ml: 'auto',
                       }}
                     >
-                      <Icon type='icon-shanchu2' sx={{ fontSize: '12px' }} />
+                      <IconShanchu2 sx={{ fontSize: '12px' }} />
                     </IconButton>
                   </Stack>
                   <Stack direction={'row'} gap={1}>
@@ -143,16 +140,10 @@ const Item = forwardRef<HTMLDivElement, SocialInfoProps>(
                       }}
                       renderValue={selected => {
                         const option = options.find(i => i.key === selected);
+                        const AppIcon = option?.config_type || option?.type;
                         return (
                           <Stack justifyContent={'center'} sx={{ mt: '2px' }}>
-                            <Icon
-                              type={
-                                option
-                                  ? option?.config_type || option?.type || ''
-                                  : ''
-                              }
-                              sx={{ fontSize: '14px' }}
-                            />
+                            {AppIcon && <AppIcon sx={{ fontSize: '14px' }} />}
                           </Stack>
                         );
                       }}
@@ -186,30 +177,31 @@ const Item = forwardRef<HTMLDivElement, SocialInfoProps>(
                             borderRadius: 1,
                           }}
                         >
-                          {options.map(item => (
-                            <ToggleButton
-                              key={item.key}
-                              value={item.key}
-                              sx={{
-                                p: 1,
-                                height: 'auto',
-                                border: '1px solid #ddd !important',
-                                borderRadius: '0px',
-                              }}
-                            >
-                              <Stack
-                                direction='row'
-                                gap={1}
-                                alignItems='center'
+                          {options.map(item => {
+                            const AppIcon = item?.config_type || item?.type;
+                            return (
+                              <ToggleButton
+                                key={item.key}
+                                value={item.key}
+                                sx={{
+                                  p: 1,
+                                  height: 'auto',
+                                  border: '1px solid #ddd !important',
+                                  borderRadius: '0px',
+                                }}
                               >
-                                <Icon
-                                  type={item?.config_type || item?.type}
-                                  sx={{ fontSize: '16px' }}
-                                />
-                                {/* <Box>{item.value || item.key}</Box> */}
-                              </Stack>
-                            </ToggleButton>
-                          ))}
+                                <Stack
+                                  direction='row'
+                                  gap={1}
+                                  alignItems='center'
+                                >
+                                  {AppIcon && (
+                                    <AppIcon sx={{ fontSize: '16px' }} />
+                                  )}
+                                </Stack>
+                              </ToggleButton>
+                            );
+                          })}
                         </ToggleButtonGroup>
                       </MenuItem>
                     </Select>

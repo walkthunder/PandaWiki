@@ -18,8 +18,34 @@ import {
   DomainOpenAICompletionsResponse,
   DomainResponse,
   PostShareV1ChatMessageParams,
-  PostShareV1ChatWidgetParams,
+  V1WechatAppInfoResp,
 } from "./types";
+
+/**
+ * @description WechatAppInfo
+ *
+ * @tags share_chat
+ * @name GetShareV1AppWechatInfo
+ * @summary WechatAppInfo
+ * @request GET:/share/v1/app/wechat/info
+ * @response `200` `(DomainResponse & {
+    data?: V1WechatAppInfoResp,
+
+})` OK
+ */
+
+export const getShareV1AppWechatInfo = (params: RequestParams = {}) =>
+  httpRequest<
+    DomainResponse & {
+      data?: V1WechatAppInfoResp;
+    }
+  >({
+    path: `/share/v1/app/wechat/info`,
+    method: "GET",
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
 
 /**
  * @description OpenAI API compatible chat completions endpoint
@@ -85,31 +111,6 @@ export const postShareV1ChatMessage = (
 ) =>
   httpRequest<DomainResponse>({
     path: `/share/v1/chat/message`,
-    method: "POST",
-    query: query,
-    body: request,
-    type: ContentType.Json,
-    format: "json",
-    ...params,
-  });
-
-/**
- * @description ChatWidget
- *
- * @tags share_chat
- * @name PostShareV1ChatWidget
- * @summary ChatWidget
- * @request POST:/share/v1/chat/widget
- * @response `200` `DomainResponse` OK
- */
-
-export const postShareV1ChatWidget = (
-  query: PostShareV1ChatWidgetParams,
-  request: DomainChatRequest,
-  params: RequestParams = {},
-) =>
-  httpRequest<DomainResponse>({
-    path: `/share/v1/chat/widget`,
     method: "POST",
     query: query,
     body: request,

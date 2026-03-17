@@ -62,14 +62,19 @@ func (h *CrawlerHandler) CrawlerParse(c echo.Context) error {
 	if err := c.Validate(req); err != nil {
 		return h.NewResponseWithError(c, "validate request body failed", err)
 	}
-	if req.CrawlerSource == consts.CrawlerSourceFeishu {
+
+	switch req.CrawlerSource {
+	case consts.CrawlerSourceFeishu:
 		if req.FeishuSetting.AppID == "" || req.FeishuSetting.AppSecret == "" || req.FeishuSetting.UserAccessToken == "" {
 			return h.NewResponseWithError(c, "validate request param feishu failed", nil)
 		}
-	} else {
+	case consts.CrawlerSourceDingtalk:
+		if req.DingtalkSetting.AppID == "" || req.DingtalkSetting.AppSecret == "" || (req.DingtalkSetting.UnionID == "" && req.DingtalkSetting.Phone == "") {
+			return h.NewResponseWithError(c, "validate request param dingtalk failed", nil)
+		}
+	default:
 		if req.Key == "" {
 			return h.NewResponseWithError(c, "validate request param key failed", nil)
-
 		}
 	}
 

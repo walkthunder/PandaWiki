@@ -2,6 +2,7 @@ package mq
 
 import (
 	"context"
+	"time"
 
 	"github.com/robfig/cron/v3"
 
@@ -13,13 +14,15 @@ import (
 type CronHandler struct {
 	logger      *log.Logger
 	statRepo    *pg.StatRepository
+	nodeRepo    *pg.NodeRepository
 	statUseCase *usecase.StatUseCase
 	nodeUseCase *usecase.NodeUsecase
 }
 
-func NewStatCronHandler(logger *log.Logger, statRepo *pg.StatRepository, statUseCase *usecase.StatUseCase, nodeUseCase *usecase.NodeUsecase) (*CronHandler, error) {
+func NewCronHandler(logger *log.Logger, statRepo *pg.StatRepository, nodeRepo *pg.NodeRepository, statUseCase *usecase.StatUseCase, nodeUseCase *usecase.NodeUsecase) (*CronHandler, error) {
 	h := &CronHandler{
 		statRepo:    statRepo,
+		nodeRepo:    nodeRepo,
 		statUseCase: statUseCase,
 		nodeUseCase: nodeUseCase,
 		logger:      logger.WithModule("handler.mq.cron"),
@@ -59,6 +62,13 @@ func NewStatCronHandler(logger *log.Logger, statRepo *pg.StatRepository, statUse
 	}
 	h.logger.Info("add cron job", log.String("cron_id", "sync_rag_node_status"))
 
+	// 每天2点执行清理30天前的node_release_backup数据
+	if _, err := cron.AddFunc("0 2 * * *", h.CleanupOldNodeReleaseBackups); err != nil {
+		h.logger.Error("failed to add cron job for cleaning up old node release backups", log.Error(err))
+		return nil, err
+	}
+	h.logger.Info("add cron job", log.String("cron_id", "cleanup_old_node_release_backups"))
+
 	cron.Start()
 	h.logger.Info("start cron jobs")
 	return h, nil
@@ -66,6 +76,16 @@ func NewStatCronHandler(logger *log.Logger, statRepo *pg.StatRepository, statUse
 
 func (h *CronHandler) RemoveOldStatData() {
 	h.logger.Info("remove old stat data start")
+
+	// 零点时同步数据至node_stats持久化
+	if time.Now().Hour() == 0 {
+		if err := h.statUseCase.MigrateYesterdayPVToNodeStats(context.Background()); err != nil {
+			h.logger.Error("migrate yesterday PV data to node_stats failed", log.Error(err))
+		} else {
+			h.logger.Info("migrate yesterday PV data to node_stats successful")
+		}
+	}
+
 	err := h.statRepo.RemoveOldData(context.Background())
 	if err != nil {
 		h.logger.Error("remove old stat data failed", log.Error(err))
@@ -101,4 +121,14 @@ func (h *CronHandler) SyncRagNodeStatus() {
 		return
 	}
 	h.logger.Info("sync rag node status successful")
+}
+
+func (h *CronHandler) CleanupOldNodeReleaseBackups() {
+	h.logger.Info("cleanup old node release backups start")
+	before := time.Now().AddDate(0, 0, -30)
+	if err := h.nodeRepo.DeleteOldNodeReleaseBackups(context.Background(), before); err != nil {
+		h.logger.Error("cleanup old node release backups failed", log.Error(err))
+		return
+	}
+	h.logger.Info("cleanup old node release backups successful")
 }

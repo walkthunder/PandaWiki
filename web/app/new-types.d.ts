@@ -12,3 +12,11 @@ declare module '@cap.js/widget' {
 
   export default Cap;
 }
+
+declare global {
+  interface Window {
+    _BASE_PATH_?: string;
+  }
+}
+
+export {};

@@ -8,6 +8,7 @@ import (
 const (
 	SettingKeySystemPrompt = "system_prompt"
 	SettingBlockWords      = "block_words"
+	SettingCopyrightInfo   = "本网站由 PandaWiki 提供技术支持"
 )
 
 // table: settings
@@ -22,7 +23,7 @@ type Setting struct {
 }
 
 type SettingRepo interface {
-	CreateSetting(ctx context.Context, setting *Setting) error
+	CreateOrUpdateSetting(ctx context.Context, setting *Setting) error
 	GetSetting(ctx context.Context, kbID, key string) (*Setting, error)
 	UpdateSetting(ctx context.Context, kbID, key, value string) error
 }

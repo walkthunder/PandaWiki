@@ -1,7 +1,6 @@
 import { DomainKnowledgeBaseDetail } from '@/request/types';
 import {
   Box,
-  Button,
   FormControl,
   FormControlLabel,
   Link,
@@ -13,10 +12,11 @@ import {
 import ShowText from '@/components/ShowText';
 import { getApiV1AppDetail, putApiV1App } from '@/request/App';
 import { Controller, useForm } from 'react-hook-form';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FormItem, SettingCardItem } from './Common';
 import { DomainAppDetailResp } from '@/request/types';
 import { message } from '@ctzhian/ui';
+import { BUSINESS_VERSION_PERMISSION } from '@/constant/version';
 import { useAppSelector } from '@/store';
 
 const CardRobotApi = ({
@@ -29,11 +29,6 @@ const CardRobotApi = ({
   const [isEdit, setIsEdit] = useState(false);
   const [detail, setDetail] = useState<DomainAppDetailResp | null>(null);
   const { license } = useAppSelector(state => state.config);
-
-  const isEnterprise = useMemo(() => {
-    return license.edition === 2;
-  }, [license]);
-
   const {
     control,
     handleSubmit,
@@ -114,10 +109,7 @@ const CardRobotApi = ({
       }
       onSubmit={onSubmit}
     >
-      <FormItem
-        label='问答机器人 API'
-        tooltip={!isEnterprise ? '企业版可用' : undefined}
-      >
+      <FormItem label='问答机器人 API' permission={BUSINESS_VERSION_PERMISSION}>
         <FormControl>
           <Controller
             control={control}
@@ -133,13 +125,11 @@ const CardRobotApi = ({
                 <Stack direction={'row'}>
                   <FormControlLabel
                     value={true}
-                    disabled={!isEnterprise}
                     control={<Radio size='small' />}
                     label={<Box sx={{ width: 100 }}>启用</Box>}
                   />
                   <FormControlLabel
                     value={false}
-                    disabled={!isEnterprise}
                     control={<Radio size='small' />}
                     label={<Box sx={{ width: 100 }}>禁用</Box>}
                   />
@@ -150,7 +140,7 @@ const CardRobotApi = ({
         </FormControl>
       </FormItem>
 
-      {isEnabled && (
+      {isEnabled && BUSINESS_VERSION_PERMISSION.includes(license.edition!) && (
         <>
           <FormItem label='API Token' required>
             <Controller

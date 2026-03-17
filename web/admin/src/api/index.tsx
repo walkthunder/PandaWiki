@@ -32,7 +32,7 @@ export const uploadFile = (
   },
 ): Promise<{ key: string; filename: string }> =>
   request({
-    url: 'api/v1/file/upload',
+    url: '/api/v1/file/upload',
     method: 'post',
     data,
     onUploadProgress: config?.onUploadProgress

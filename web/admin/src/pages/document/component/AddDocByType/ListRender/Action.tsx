@@ -36,7 +36,7 @@ interface BatchActionBarProps {
 
 const BatchActionBar = (props: BatchActionBarProps) => {
   const theme = useTheme();
-  const { kb_id } = useAppSelector(state => state.config);
+  const { kb_id, nav_id } = useAppSelector(state => state.config);
   const {
     data,
     loading,
@@ -167,6 +167,12 @@ const BatchActionBar = (props: BatchActionBarProps) => {
       return;
     }
 
+    const importingFolderIds = new Set(
+      itemsToImport
+        .filter(item => !item.file && item.id)
+        .map(item => item.id!) as string[],
+    );
+
     const itemUuids = itemsToImport.map(item => item.uuid);
 
     setData(prev =>
@@ -178,35 +184,31 @@ const BatchActionBar = (props: BatchActionBarProps) => {
       ),
     );
 
-    // 创建 ID 映射表：旧 ID（平台 ID）-> 新 ID（系统节点 ID）
-    // 用于将 parent_id 从旧 ID 转换为新 ID
     const idMapping = new Map<string, string>();
 
-    // 步骤2: 按照 data 数组的原始顺序逐个创建节点
-    // 这样可以保持目录结构的顺序，同时正确维护 parent_id 关系
     for (const item of itemsToImport) {
       await queue.enqueue(async () => {
         try {
-          // 转换 parent_id：如果父节点已创建，使用映射后的新 ID
           let actualParentId: string | undefined = undefined;
           if (item.parent_id) {
-            // 如果有 parent_id，尝试从映射表中获取新 ID
-            actualParentId =
-              idMapping.get(item.parent_id) || item.parent_id || undefined;
+            const mappedParentId = idMapping.get(item.parent_id);
+            if (mappedParentId) {
+              actualParentId = mappedParentId;
+            } else {
+              actualParentId = parent_id || undefined;
+            }
           } else {
-            // 如果没有 parent_id，使用传入的 parent_id（根节点）
             actualParentId = parent_id || undefined;
           }
 
-          // 根据类型决定处理方式
           if (!item.file) {
-            // ========== 处理文件夹 ==========
             const nodeResp = await postApiV1Node({
               name: item.title!,
               content: '',
               parent_id: actualParentId,
               type: 1, // 文件夹类型
               kb_id,
+              nav_id: nav_id || '',
             });
 
             const oldId = item.id!; // 保存原平台 ID
@@ -215,24 +217,17 @@ const BatchActionBar = (props: BatchActionBarProps) => {
             // 更新映射表
             idMapping.set(oldId, newId);
 
-            // 更新数据状态：
-            // 1. 更新当前文件夹的 id 为新 ID，状态为已导入
-            // 2. 同时更新所有子节点的 parent_id（从旧 ID 改为新 ID）
             setData(prev =>
               prev.map(prevItem => {
                 if (prevItem.uuid === item.uuid) {
-                  // 更新当前文件夹
                   return { ...prevItem, status: 'imported', id: newId };
                 } else if (prevItem.parent_id === oldId) {
-                  // 更新所有直接子节点的 parent_id，使其指向新 ID
                   return { ...prevItem, parent_id: newId };
                 }
                 return prevItem;
               }),
             );
           } else {
-            // ========== 处理文件 ==========
-            // 1. 导出文件
             const exportResp = await postApiV1CrawlerExport({
               id: item.platform_id!,
               doc_id: item.id!,
@@ -241,7 +236,6 @@ const BatchActionBar = (props: BatchActionBarProps) => {
               file_type: item.file_type,
             });
 
-            // 更新 task_id
             setData(prev =>
               prev.map(prevItem =>
                 prevItem.uuid === item.uuid
@@ -250,13 +244,11 @@ const BatchActionBar = (props: BatchActionBarProps) => {
               ),
             );
 
-            // 2. 轮询查询结果
             const pollResult = await pollCrawlerResults(exportResp.task_id!);
 
             if (
               pollResult.status === ConstsCrawlerStatus.CrawlerStatusCompleted
             ) {
-              // 更新 summary
               setData(prev =>
                 prev.map(prevItem =>
                   prevItem.uuid === item.uuid
@@ -269,12 +261,13 @@ const BatchActionBar = (props: BatchActionBarProps) => {
               const nodeResp = await postApiV1Node({
                 name: item.title!,
                 content: pollResult.content || '',
+                content_type: item.file_type === 'md' ? 'md' : undefined,
                 parent_id: actualParentId,
                 type: 2, // 文件类型
                 kb_id,
+                nav_id: nav_id || '',
               });
 
-              // 标记为已导入
               setData(prev =>
                 prev.map(prevItem =>
                   prevItem.uuid === item.uuid
@@ -285,7 +278,6 @@ const BatchActionBar = (props: BatchActionBarProps) => {
             } else if (
               pollResult.status === ConstsCrawlerStatus.CrawlerStatusFailed
             ) {
-              // 标记为导入错误
               setData(prev =>
                 prev.map(prevItem =>
                   prevItem.uuid === item.uuid
@@ -300,7 +292,6 @@ const BatchActionBar = (props: BatchActionBarProps) => {
             }
           }
         } catch (error) {
-          // 标记为导入错误
           setData(prev =>
             prev.map(prevItem =>
               prevItem.uuid === item.uuid
@@ -440,11 +431,12 @@ const BatchActionBar = (props: BatchActionBarProps) => {
   );
 
   const handleToggleSelectAll = useCallback(() => {
+    const canSelectData = data.filter(item => item.folderReq);
     setChecked(prev => {
-      if (prev.length === data.length && data.length > 0) {
+      if (prev.length === canSelectData.length && canSelectData.length > 0) {
         return [];
       }
-      return data.map(item => item.uuid);
+      return canSelectData.map(item => item.uuid);
     });
   }, [data, setChecked]);
 

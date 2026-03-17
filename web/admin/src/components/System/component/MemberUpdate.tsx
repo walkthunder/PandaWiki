@@ -1,10 +1,11 @@
+import Card from '@/components/Card';
 import { putApiV1UserResetPassword } from '@/request/User';
 import { V1UserListItemResp } from '@/request/types';
-import Card from '@/components/Card';
 import { copyText, generatePassword } from '@/utils';
+import { Modal } from '@ctzhian/ui';
 import { CheckCircle } from '@mui/icons-material';
 import { Box, IconButton, Stack, TextField } from '@mui/material';
-import { Icon, Modal } from '@ctzhian/ui';
+import { IconShuaxin } from '@panda-wiki/icons';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
@@ -140,10 +141,6 @@ const MemberUpdate = ({ user, refresh, type }: UpdateMemberProps) => {
                 value: 8,
                 message: '密码长度至少 8 位',
               },
-              pattern: {
-                value: /^[a-zA-Z0-9]{8,}$/,
-                message: '密码格式需为英文或数字',
-              },
             }}
             render={({ field }) => (
               <TextField
@@ -163,7 +160,7 @@ const MemberUpdate = ({ user, refresh, type }: UpdateMemberProps) => {
             onClick={() => setValue('password', generatePassword())}
             sx={{ flexShrink: 0 }}
           >
-            <Icon type='icon-shuaxin' />
+            <IconShuaxin sx={{ fontSize: 16 }} />
           </IconButton>
         </Stack>
       </Modal>

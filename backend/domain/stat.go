@@ -79,7 +79,7 @@ type InstantPageResp struct {
 
 type ConversationDistribution struct {
 	AppType AppType `json:"app_type"`
-	AppID   string  `json:"app_id"`
+	AppID   string  `json:"-"`
 	Count   int64   `json:"count"`
 }
 
@@ -104,4 +104,15 @@ type StatPageHour struct {
 
 func (StatPageHour) TableName() string {
 	return "stat_page_hours"
+}
+
+// NodeStats node表统计数据
+type NodeStats struct {
+	ID     int64  `json:"id" gorm:"primaryKey;autoIncrement"`
+	NodeID string `json:"node_id" gorm:"uniqueIndex"`
+	PV     int64  `json:"pv"`
+}
+
+func (NodeStats) TableName() string {
+	return "node_stats"
 }

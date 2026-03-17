@@ -1,24 +1,25 @@
 'use client';
 
+import { useBasePath } from '@/hooks';
 import { postShareV1CommonFileUpload } from '@/request/ShareFile';
 import { message } from '@ctzhian/ui';
-import {
-  Box,
-  IconButton,
-  Stack,
-  TextField,
-  TextFieldProps,
-  alpha,
-  Popover,
-} from '@mui/material';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 import CloseIcon from '@mui/icons-material/Close';
 import ImageIcon from '@mui/icons-material/Image';
 import InsertEmoticonIcon from '@mui/icons-material/InsertEmoticon';
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
-import zh from '../emoji/emoji-data/zh.json';
+import {
+  alpha,
+  Box,
+  IconButton,
+  Popover,
+  Stack,
+  TextField,
+  TextFieldProps,
+} from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import React, { useRef, useState } from 'react';
+import zh from '../emoji/emoji-data/zh.json';
 
 export interface ImageItem {
   id: string;
@@ -63,6 +64,7 @@ const CommentInput = React.forwardRef<CommentInputRef, CommentInputProps>(
     ref,
   ) => {
     const theme = useTheme();
+    const basePath = useBasePath();
     const [images, setImages] = useState<ImageItem[]>([]);
     const [uploading, setUploading] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -86,9 +88,10 @@ const CommentInput = React.forwardRef<CommentInputRef, CommentInputProps>(
         const newImages: ImageItem[] = [];
 
         for (const file of filesToAdd) {
-          // 验证文件类型
-          if (!file.type.startsWith('image/')) {
-            message.error('只支持上传图片文件');
+          // 验证文件类型（只允许 jpg、jpeg、png、webp）
+          const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+          if (!allowedTypes.includes(file.type)) {
+            message.error('只支持上传 jpg、jpeg、png、webp 格式的图片');
             continue;
           }
 
@@ -133,15 +136,14 @@ const CommentInput = React.forwardRef<CommentInputRef, CommentInputProps>(
             let token = '';
 
             try {
-              const Cap = (await import('@cap.js/widget')).default;
+              const Cap = (await import(`@cap.js/widget`)).default;
               const cap = new Cap({
-                apiEndpoint: '/share/v1/captcha/',
+                apiEndpoint: `${basePath}/share/v1/captcha/`,
               });
               const solution = await cap.solve();
               token = solution.token;
             } catch (error) {
               message.error('验证失败');
-              console.log(error, 'error---------');
               setUploading(false);
               return Promise.reject(error);
             }
@@ -285,7 +287,7 @@ const CommentInput = React.forwardRef<CommentInputRef, CommentInputProps>(
           minRows={2}
           slotProps={{
             htmlInput: {
-              maxlength: 1000,
+              maxLength: 1000,
             },
           }}
           sx={{
@@ -401,7 +403,7 @@ const CommentInput = React.forwardRef<CommentInputRef, CommentInputProps>(
         <input
           ref={fileInputRef}
           type='file'
-          accept='image/*'
+          accept='.jpg,.jpeg,.png,.webp'
           multiple
           style={{ display: 'none' }}
           onChange={handleFileInputChange}

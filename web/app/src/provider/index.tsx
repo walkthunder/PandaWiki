@@ -7,11 +7,20 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useState,
   Dispatch,
   SetStateAction,
 } from 'react';
+import { useParams } from 'next/navigation';
 import { GithubComChaitinPandaWikiProApiShareV1AuthInfoResp } from '@/request/pro/types';
+import {
+  filterEmptyFolders,
+  convertToTree,
+  findNavIdByNodeId,
+  addExpandState,
+  type NavItem,
+} from '@/utils/tree';
 
 interface StoreContextType {
   authInfo?: GithubComChaitinPandaWikiProApiShareV1AuthInfoResp;
@@ -29,6 +38,13 @@ interface StoreContextType {
   setCatalogWidth?: (value: number) => void;
   qaModalOpen?: boolean;
   setQaModalOpen?: (value: boolean) => void;
+  /** 栏目列表，多栏目时展示导航栏 */
+  navList?: NavItem[];
+  /** 当前选中的栏目 id */
+  selectedNavId?: string;
+  setSelectedNavId?: Dispatch<SetStateAction<string | undefined>>;
+  /** 各栏目对应的文档列表 nav_id -> NodeListItem[] */
+  navDataMap?: Record<string, NodeListItem[]>;
 }
 
 export const StoreContext = createContext<StoreContextType | undefined>(
@@ -56,7 +72,15 @@ export default function StoreProvider({
     mobile = context.mobile,
     authInfo = context.authInfo,
     tree: initialTree = context.tree || [],
+    navList: initialNavList = context.navList || [],
+    selectedNavId: initialSelectedNavId = context.selectedNavId,
+    navDataMap: initialNavDataMap = context.navDataMap || {},
   } = props;
+
+  const NAV_ID_STORAGE_KEY = 'panda-wiki-selected-nav-id';
+
+  // 使用 props 传入的 defaultNavId，避免 SSR 与 CSR 不一致导致 Hydration 错误
+  const initialNavId = initialSelectedNavId;
 
   const catalogSettings = kbDetail?.settings?.catalog_settings;
 
@@ -66,48 +90,35 @@ export default function StoreProvider({
   const [nodeList, setNodeList] = useState<NodeListItem[] | undefined>(
     initialNodeList,
   );
-  const [tree, setTree] = useState<ITreeItem[] | undefined>(initialTree);
-
-  // 根据 URL 参数初始化 qaModalOpen 状态，避免延迟打开
-  const [qaModalOpen, setQaModalOpen] = useState(() => {
-    // 只在客户端执行
-    if (typeof window === 'undefined') return false;
-
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const open = urlParams.get('open');
-      const currentPath = window.location.pathname;
-
-      // 只在 home 页面默认打开问答弹窗
-      let shouldOpen = currentPath === '/home';
-
-      // 如果 URL 中明确指定 open=true 或 open=1，则强制打开
-      if (open === 'true' || open === '1') {
-        shouldOpen = true;
-      }
-      // 如果 URL 中明确指定 open=false 或 open=0，则强制不打开
-      else if (open === 'false' || open === '0') {
-        shouldOpen = false;
-      }
-
-      // 如果需要打开，提前保存 mode 和 answer 到 sessionStorage
-      if (shouldOpen) {
-        const mode = urlParams.get('mode');
-        const answer = urlParams.get('answer');
-
-        if (mode && ['chat', 'search', 'web-search'].includes(mode)) {
-          sessionStorage.setItem('qa_modal_mode', mode);
-        }
-        if (answer) {
-          sessionStorage.setItem('chat_search_query', answer);
-        }
-      }
-
-      return shouldOpen;
-    } catch (e) {
-      return false;
+  const [tree, setTree] = useState<ITreeItem[] | undefined>(() => {
+    if (
+      initialNavId !== undefined &&
+      initialNavId !== '' &&
+      initialNavDataMap[initialNavId]
+    ) {
+      return filterEmptyFolders(convertToTree(initialNavDataMap[initialNavId]));
     }
+    return initialTree;
   });
+  const [qaModalOpen, setQaModalOpen] = useState(false);
+  const [navList] = useState<NavItem[]>(initialNavList);
+  const [navDataMap] =
+    useState<Record<string, NodeListItem[]>>(initialNavDataMap);
+  const [selectedNavId, setSelectedNavIdState] = useState<string | undefined>(
+    initialNavId,
+  );
+
+  const setSelectedNavId: Dispatch<
+    SetStateAction<string | undefined>
+  > = value => {
+    setSelectedNavIdState(prev => {
+      const next = typeof value === 'function' ? value(prev) : value;
+      if (typeof window !== 'undefined' && next) {
+        localStorage.setItem(NAV_ID_STORAGE_KEY, next);
+      }
+      return next;
+    });
+  };
 
   const [catalogShow, setCatalogShow] = useState(
     catalogSettings?.catalog_visible !== 2,
@@ -119,7 +130,9 @@ export default function StoreProvider({
   });
 
   useEffect(() => {
-    if (kbDetail) setCatalogShow(catalogSettings?.catalog_visible !== 2);
+    if (kbDetail) {
+      setCatalogShow(catalogSettings?.catalog_visible !== 2);
+    }
   }, [kbDetail]);
 
   useEffect(() => {
@@ -132,6 +145,31 @@ export default function StoreProvider({
   useEffect(() => {
     setIsMobile(mediaQueryResult);
   }, [mediaQueryResult]);
+
+  const params = useParams();
+  const docId = (params?.id as string) || undefined;
+  const catalogFolderExpand = catalogSettings?.catalog_folder !== 2;
+
+  useEffect(() => {
+    if (
+      navDataMap &&
+      selectedNavId !== undefined &&
+      selectedNavId !== '' &&
+      navDataMap[selectedNavId]
+    ) {
+      const nodeList = navDataMap[selectedNavId];
+      let newTree = filterEmptyFolders(convertToTree(nodeList));
+      if (docId) {
+        const { tree: expandedTree } = addExpandState(
+          newTree,
+          docId,
+          catalogFolderExpand,
+        );
+        newTree = expandedTree;
+      }
+      setTree(newTree);
+    }
+  }, [selectedNavId, navDataMap, docId, catalogFolderExpand]);
 
   return (
     <StoreContext.Provider
@@ -154,6 +192,10 @@ export default function StoreProvider({
         },
         qaModalOpen,
         setQaModalOpen,
+        navList,
+        selectedNavId,
+        setSelectedNavId,
+        navDataMap,
       }}
     >
       {children}

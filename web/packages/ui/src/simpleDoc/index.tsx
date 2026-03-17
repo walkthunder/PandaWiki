@@ -26,7 +26,7 @@ interface SimpleDocProps {
     name: string;
     emoji?: string;
   }[];
-  baseUrl?: string;
+  basePath?: string;
 }
 
 const StyledSimpleDocItem = styled('a')(({ theme }) => ({
@@ -62,16 +62,16 @@ const StyledSimpleDocItemTitle = styled('h3')(({ theme }) => ({
 const SimpleDocItem: React.FC<{
   item: any;
   index: number;
-  baseUrl: string;
+  basePath: string;
   size: any;
-}> = React.memo(({ item, index, baseUrl, size }) => {
+}> = React.memo(({ item, index, basePath, size }) => {
   const cardRef = useCardFadeInAnimation(0.2 + index * 0.1, 0.1);
 
   return (
     <Grid size={size} key={index}>
       <StyledSimpleDocItem
         ref={cardRef as React.Ref<HTMLAnchorElement>}
-        href={`${baseUrl}/node/${item.id}`}
+        href={`${basePath}/node/${item.id}`}
         target='_blank'
       >
         <StyledSimpleDocItemTitle>
@@ -91,7 +91,7 @@ const SimpleDocItem: React.FC<{
 });
 
 const SimpleDoc: React.FC<SimpleDocProps> = React.memo(
-  ({ title, items = [], mobile, baseUrl = '' }) => {
+  ({ title, items = [], mobile, basePath = '' }) => {
     const size =
       typeof mobile === 'boolean' ? (mobile ? 12 : 4) : { xs: 12, md: 4 };
 
@@ -107,7 +107,7 @@ const SimpleDoc: React.FC<SimpleDocProps> = React.memo(
               key={index}
               item={item}
               index={index}
-              baseUrl={baseUrl}
+              basePath={basePath}
               size={size}
             />
           ))}

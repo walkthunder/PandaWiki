@@ -31,7 +31,7 @@ interface DirDocProps {
       position?: number;
     }[];
   }[];
-  baseUrl?: string;
+  basePath?: string;
 }
 
 const StyledDirDocItem = styled('div')(({ theme }) => ({
@@ -93,9 +93,9 @@ const StyledDirDocItemFile = styled('a')(({ theme }) => ({
 const DirDocItem: React.FC<{
   item: any;
   index: number;
-  baseUrl: string;
+  basePath: string;
   size: any;
-}> = React.memo(({ item, index, baseUrl, size }) => {
+}> = React.memo(({ item, index, basePath, size }) => {
   const cardRef = useCardFadeInAnimation(0.2 + index * 0.1, 0.1);
 
   return (
@@ -113,7 +113,7 @@ const DirDocItem: React.FC<{
           {item.recommend_nodes.slice(0, 4).map((it: any) => (
             <StyledDirDocItemFile
               key={it.id}
-              href={`${baseUrl}/node/${it.id}`}
+              href={`${basePath}/node/${it.id}`}
               target='_blank'
             >
               {it.emoji ? (
@@ -126,7 +126,7 @@ const DirDocItem: React.FC<{
           ))}
         </StyledDirDocItemFiles>
         <Button
-          href={`${baseUrl}/node/${item.recommend_nodes[0]?.id}`}
+          href={`${basePath}/node/${item.recommend_nodes[0]?.id}`}
           target='_blank'
           sx={{ gap: 1, alignSelf: 'flex-end' }}
           variant='text'
@@ -140,7 +140,7 @@ const DirDocItem: React.FC<{
 });
 
 const DirDoc: React.FC<DirDocProps> = React.memo(
-  ({ title, items = [], mobile, baseUrl = '' }) => {
+  ({ title, items = [], mobile, basePath = '' }) => {
     const size =
       typeof mobile === 'boolean' ? (mobile ? 12 : 4) : { xs: 12, md: 4 };
 
@@ -156,7 +156,7 @@ const DirDoc: React.FC<DirDocProps> = React.memo(
               key={index}
               item={item}
               index={index}
-              baseUrl={baseUrl}
+              basePath={basePath}
               size={size}
             />
           ))}

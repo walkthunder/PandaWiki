@@ -42,7 +42,13 @@ export default function GlobalError({
               justifyContent='center'
               alignItems='center'
             >
-              <Image src={ErrorPng.src} alt='404' width={380} height={200} />
+              <Image
+                src={ErrorPng}
+                unoptimized
+                alt='404'
+                width={380}
+                height={200}
+              />
               <Stack
                 gap={3}
                 alignItems='center'

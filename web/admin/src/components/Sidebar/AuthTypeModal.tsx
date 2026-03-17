@@ -3,28 +3,21 @@ import {
   getApiV1License,
   deleteApiV1License,
 } from '@/request/pro/License';
-import { PostApiV1LicensePayload } from '@/request/pro/types';
 import HelpCenter from '@/assets/json/help-center.json';
 import Takeoff from '@/assets/json/takeoff.json';
 import error from '@/assets/json/error.json';
 import IconUpgrade from '@/assets/json/upgrade.json';
 import Upload from '@/components/UploadFile/Drag';
-import { EditionType } from '@/constant/enums';
+import { useVersionInfo } from '@/hooks';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { setLicense } from '@/store/slices/config';
-import {
-  Box,
-  Button,
-  IconButton,
-  MenuItem,
-  Stack,
-  TextField,
-} from '@mui/material';
-import { CusTabs, Icon, message, Modal } from '@ctzhian/ui';
+import { Box, Button, IconButton, Stack, TextField } from '@mui/material';
+import { CusTabs, message, Modal } from '@ctzhian/ui';
+import { IconWenjian, IconIcon_tool_close } from '@panda-wiki/icons';
 import dayjs from 'dayjs';
 import { useState } from 'react';
 import LottieIcon from '../LottieIcon';
-import { DomainLicenseResp } from '@/request/pro/types';
+import { ConstsLicenseEdition } from '@/request/types';
 
 interface AuthTypeModalProps {
   open: boolean;
@@ -43,10 +36,9 @@ const AuthTypeModal = ({
   const { license } = useAppSelector(state => state.config);
 
   const [selected, setSelected] = useState<'file' | 'code'>(
-    license.edition === 2 ? 'file' : 'code',
-  );
-  const [authVersion, setAuthVersion] = useState<'contributor' | 'enterprise'>(
-    license.edition === 2 ? 'enterprise' : 'contributor',
+    license.edition === ConstsLicenseEdition.LicenseEditionEnterprise
+      ? 'file'
+      : 'code',
   );
   const [updateOpen, setUpdateOpen] = useState(false);
   const [code, setCode] = useState('');
@@ -54,16 +46,15 @@ const AuthTypeModal = ({
   const [file, setFile] = useState<File | undefined>(undefined);
   const [unbindLoading, setUnbindLoading] = useState(false);
 
+  const versionInfo = useVersionInfo();
+
   const handleSubmit = () => {
-    const params: PostApiV1LicensePayload = {
-      license_edition: 'enterprise', // 始终设置为企业版
+    setLoading(true);
+    postApiV1License({
       license_type: selected,
       license_code: code,
       license_file: file,
-    };
-    setLoading(true);
-
-    postApiV1License(params)
+    })
       .then(() => {
         message.success('激活成功');
         setUpdateOpen(false);
@@ -71,14 +62,7 @@ const AuthTypeModal = ({
         setFile(undefined);
 
         getApiV1License().then(res => {
-          // 确保获取到的数据是企业版
-          if (res) {
-            const licenseData: DomainLicenseResp = {
-              ...res,
-              edition: 2, // 企业版
-            };
-            dispatch(setLicense(licenseData));
-          }
+          dispatch(setLicense(res));
         });
       })
       .finally(() => {
@@ -97,34 +81,10 @@ const AuthTypeModal = ({
             message.success('解绑成功');
             getApiV1License()
               .then(res => {
-                // 即使解绑了，我们也强制设置为企业版
-                if (res) {
-                  const licenseData: DomainLicenseResp = {
-                    ...res,
-                    edition: 2, // 企业版
-                  };
-                  dispatch(setLicense(licenseData));
-                } else {
-                  // 如果没有返回数据，创建一个企业版license对象
-                  const licenseData: DomainLicenseResp = {
-                    edition: 2, // 企业版
-                    expired_at:
-                      Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60, // 一年后过期
-                    started_at: Math.floor(Date.now() / 1000), // 今天开始
-                  };
-                  dispatch(setLicense(licenseData));
-                }
+                dispatch(setLicense(res));
               })
               .catch(() => {
-                // 即使API调用失败，我们也设置为企业版
-                const licenseData: DomainLicenseResp = {
-                  edition: 2, // 企业版
-                  expired_at:
-                    Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60, // 一年后过期
-                  started_at: Math.floor(Date.now() / 1000), // 今天开始
-                };
-                dispatch(setLicense(licenseData));
-                message.error('授权信息刷新失败，已强制设置为企业版');
+                message.error('授权信息刷新失败，请手动刷新页面');
               });
           })
           .catch(() => {
@@ -139,7 +99,12 @@ const AuthTypeModal = ({
 
   return (
     <>
-      <Modal open={open} footer={null} title='关于 LiteWiki' onCancel={onClose}>
+      <Modal
+        open={open}
+        footer={null}
+        title='关于 PandaWiki'
+        onCancel={onClose}
+      >
         <Stack gap={1} sx={{ fontSize: 14, lineHeight: '32px' }}>
           <Stack direction={'row'} alignItems={'center'}>
             <Box sx={{ width: 120, flexShrink: 0 }}>当前版本</Box>
@@ -163,7 +128,7 @@ const AuthTypeModal = ({
                   }
                   onClick={() => {
                     window.open(
-                      'https://LiteWiki.docs.baizhi.cloud/node/01971615-05b8-7924-9af7-15f73784f893',
+                      'https://pandawiki.docs.baizhi.cloud/node/01971615-05b8-7924-9af7-15f73784f893',
                     );
                   }}
                 >
@@ -175,10 +140,8 @@ const AuthTypeModal = ({
           <Stack direction={'row'} alignItems={'center'}>
             <Box sx={{ width: 120, flexShrink: 0 }}>产品型号</Box>
             <Stack direction={'row'} alignItems={'center'} gap={2}>
-              <Box sx={{ minWidth: 50 }}>
-                {EditionType[license.edition as keyof typeof EditionType].text}
-              </Box>
-              {license.edition === 0 ? (
+              <Box sx={{ minWidth: 50 }}>{versionInfo.label}</Box>
+              {license.edition === ConstsLicenseEdition.LicenseEditionFree ? (
                 <Stack direction={'row'} gap={2}>
                   <Button
                     size='small'
@@ -267,7 +230,7 @@ const AuthTypeModal = ({
               )}
             </Stack>
           </Stack>
-          {license.edition! > 0 && (
+          {license.edition! !== ConstsLicenseEdition.LicenseEditionFree && (
             <Box>
               <Stack direction={'row'} alignItems={'center'}>
                 <Box sx={{ width: 120, flexShrink: 0 }}>授权时间</Box>
@@ -315,18 +278,6 @@ const AuthTypeModal = ({
           value={selected}
           change={(v: string) => setSelected(v as 'file' | 'code')}
         />
-        <TextField
-          select
-          fullWidth
-          sx={{ mt: 2 }}
-          value={authVersion}
-          onChange={e =>
-            setAuthVersion(e.target.value as 'contributor' | 'enterprise')
-          }
-        >
-          <MenuItem value='contributor'>联创版</MenuItem>
-          <MenuItem value='enterprise'>企业版</MenuItem>
-        </TextField>
         {selected === 'code' && (
           <TextField
             sx={{ mt: 2 }}
@@ -362,11 +313,11 @@ const AuthTypeModal = ({
                 }}
               >
                 <Stack direction={'row'} alignItems={'center'} gap={1}>
-                  <Icon type='icon-wenjian' />
+                  <IconWenjian sx={{ fontSize: 16 }} />
                   {file.name}
                 </Stack>
                 <IconButton onClick={() => setFile(undefined)}>
-                  <Icon type='icon-icon_tool_close' sx={{ fontSize: 16 }} />
+                  <IconIcon_tool_close sx={{ fontSize: 16 }} />
                 </IconButton>
               </Stack>
             )}

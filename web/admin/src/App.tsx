@@ -55,7 +55,7 @@ function App() {
   }, [license, dispatch]);
 
   if (!token && !onlyAllowShareApi) {
-    window.location.href = '/login';
+    window.location.href = window.__BASENAME__ + '/login';
     return null;
   }
 

@@ -3,11 +3,12 @@ import { useAppSelector, useAppDispatch } from '@/store';
 import { setKbDetail } from '@/store/slices/config';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import { Button, IconButton, Stack, Tooltip } from '@mui/material';
-import { Icon, message, Modal } from '@ctzhian/ui';
+import { message, Modal } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import System from '../System';
 import Bread from './Bread';
+import { IconDengchu } from '@panda-wiki/icons';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -94,7 +95,7 @@ const Header = () => {
               setLogoutConfirmOpen(true);
             }}
           >
-            <Icon type='icon-dengchu' sx={{ fontSize: 18 }} />
+            <IconDengchu sx={{ fontSize: 18 }} />
           </IconButton>
         </Tooltip>
       </Stack>

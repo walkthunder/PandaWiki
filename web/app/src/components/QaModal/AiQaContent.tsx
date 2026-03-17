@@ -1,30 +1,19 @@
 'use client';
-import { useStore } from '@/provider';
-import SSEClient from '@/utils/fetch';
-import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import dayjs from 'dayjs';
-import { ChunkResultItem } from '@/assets/type';
-import Logo from '@/assets/images/logo.png';
 import aiLoading from '@/assets/images/ai-loading.gif';
-import { getShareV1ConversationDetail } from '@/request/ShareConversation';
-import { message } from '@ctzhian/ui';
+import Logo from '@/assets/images/logo.png';
+import { ChunkResultItem } from '@/assets/type';
 import Feedback from '@/components/feedback';
-import { handleThinkingContent } from './utils';
-import { useSmartScroll } from '@/hooks';
-import { useTheme } from '@mui/material';
-
-import {
-  IconCai,
-  IconCaied,
-  IconCopy,
-  IconZan,
-  IconZaned,
-} from '@/components/icons';
-import MarkDown from '@/components/markdown';
+import { IconCopy } from '@/components/icons';
 import MarkDown2 from '@/components/markdown2';
+import { useBasePath, useSmartScroll } from '@/hooks';
+import { useStore } from '@/provider';
 import { postShareV1ChatFeedback } from '@/request/ShareChat';
+import { getShareV1ConversationDetail } from '@/request/ShareConversation';
+import { postShareV1CommonFileUpload } from '@/request/ShareFile';
 import { copyText } from '@/utils';
+import SSEClient from '@/utils/fetch';
+import { Image as ImagePreview, message } from '@ctzhian/ui';
+import CloseIcon from '@mui/icons-material/Close';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
   Box,
@@ -32,50 +21,61 @@ import {
   IconButton,
   Stack,
   Typography,
-  Tooltip,
   alpha,
+  useTheme,
 } from '@mui/material';
+import {
+  IconADiancaiWeixuanzhong2,
+  IconDiancaiWeixuanzhong,
+  IconDianzanWeixuanzhong,
+  IconDianzanXuanzhong1,
+  IconFasong,
+  IconTupian,
+  IconXinduihua,
+  IconXingxing,
+} from '@panda-wiki/icons';
+import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import ChatLoading from '../../views/chat/ChatLoading';
 import {
-  IconTupian,
-  IconFasong,
-  IconXingxing,
-  IconXinduihua,
-} from '@panda-wiki/icons';
-import CloseIcon from '@mui/icons-material/Close';
-import Image from 'next/image';
-import {
-  StyledMainContainer,
-  StyledConversationContainer,
-  StyledConversationItem,
-  StyledUserBubble,
+  StyledActionButtonStack,
+  StyledActionStack,
   StyledAiBubble,
   StyledAiBubbleContent,
   StyledChunkAccordion,
-  StyledChunkAccordionSummary,
   StyledChunkAccordionDetails,
+  StyledChunkAccordionSummary,
   StyledChunkItem,
-  StyledThinkingAccordion,
-  StyledThinkingAccordionSummary,
-  StyledThinkingAccordionDetails,
-  StyledActionStack,
-  StyledInputContainer,
-  StyledInputWrapper,
-  StyledImagePreviewStack,
-  StyledImagePreviewItem,
-  StyledImageRemoveButton,
-  StyledTextField,
-  StyledActionButtonStack,
-  StyledFuzzySuggestionsStack,
+  StyledConversationContainer,
+  StyledConversationItem,
   StyledFuzzySuggestionItem,
-  StyledHotSearchContainer,
+  StyledFuzzySuggestionsStack,
   StyledHotSearchColumn,
   StyledHotSearchColumnItem,
+  StyledHotSearchContainer,
+  StyledImagePreviewItem,
+  StyledImagePreviewStack,
+  StyledImageRemoveButton,
+  StyledInputContainer,
+  StyledInputWrapper,
+  StyledMainContainer,
+  StyledTextField,
+  StyledThinkingAccordion,
+  StyledThinkingAccordionDetails,
+  StyledThinkingAccordionSummary,
+  StyledUserBubble,
 } from './StyledComponents';
+import { handleThinkingContent } from './utils';
+
+import { getImagePath } from '@/utils/getImagePath';
 
 export interface ConversationItem {
+  image_paths: string[];
   q: string;
   a: string;
   score: number;
@@ -83,7 +83,10 @@ export interface ConversationItem {
   message_id: string;
   source: 'history' | 'chat';
   chunk_result: ChunkResultItem[];
+  result_expend: boolean;
+  thinking_expend: boolean;
   thinking_content: string;
+  id: string;
 }
 
 dayjs.extend(relativeTime);
@@ -104,7 +107,13 @@ const LoadingContent = ({
   if (thinking === 4 || thinking === 2) return null;
   return (
     <Stack direction='row' alignItems='center' gap={1} sx={{ pb: 1 }}>
-      <Image src={aiLoading} alt='ai-loading' width={20} height={20} />
+      <Image
+        src={aiLoading}
+        alt='ai-loading'
+        unoptimized
+        width={20}
+        height={20}
+      />
       <Typography
         variant='body2'
         sx={theme => ({
@@ -130,6 +139,7 @@ const AiQaContent: React.FC<{
   }> | null>(null);
   const { palette } = useTheme();
   const messageIdRef = useRef('');
+  const lastResultExpendRef = useRef(false);
   const [fullAnswer, setFullAnswer] = useState<string>('');
   const [conversation, setConversation] = useState<ConversationItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -152,11 +162,11 @@ const AiQaContent: React.FC<{
   const [showFuzzySuggestions, setShowFuzzySuggestions] = useState(false);
 
   const searchParams = useSearchParams();
+  const basePath = useBasePath();
 
-  // 使用智能滚动 hook
-  const { scrollToBottom, setShouldAutoScroll } = useSmartScroll({
+  // 使用智能滚动 hook（内置 ResizeObserver 自动监听内容高度变化，自动滚动）
+  const { setShouldAutoScroll } = useSmartScroll({
     container: '.conversation-container',
-    threshold: 10,
     behavior: 'smooth',
   });
 
@@ -181,16 +191,8 @@ const AiQaContent: React.FC<{
   };
 
   const handleSearch = (reset: boolean = false) => {
-    if (input.length > 0) {
+    if (input.length > 0 || uploadedImages.length > 0) {
       onSearch(input, reset);
-      setInput('');
-      // 清理图片URL
-      uploadedImages.forEach(img => {
-        if (img.url.startsWith('blob:')) {
-          URL.revokeObjectURL(img.url);
-        }
-      });
-      setUploadedImages([]);
     }
   };
 
@@ -203,7 +205,7 @@ const AiQaContent: React.FC<{
   const handleImageSelect = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
-    const maxImages = 9; // 最多9张图片
+    const maxImages = 3;
     const remainingSlots = maxImages - uploadedImages.length;
     if (remainingSlots <= 0) {
       message.warning(`最多只能上传 ${maxImages} 张图片`);
@@ -369,27 +371,68 @@ const AiQaContent: React.FC<{
     }
   };
 
+  // 上传所有图片到服务器
+  const uploadAllImages = async (): Promise<string[]> => {
+    if (uploadedImages.length === 0) return [];
+
+    const uploadedUrls: string[] = [];
+
+    try {
+      for (const image of uploadedImages) {
+        let token = '';
+        try {
+          const Cap = (await import(`@cap.js/widget`)).default;
+          const cap = new Cap({
+            apiEndpoint: `${basePath}/share/v1/captcha/`,
+          });
+          const solution = await cap.solve();
+          token = solution.token;
+        } catch (error) {
+          message.error('验证失败');
+          return Promise.reject(error);
+        }
+        // 上传新图片
+        const result = await postShareV1CommonFileUpload({
+          file: image.file,
+          captcha_token: token,
+        });
+        const serverUrl = '/static-file/' + result.key;
+        uploadedUrls.push(serverUrl);
+      }
+
+      return uploadedUrls;
+    } catch (error: any) {
+      setLoading(false);
+      message.error(error.message || '图片上传失败');
+      throw error;
+    }
+  };
+
   const chatAnswer = async (q: string) => {
     setLoading(true);
     setThinking(1);
 
+    const imagePaths = await uploadAllImages();
+
     let token = '';
 
-    const Cap = (await import('@cap.js/widget')).default;
+    const Cap = (await import(`@cap.js/widget`)).default;
     const cap = new Cap({
-      apiEndpoint: '/share/v1/captcha/',
+      apiEndpoint: `${basePath}/share/v1/captcha/`,
     });
     try {
       const solution = await cap.solve();
       token = solution.token;
     } catch (error) {
+      setLoading(false);
+      setThinking(4);
       message.error('验证失败');
-      console.log(error, 'error---------');
       return;
     }
 
     const reqData = {
       message: q,
+      image_paths: imagePaths,
       nonce: '',
       conversation_id: '',
       app_type: 1,
@@ -466,6 +509,8 @@ const AiQaContent: React.FC<{
                 if (lastConversation) {
                   lastConversation.a = answerContent;
                   lastConversation.thinking_content = thinkingContent;
+                  lastConversation.result_expend = lastResultExpendRef.current;
+                  lastConversation.thinking_expend = false;
                 }
                 return newConversation;
               });
@@ -494,18 +539,20 @@ const AiQaContent: React.FC<{
   useEffect(() => {
     // @ts-ignore
     window.CAP_CUSTOM_WASM_URL =
-      window.location.origin + '/cap@0.0.6/cap_wasm.min.js';
+      window.location.origin + `${basePath}/cap@0.0.6/cap_wasm.min.js`;
   }, []);
 
   const onSearch = (q: string, reset: boolean = false) => {
-    if (loading || !q.trim()) return;
+    if (loading || (!q.trim() && uploadedImages.length === 0)) return;
     setShouldAutoScroll(true); // 开始新搜索时，重置为自动滚动
     const newConversation = reset
       ? []
       : conversation.some(item => item.source === 'history')
         ? []
         : [...conversation];
+    lastResultExpendRef.current = false;
     newConversation.push({
+      image_paths: uploadedImages.map(img => img.url),
       q,
       a: '',
       score: 0,
@@ -514,11 +561,18 @@ const AiQaContent: React.FC<{
       source: 'chat',
       chunk_result: [],
       thinking_content: '',
+      result_expend: true,
+      thinking_expend: true,
+      id: uuidv4(),
     });
     messageIdRef.current = '';
     setConversation(newConversation);
     setFullAnswer('');
-    setTimeout(() => chatAnswer(q), 0);
+    setTimeout(() => {
+      chatAnswer(q);
+      setInput('');
+      setUploadedImages([]);
+    }, 0);
   };
 
   const handleSearchAbort = () => {
@@ -527,7 +581,7 @@ const AiQaContent: React.FC<{
     setThinking(4);
   };
 
-  const { mobile = false, themeMode = 'light', kbDetail } = useStore();
+  const { mobile = false, kbDetail, qaModalOpen } = useStore();
 
   const isFeedbackEnabled =
     // @ts-ignore
@@ -557,7 +611,7 @@ const AiQaContent: React.FC<{
 
   useEffect(() => {
     sseClientRef.current = new SSEClient({
-      url: `/share/v1/chat/message`,
+      url: `${basePath}/share/v1/chat/message`,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -585,20 +639,16 @@ const AiQaContent: React.FC<{
       sessionStorage.removeItem('chat_search_query');
       const newSearchParams = new URLSearchParams(searchParams.toString());
       newSearchParams.delete('cid');
-      const newUrl = newSearchParams.toString()
-        ? `?${newSearchParams.toString()}`
-        : window.location.pathname;
-      window.history.replaceState(null, '', newUrl);
+      newSearchParams.delete('ask');
+      window.history.replaceState(null, '', newSearchParams.toString());
       onSearch(searchQuery, true);
     }
     return () => {
       handleSearchAbort();
       const currentUrl = new URL(window.location.href);
       currentUrl.searchParams.delete('cid');
-      const newUrl = currentUrl.search
-        ? `${currentUrl.pathname}${currentUrl.search}`
-        : currentUrl.pathname;
-      window.history.replaceState(null, '', newUrl);
+      currentUrl.searchParams.delete('ask');
+      window.history.replaceState(null, '', currentUrl.toString());
       setTimeout(() => {
         onReset();
       });
@@ -608,10 +658,9 @@ const AiQaContent: React.FC<{
   useEffect(() => {
     if (conversationId) {
       const currentUrl = new URL(window.location.href);
-      currentUrl.searchParams.delete('sid');
       currentUrl.searchParams.set('cid', conversationId);
-      const newUrl = `${currentUrl.pathname}${currentUrl.search}`;
-      window.history.replaceState(null, '', newUrl);
+      currentUrl.searchParams.delete('ask');
+      window.history.replaceState(null, '', currentUrl.toString());
     }
   }, [conversationId]);
 
@@ -628,42 +677,37 @@ const AiQaContent: React.FC<{
           };
           res.messages.forEach(message => {
             if (message.role === 'user') {
-              if (current.q) {
-                conversation.push({
-                  q: current.q,
-                  a: '',
-                  score: 0,
-                  update_time: '',
-                  message_id: '',
-                  source: 'history',
-                  chunk_result: [],
-                  thinking_content: '',
-                });
-              }
               current = {
+                image_paths: message.image_paths || [],
                 q: message.content,
                 chunk_result: [],
               };
             } else if (message.role === 'assistant') {
-              if (current.q) {
+              if (
+                current.q ||
+                (current.image_paths && current.image_paths.length > 0)
+              ) {
                 const { thinkingContent, answerContent } =
                   handleThinkingContent(message.content || '');
-
                 current.a = answerContent;
                 current.update_time = message.created_at;
                 current.score = 0;
                 current.message_id = '';
                 current.thinking_content = thinkingContent;
                 current.source = 'history';
+                current.id = uuidv4();
                 conversation.push(current as ConversationItem);
                 current = {};
               }
             }
           });
-
-          if (current.q) {
+          if (
+            current.q ||
+            (current.image_paths && current.image_paths.length > 0)
+          ) {
             conversation.push({
-              q: current.q,
+              image_paths: current.image_paths || [],
+              q: current.q || '',
               a: '',
               score: 0,
               update_time: '',
@@ -671,6 +715,9 @@ const AiQaContent: React.FC<{
               source: 'history',
               chunk_result: [],
               thinking_content: '',
+              id: uuidv4(),
+              result_expend: true,
+              thinking_expend: true,
             });
           }
         }
@@ -681,16 +728,16 @@ const AiQaContent: React.FC<{
   }, []);
 
   useEffect(() => {
-    if (!loading) {
-      scrollToBottom();
+    if (!qaModalOpen) {
+      conversation.forEach(item => {
+        item.image_paths.forEach(image => {
+          if (image.startsWith('blob:')) {
+            URL.revokeObjectURL(image);
+          }
+        });
+      });
     }
-  }, [loading]);
-
-  useEffect(() => {
-    if (conversation.length > 0) {
-      scrollToBottom();
-    }
-  }, [conversation]);
+  }, [qaModalOpen, conversation]);
 
   return (
     <StyledMainContainer className={palette.mode === 'dark' ? 'md-dark' : ''}>
@@ -710,7 +757,7 @@ const AiQaContent: React.FC<{
           {/* Logo区域 */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, my: 8 }}>
             <Image
-              src={kbDetail?.settings?.icon || Logo.src}
+              src={getImagePath(kbDetail?.settings?.icon || Logo.src, basePath)}
               alt='logo'
               width={46}
               height={46}
@@ -791,82 +838,59 @@ const AiQaContent: React.FC<{
       {/* 有对话时显示对话历史 */}
       <StyledConversationContainer
         direction='column'
-        gap={2}
         className='conversation-container'
         sx={{
           mb: conversation?.length > 0 ? 2 : 0,
           display: conversation.length > 0 ? 'flex' : 'none',
         }}
       >
-        {conversation.map((item, index) => (
-          <StyledConversationItem key={index}>
-            {/* 用户问题气泡 - 右对齐 */}
-            <StyledUserBubble>{item.q}</StyledUserBubble>
+        <Stack gap={2}>
+          {conversation.map((item, index) => (
+            <StyledConversationItem key={item.id}>
+              {item.image_paths.length > 0 && (
+                <ImagePreview.PreviewGroup>
+                  <Stack direction='row' gap={1} sx={{ alignSelf: 'flex-end' }}>
+                    {item.image_paths.map((url: string) => (
+                      <ImagePreview
+                        alt={url}
+                        key={url}
+                        src={getImagePath(url, basePath)}
+                        width={100}
+                        height={100}
+                        style={{
+                          borderRadius: '10px',
+                          objectFit: 'cover',
+                          cursor: 'pointer',
+                        }}
+                        referrerPolicy='no-referrer'
+                      />
+                    ))}
+                  </Stack>
+                </ImagePreview.PreviewGroup>
+              )}
 
-            {/* AI回答气泡 - 左对齐 */}
-            <StyledAiBubble>
-              {/* 搜索结果 */}
-              {item.chunk_result.length > 0 && (
-                <StyledChunkAccordion defaultExpanded>
-                  <StyledChunkAccordionSummary
-                    expandIcon={<ExpandMoreIcon sx={{ fontSize: 16 }} />}
+              {/* 用户问题气泡 - 右对齐 */}
+              {item.q && <StyledUserBubble>{item.q}</StyledUserBubble>}
+              {/* AI回答气泡 - 左对齐 */}
+              <StyledAiBubble>
+                {/* 搜索结果 */}
+                {item.chunk_result.length > 0 && (
+                  <StyledChunkAccordion
+                    expanded={item.result_expend}
+                    onChange={(event, expanded) => {
+                      setConversation(prev => {
+                        const newConversation = [...prev];
+                        if (index === conversation.length - 1) {
+                          lastResultExpendRef.current = expanded;
+                        }
+                        newConversation[index].result_expend = expanded;
+                        return newConversation;
+                      });
+                    }}
                   >
-                    <Typography
-                      variant='body2'
-                      sx={theme => ({
-                        fontSize: 12,
-                        color: alpha(theme.palette.text.primary, 0.5),
-                      })}
+                    <StyledChunkAccordionSummary
+                      expandIcon={<ExpandMoreIcon sx={{ fontSize: 16 }} />}
                     >
-                      共找到 {item.chunk_result.length} 个结果
-                    </Typography>
-                  </StyledChunkAccordionSummary>
-
-                  <StyledChunkAccordionDetails>
-                    <Stack gap={1}>
-                      {item.chunk_result.map((chunk, chunkIndex) => (
-                        <StyledChunkItem key={chunkIndex}>
-                          <Typography
-                            variant='body2'
-                            className='hover-primary'
-                            sx={theme => ({
-                              fontSize: 12,
-                              color: alpha(theme.palette.text.primary, 0.5),
-                            })}
-                            onClick={() => {
-                              window.open(`/node/${chunk.node_id}`, '_blank');
-                            }}
-                          >
-                            {chunk.name}
-                          </Typography>
-                        </StyledChunkItem>
-                      ))}
-                    </Stack>
-                  </StyledChunkAccordionDetails>
-                </StyledChunkAccordion>
-              )}
-
-              {/* 加载状态 */}
-              {index === conversation.length - 1 && loading && (
-                <LoadingContent thinking={thinking} />
-              )}
-
-              {/* 思考过程 */}
-              {!!item.thinking_content && (
-                <StyledThinkingAccordion defaultExpanded>
-                  <StyledThinkingAccordionSummary
-                    expandIcon={<ExpandMoreIcon sx={{ fontSize: 16 }} />}
-                  >
-                    <Stack direction='row' alignItems='center' gap={1}>
-                      {thinking === 2 && index === conversation.length - 1 && (
-                        <Image
-                          src={aiLoading}
-                          alt='ai-loading'
-                          width={20}
-                          height={20}
-                        />
-                      )}
-
                       <Typography
                         variant='body2'
                         sx={theme => ({
@@ -874,85 +898,156 @@ const AiQaContent: React.FC<{
                           color: alpha(theme.palette.text.primary, 0.5),
                         })}
                       >
-                        {thinking === 2 && index === conversation.length - 1
-                          ? '思考中...'
-                          : '已思考'}
+                        共找到 {item.chunk_result.length} 个结果
                       </Typography>
-                    </Stack>
-                  </StyledThinkingAccordionSummary>
+                    </StyledChunkAccordionSummary>
 
-                  <StyledThinkingAccordionDetails>
-                    <MarkDown2
-                      content={item.thinking_content || ''}
-                      autoScroll={false}
-                    />
-                  </StyledThinkingAccordionDetails>
-                </StyledThinkingAccordion>
-              )}
-
-              {/* AI回答内容 */}
-              <StyledAiBubbleContent>
-                {item.source === 'history' ? (
-                  <MarkDown content={item.a} />
-                ) : (
-                  <MarkDown2 content={item.a} autoScroll={false} />
+                    <StyledChunkAccordionDetails>
+                      <Stack gap={1} alignItems='flex-start'>
+                        {item.chunk_result.map((chunk, chunkIndex) => (
+                          <StyledChunkItem key={chunkIndex}>
+                            <Typography
+                              variant='body2'
+                              className='hover-primary'
+                              sx={theme => ({
+                                fontSize: 12,
+                                color: alpha(theme.palette.text.primary, 0.5),
+                              })}
+                              onClick={() => {
+                                window.open(
+                                  `${basePath}/node/${chunk.node_id}`,
+                                  '_blank',
+                                );
+                              }}
+                            >
+                              {chunk.name}
+                            </Typography>
+                          </StyledChunkItem>
+                        ))}
+                      </Stack>
+                    </StyledChunkAccordionDetails>
+                  </StyledChunkAccordion>
                 )}
-              </StyledAiBubbleContent>
 
-              {/* 操作按钮 */}
-              {(index !== conversation.length - 1 || !loading) && (
-                <StyledActionStack
-                  direction={mobile ? 'column' : 'row'}
-                  alignItems={mobile ? 'flex-start' : 'center'}
-                  justifyContent='space-between'
-                  gap={mobile ? 1 : 3}
-                >
-                  <Stack direction='row' gap={3} alignItems='center'>
-                    <span>生成于 {dayjs(item.update_time).fromNow()}</span>
+                {/* 加载状态 */}
+                {index === conversation.length - 1 && loading && (
+                  <LoadingContent thinking={thinking} />
+                )}
 
-                    <IconCopy
-                      sx={{ cursor: 'pointer' }}
-                      onClick={() => {
-                        copyText(item.a);
-                      }}
-                    />
+                {/* 思考过程 */}
+                {!!item.thinking_content && (
+                  <StyledThinkingAccordion
+                    expanded={item.thinking_expend}
+                    onChange={(event, expanded) => {
+                      setConversation(prev => {
+                        const newConversation = [...prev];
+                        newConversation[index].thinking_expend = expanded;
+                        return newConversation;
+                      });
+                    }}
+                  >
+                    <StyledThinkingAccordionSummary
+                      expandIcon={<ExpandMoreIcon sx={{ fontSize: 16 }} />}
+                    >
+                      <Stack direction='row' alignItems='center' gap={1}>
+                        {thinking === 2 &&
+                          index === conversation.length - 1 && (
+                            <Image
+                              src={aiLoading}
+                              alt='ai-loading'
+                              width={20}
+                              height={20}
+                            />
+                          )}
 
-                    {isFeedbackEnabled && item.source === 'chat' && (
-                      <>
-                        {item.score === 1 && (
-                          <IconZaned sx={{ cursor: 'pointer' }} />
-                        )}
-                        {item.score !== 1 && (
-                          <IconZan
-                            sx={{ cursor: 'pointer' }}
-                            onClick={() => {
-                              if (item.score === 0)
-                                handleScore(item.message_id, 1);
-                            }}
-                          />
-                        )}
-                        {item.score !== -1 && (
-                          <IconCai
-                            sx={{ cursor: 'pointer' }}
-                            onClick={() => {
-                              if (item.score === 0) {
-                                setConversationItem(item);
-                                setOpen(true);
-                              }
-                            }}
-                          />
-                        )}
-                        {item.score === -1 && (
-                          <IconCaied sx={{ cursor: 'pointer' }} />
-                        )}
-                      </>
-                    )}
-                  </Stack>
-                </StyledActionStack>
-              )}
-            </StyledAiBubble>
-          </StyledConversationItem>
-        ))}
+                        <Typography
+                          variant='body2'
+                          sx={theme => ({
+                            fontSize: 12,
+                            color: alpha(theme.palette.text.primary, 0.5),
+                          })}
+                        >
+                          {thinking === 2 && index === conversation.length - 1
+                            ? '思考中...'
+                            : '已思考'}
+                        </Typography>
+                      </Stack>
+                    </StyledThinkingAccordionSummary>
+
+                    <StyledThinkingAccordionDetails>
+                      <MarkDown2
+                        content={item.thinking_content || ''}
+                        autoScroll={false}
+                      />
+                    </StyledThinkingAccordionDetails>
+                  </StyledThinkingAccordion>
+                )}
+
+                {/* AI回答内容 */}
+                <StyledAiBubbleContent>
+                  <MarkDown2 content={item.a} autoScroll={false} />
+                </StyledAiBubbleContent>
+
+                {/* 操作按钮 */}
+                {(index !== conversation.length - 1 || !loading) && (
+                  <StyledActionStack
+                    direction={mobile ? 'column' : 'row'}
+                    alignItems={mobile ? 'flex-start' : 'center'}
+                    justifyContent='space-between'
+                    gap={mobile ? 1 : 3}
+                  >
+                    <Stack direction='row' gap={3} alignItems='center'>
+                      <span>生成于 {dayjs(item.update_time).fromNow()}</span>
+
+                      <IconCopy
+                        sx={{ cursor: 'pointer' }}
+                        onClick={() => {
+                          copyText(item.a);
+                        }}
+                      />
+
+                      {isFeedbackEnabled && item.source === 'chat' && (
+                        <>
+                          {item.score === 1 && (
+                            <IconDianzanXuanzhong1 sx={{ cursor: 'pointer' }} />
+                          )}
+                          {item.score !== 1 && (
+                            <IconDianzanWeixuanzhong
+                              sx={{ cursor: 'pointer' }}
+                              onClick={() => {
+                                if (item.score === 0)
+                                  handleScore(item.message_id, 1);
+                              }}
+                            />
+                          )}
+                          {item.score !== -1 && (
+                            <IconDiancaiWeixuanzhong
+                              sx={{ cursor: 'pointer' }}
+                              onClick={() => {
+                                if (item.score === 0) {
+                                  setConversationItem(item);
+                                  setOpen(true);
+                                }
+                              }}
+                            />
+                          )}
+                          {item.score === -1 && (
+                            <IconADiancaiWeixuanzhong2
+                              sx={{ cursor: 'pointer' }}
+                            />
+                          )}
+                        </>
+                      )}
+                    </Stack>
+                    <Box>
+                      {kbDetail?.settings?.disclaimer_settings?.content}
+                    </Box>
+                  </StyledActionStack>
+                )}
+              </StyledAiBubble>
+            </StyledConversationItem>
+          ))}
+        </Stack>
       </StyledConversationContainer>
       {conversation.length > 0 && (
         <Button
@@ -1028,7 +1123,7 @@ const AiQaContent: React.FC<{
               if (
                 e.key === 'Enter' &&
                 !e.shiftKey &&
-                input.length > 0 &&
+                (input.length > 0 || uploadedImages.length > 0) &&
                 !isComposing
               ) {
                 e.preventDefault();
@@ -1046,23 +1141,21 @@ const AiQaContent: React.FC<{
             <input
               ref={fileInputRef}
               type='file'
-              accept='image/*'
+              accept='.jpg,.jpeg,.png,.webp'
               multiple
               style={{ display: 'none' }}
               onChange={handleImageUpload}
             />
-            <Tooltip title='敬请期待'>
-              <IconButton
-                size='small'
-                // onClick={() => fileInputRef.current?.click()}
-                disabled={loading}
-                sx={{
-                  flexShrink: 0,
-                }}
-              >
-                <IconTupian sx={{ fontSize: 20, color: 'text.secondary' }} />
-              </IconButton>
-            </Tooltip>
+            <IconButton
+              size='small'
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading}
+              sx={{
+                flexShrink: 0,
+              }}
+            >
+              <IconTupian sx={{ fontSize: 20, color: 'text.secondary' }} />
+            </IconButton>
 
             <Box
               sx={{
@@ -1082,8 +1175,9 @@ const AiQaContent: React.FC<{
               ) : (
                 <IconButton
                   size='small'
+                  disabled={input.length === 0 && uploadedImages.length === 0}
                   onClick={() => {
-                    if (input.length > 0) {
+                    if (input.length > 0 || uploadedImages.length > 0) {
                       handleSearchAbort();
                       setThinking(1);
                       handleSearch();
@@ -1094,7 +1188,9 @@ const AiQaContent: React.FC<{
                     sx={{
                       fontSize: 16,
                       color:
-                        input.length > 0 ? 'primary.main' : 'text.disabled',
+                        input.length > 0 || uploadedImages.length > 0
+                          ? 'primary.main'
+                          : 'text.disabled',
                     }}
                   />
                 </IconButton>

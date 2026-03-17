@@ -41,7 +41,11 @@ export enum DomainNodeType {
 
 /** @format int32 */
 export enum DomainNodeStatus {
+  /** 未发布 */
+  NodeStatusUnreleased = 0,
+  /** 更新未发布 */
   NodeStatusDraft = 1,
+  /** 已发布 */
   NodeStatusReleased = 2,
 }
 
@@ -78,6 +82,7 @@ export enum DomainAppType {
   AppTypeOpenAIAPI = 9,
   AppTypeWecomAIBot = 10,
   AppTypeLarkBot = 11,
+  AppTypeMcpServer = 12,
 }
 
 export enum ConstsWatermarkSetting {
@@ -99,6 +104,8 @@ export enum ConstsUserRole {
 export enum ConstsUserKBPermission {
   /** 无权限 */
   UserKBPermissionNull = "",
+  /** 有权限 */
+  UserKBPermissionNotNull = "not null",
   /** 完全控制 */
   UserKBPermissionFullControl = "full_control",
   /** 文档管理 */
@@ -132,25 +139,20 @@ export enum ConstsSourceType {
   SourceTypeDiscordBot = "discord_bot",
   SourceTypeWechatOfficialAccount = "wechat_official_account",
   SourceTypeOpenAIAPI = "openai_api",
+  SourceTypeMcpServer = "mcp_server",
 }
 
 export enum ConstsNodeRagInfoStatus {
-  /** 等待基础处理 */
-  NodeRagStatusBasicPending = "BASIC_PENDING",
-  /** 正在进行基础处理（文本分割、向量化等） */
-  NodeRagStatusBasicRunning = "BASIC_RUNNING",
-  /** 基础处理失败 */
-  NodeRagStatusBasicFailed = "BASIC_FAILED",
-  /** 基础处理成功 */
-  NodeRagStatusBasicSucceeded = "BASIC_SUCCEEDED",
-  /** 基础处理完成，等待增强处理 */
-  NodeRagStatusEnhancePending = "ENHANCE_PENDING",
-  /** 正在进行增强处理（关键词提取等） */
-  NodeRagStatusEnhanceRunning = "ENHANCE_RUNNING",
-  /** 增强处理失败 */
-  NodeRagStatusEnhanceFailed = "ENHANCE_FAILED",
-  /** 增强处理成功 */
-  NodeRagStatusEnhanceSucceeded = "ENHANCE_SUCCEEDED",
+  /** 等待处理 */
+  NodeRagStatusPending = "PENDING",
+  /** 正在进行处理（文本分割、向量化等） */
+  NodeRagStatusRunning = "RUNNING",
+  /** 处理失败 */
+  NodeRagStatusFailed = "FAILED",
+  /** 处理成功 */
+  NodeRagStatusSucceeded = "SUCCEEDED",
+  /** 重新索引中 */
+  NodeRagStatusReindexing = "REINDEX",
 }
 
 export enum ConstsNodePermName {
@@ -171,14 +173,21 @@ export enum ConstsNodeAccessPerm {
   NodeAccessPermClosed = "closed",
 }
 
+export enum ConstsModelSettingMode {
+  ModelSettingModeManual = "manual",
+  ModelSettingModeAuto = "auto",
+}
+
 /** @format int32 */
 export enum ConstsLicenseEdition {
   /** 开源版 */
   LicenseEditionFree = 0,
-  /** 联创版 */
-  LicenseEditionContributor = 1,
+  /** 专业版 */
+  LicenseEditionProfession = 1,
   /** 企业版 */
   LicenseEditionEnterprise = 2,
+  /** 商业版 */
+  LicenseEditionBusiness = 3,
 }
 
 export enum ConstsHomePageSetting {
@@ -201,6 +210,7 @@ export enum ConstsCrawlerSource {
   CrawlerSourceSitemap = "sitemap",
   CrawlerSourceNotion = "notion",
   CrawlerSourceFeishu = "feishu",
+  CrawlerSourceDingtalk = "dingtalk",
   CrawlerSourceFile = "file",
   CrawlerSourceEpub = "epub",
   CrawlerSourceYuque = "yuque",
@@ -231,6 +241,21 @@ export enum ConstsAuthType {
 export interface AnydocChild {
   children?: AnydocChild[];
   value?: AnydocValue;
+}
+
+export interface AnydocDingtalkSetting {
+  app_id?: string;
+  app_secret?: string;
+  phone?: string;
+  space_id?: string;
+  unionid?: string;
+}
+
+export interface AnydocFeishuSetting {
+  app_id?: string;
+  app_secret?: string;
+  space_id?: string;
+  user_access_token?: string;
 }
 
 export interface AnydocValue {
@@ -283,6 +308,7 @@ export interface DomainAppDetailResp {
 }
 
 export interface DomainAppInfoResp {
+  base_url?: string;
   name?: string;
   recommend_nodes?: DomainRecommendNodeListResp[];
   settings?: DomainAppSettingsResp;
@@ -291,12 +317,12 @@ export interface DomainAppInfoResp {
 export interface DomainAppSettings {
   /** AI feedback */
   ai_feedback_settings?: DomainAIFeedbackSettings;
-  auto_sitemap?: boolean;
   body_code?: string;
   btns?: unknown[];
   /** catalog settings */
   catalog_settings?: DomainCatalogSettings;
   contribute_settings?: DomainContributeSettings;
+  conversation_setting?: DomainConversationSetting;
   copy_setting?: "" | "append" | "disabled";
   /** seo */
   desc?: string;
@@ -325,11 +351,14 @@ export interface DomainAppSettings {
   keyword?: string;
   /** LarkBot */
   lark_bot_settings?: DomainLarkBotSettings;
+  /** MCP Server Settings */
+  mcp_server_settings?: DomainMCPServerSettings;
   /** OpenAI API Bot settings */
   openai_api_bot_settings?: DomainOpenAIAPIBotSettings;
   recommend_node_ids?: string[];
   recommend_questions?: string[];
   search_placeholder?: string;
+  stats_setting?: DomainStatsSetting;
   theme_and_style?: DomainThemeAndStyle;
   /** theme */
   theme_mode?: string;
@@ -344,6 +373,7 @@ export interface DomainAppSettings {
   /** WebAppLandingConfigs */
   web_app_landing_configs?: DomainWebAppLandingConfig[];
   web_app_landing_theme?: DomainWebAppLandingTheme;
+  wechat_app_advanced_setting?: DomainWeChatAppAdvancedSetting;
   wechat_app_agent_id?: string;
   wechat_app_corpid?: string;
   wechat_app_encodingaeskey?: string;
@@ -376,12 +406,12 @@ export interface DomainAppSettings {
 export interface DomainAppSettingsResp {
   /** AI feedback */
   ai_feedback_settings?: DomainAIFeedbackSettings;
-  auto_sitemap?: boolean;
   body_code?: string;
   btns?: unknown[];
   /** catalog settings */
   catalog_settings?: DomainCatalogSettings;
   contribute_settings?: DomainContributeSettings;
+  conversation_setting?: DomainConversationSetting;
   copy_setting?: ConstsCopySetting;
   /** seo */
   desc?: string;
@@ -410,11 +440,14 @@ export interface DomainAppSettingsResp {
   keyword?: string;
   /** LarkBot */
   lark_bot_settings?: DomainLarkBotSettings;
+  /** MCP Server Settings */
+  mcp_server_settings?: DomainMCPServerSettings;
   /** OpenAI API settings */
   openai_api_bot_settings?: DomainOpenAIAPIBotSettings;
   recommend_node_ids?: string[];
   recommend_questions?: string[];
   search_placeholder?: string;
+  stats_setting?: DomainStatsSetting;
   theme_and_style?: DomainThemeAndStyle;
   /** theme */
   theme_mode?: string;
@@ -429,6 +462,7 @@ export interface DomainAppSettingsResp {
   /** WebApp Landing Settings */
   web_app_landing_configs?: DomainWebAppLandingConfigResp[];
   web_app_landing_theme?: DomainWebAppLandingTheme;
+  wechat_app_advanced_setting?: DomainWeChatAppAdvancedSetting;
   wechat_app_agent_id?: string;
   wechat_app_corpid?: string;
   wechat_app_encodingaeskey?: string;
@@ -547,7 +581,9 @@ export interface DomainChatRequest {
   app_type: 1 | 2;
   captcha_token?: string;
   conversation_id?: string;
-  message: string;
+  /** @maxItems 3 */
+  image_paths?: string[];
+  message?: string;
   nonce?: string;
 }
 
@@ -628,12 +664,6 @@ export interface DomainConversationDetailResp {
   subject?: string;
 }
 
-export interface DomainConversationDistribution {
-  app_id?: string;
-  app_type?: DomainAppType;
-  count?: number;
-}
-
 export interface DomainConversationInfo {
   user_info?: DomainUserInfo;
 }
@@ -659,6 +689,7 @@ export interface DomainConversationMessage {
   conversation_id?: string;
   created_at?: string;
   id?: string;
+  image_paths?: string[];
   /** feedbackinfo */
   info?: DomainFeedBackInfo;
   kb_id?: string;
@@ -698,6 +729,11 @@ export interface DomainConversationReference {
   url?: string;
 }
 
+export interface DomainConversationSetting {
+  copyright_hide_enabled?: boolean;
+  copyright_info?: string;
+}
+
 export interface DomainCreateKBReleaseReq {
   kb_id: string;
   message: string;
@@ -733,6 +769,7 @@ export interface DomainCreateNodeReq {
   emoji?: string;
   kb_id: string;
   name: string;
+  nav_id: string;
   parent_id?: string;
   position?: number;
   summary?: string;
@@ -876,6 +913,7 @@ export interface DomainKBReleaseListItemResp {
   id?: string;
   kb_id?: string;
   message?: string;
+  publisher_account?: string;
   tag?: string;
 }
 
@@ -912,6 +950,19 @@ export interface DomainLink {
   url?: string;
 }
 
+export interface DomainMCPServerSettings {
+  docs_tool_settings?: DomainMCPToolSettings;
+  is_enabled?: boolean;
+  sample_auth?: DomainSimpleAuth;
+}
+
+export interface DomainMCPToolSettings {
+  desc?: string;
+  name?: string;
+}
+
+export type DomainMessageContent = Record<string, any>;
+
 export interface DomainMetricsConfig {
   list?: {
     id?: string;
@@ -920,6 +971,17 @@ export interface DomainMetricsConfig {
   }[];
   title?: string;
   type?: string;
+}
+
+export interface DomainModelModeSetting {
+  /** 百智云 API Key */
+  auto_mode_api_key?: string;
+  /** 自定义对话模型名称 */
+  chat_model?: string;
+  /** 手动模式下嵌入模型是否更新 */
+  is_manual_embedding_updated?: boolean;
+  /** 模式: manual 或 auto */
+  mode?: ConstsModelSettingMode;
 }
 
 export interface DomainMoveNodeReq {
@@ -963,9 +1025,11 @@ export interface DomainNodeListItemResp {
   emoji?: string;
   id?: string;
   name?: string;
+  nav_id?: string;
   parent_id?: string;
   permissions?: DomainNodePermissions;
   position?: number;
+  publisher_id?: string;
   rag_info?: DomainRagInfo;
   status?: DomainNodeStatus;
   summary?: string;
@@ -1020,6 +1084,7 @@ export interface DomainOpenAICompletionsRequest {
   response_format?: DomainOpenAIResponseFormat;
   stop?: string[];
   stream?: boolean;
+  stream_options?: DomainOpenAIStreamOptions;
   temperature?: number;
   tool_choice?: DomainOpenAIToolChoice;
   tools?: DomainOpenAITool[];
@@ -1063,7 +1128,7 @@ export interface DomainOpenAIFunctionChoice {
 }
 
 export interface DomainOpenAIMessage {
-  content?: string;
+  content?: DomainMessageContent;
   name?: string;
   role: string;
   tool_call_id?: string;
@@ -1072,6 +1137,10 @@ export interface DomainOpenAIMessage {
 
 export interface DomainOpenAIResponseFormat {
   type: string;
+}
+
+export interface DomainOpenAIStreamOptions {
+  include_usage?: boolean;
 }
 
 export interface DomainOpenAITool {
@@ -1124,6 +1193,7 @@ export interface DomainQuestionConfig {
 export interface DomainRagInfo {
   message?: string;
   status?: ConstsNodeRagInfoStatus;
+  synced_at?: string;
 }
 
 export interface DomainRecommendNodeListResp {
@@ -1168,7 +1238,21 @@ export interface DomainShareConversationDetailResp {
 export interface DomainShareConversationMessage {
   content?: string;
   created_at?: string;
+  image_paths?: string[];
   role?: SchemaRoleType;
+}
+
+export interface DomainShareNodeDetailItem {
+  children?: DomainShareNodeDetailItem[];
+  emoji?: string;
+  id?: string;
+  meta?: DomainNodeMeta;
+  name?: string;
+  parent_id?: string;
+  permissions?: DomainNodePermissions;
+  position?: number;
+  type?: DomainNodeType;
+  updated_at?: string;
 }
 
 export interface DomainSimpleAuth {
@@ -1193,6 +1277,22 @@ export interface DomainSocialMediaAccount {
 export interface DomainStatPageReq {
   node_id?: string;
   scene: 1 | 2 | 3 | 4;
+}
+
+export interface DomainStatsSetting {
+  pv_enable?: boolean;
+}
+
+export interface DomainSwitchModeReq {
+  /** 百智云 API Key */
+  auto_mode_api_key?: string;
+  /** 自定义对话模型名称 */
+  chat_model?: string;
+  mode: "manual" | "auto";
+}
+
+export interface DomainSwitchModeResp {
+  message?: string;
 }
 
 export interface DomainTextConfig {
@@ -1254,8 +1354,14 @@ export interface DomainUpdateNodeReq {
   id: string;
   kb_id: string;
   name?: string;
+  nav_id?: string;
   position?: number;
   summary?: string;
+}
+
+export interface DomainUploadByUrlReq {
+  kb_id?: string;
+  url: string;
 }
 
 export interface DomainUserInfo {
@@ -1267,6 +1373,14 @@ export interface DomainUserInfo {
   name?: string;
   real_name?: string;
   user_id?: string;
+}
+
+export interface DomainWeChatAppAdvancedSetting {
+  disclaimer_content?: string;
+  feedback_enable?: boolean;
+  feedback_type?: string[];
+  prompt?: string;
+  text_response_enable?: boolean;
 }
 
 export interface DomainWebAppCommentSettings {
@@ -1336,9 +1450,20 @@ export interface DomainWecomAIBotSettings {
 }
 
 export interface DomainWidgetBotSettings {
+  btn_id?: string;
   btn_logo?: string;
+  btn_position?: string;
+  btn_style?: string;
   btn_text?: string;
+  copyright_hide_enabled?: boolean;
+  copyright_info?: string;
+  disclaimer?: string;
   is_open?: boolean;
+  modal_position?: string;
+  placeholder?: string;
+  recommend_node_ids?: string[];
+  recommend_questions?: string[];
+  search_mode?: string;
   theme_mode?: string;
 }
 
@@ -1348,6 +1473,14 @@ export interface GithubComChaitinPandaWikiApiAuthV1AuthGetResp {
   client_secret?: string;
   proxy?: string;
   source_type?: ConstsSourceType;
+}
+
+export interface GithubComChaitinPandaWikiApiNodeV1NodeListGroupNavResp {
+  count?: number;
+  list?: DomainNodeListItemResp[];
+  nav_id?: string;
+  nav_name?: string;
+  position?: number;
 }
 
 export interface GithubComChaitinPandaWikiApiShareV1AuthGetResp {
@@ -1491,7 +1624,8 @@ export interface V1CrawlerExportResp {
 
 export interface V1CrawlerParseReq {
   crawler_source: ConstsCrawlerSource;
-  feishu_setting?: V1FeishuSetting;
+  dingtalk_setting?: AnydocDingtalkSetting;
+  feishu_setting?: AnydocFeishuSetting;
   filename?: string;
   kb_id: string;
   key?: string;
@@ -1537,13 +1671,6 @@ export interface V1CreateUserResp {
   id?: string;
 }
 
-export interface V1FeishuSetting {
-  app_id?: string;
-  app_secret?: string;
-  space_id?: string;
-  user_access_token?: string;
-}
-
 export interface V1FileUploadResp {
   key?: string;
 }
@@ -1576,15 +1703,50 @@ export interface V1LoginResp {
   token?: string;
 }
 
+export interface V1NavAddReq {
+  kb_id: string;
+  name: string;
+  position?: number;
+}
+
+export interface V1NavListResp {
+  created_at?: string;
+  id?: string;
+  name?: string;
+  position?: number;
+  updated_at?: string;
+}
+
+export interface V1NavMoveReq {
+  id: string;
+  kb_id: string;
+  next_id?: string;
+  prev_id?: string;
+}
+
+export interface V1NavUpdateReq {
+  id: string;
+  kb_id: string;
+  name: string;
+}
+
 export interface V1NodeDetailResp {
   content?: string;
   created_at?: string;
+  creator_account?: string;
+  creator_id?: string;
+  editor_account?: string;
+  editor_id?: string;
   id?: string;
   kb_id?: string;
   meta?: DomainNodeMeta;
   name?: string;
+  nav_id?: string;
   parent_id?: string;
   permissions?: DomainNodePermissions;
+  publisher_account?: string;
+  publisher_id?: string;
+  pv?: number;
   status?: DomainNodeStatus;
   type?: DomainNodeType;
   updated_at?: string;
@@ -1615,10 +1777,61 @@ export interface V1NodePermissionResp {
   visitable_groups?: DomainNodeGroupDetail[];
 }
 
+export interface V1NodeRestudyReq {
+  kb_id: string;
+  /** @minItems 1 */
+  node_ids: string[];
+}
+
+export type V1NodeRestudyResp = Record<string, any>;
+
+export interface V1NodeStatsResp {
+  /** 未发布的文档数 */
+  unpublished_count?: number;
+  /** 未学习的文档数 */
+  unstudied_count?: number;
+}
+
 export interface V1ResetPasswordReq {
   id: string;
   /** @minLength 8 */
   new_password: string;
+}
+
+export interface V1ShareFileUploadUrlReq {
+  captcha_token: string;
+  url: string;
+}
+
+export interface V1ShareFileUploadUrlResp {
+  key?: string;
+}
+
+export interface V1ShareNodeDetailResp {
+  content?: string;
+  created_at?: string;
+  creator_account?: string;
+  creator_id?: string;
+  editor_account?: string;
+  editor_id?: string;
+  id?: string;
+  kb_id?: string;
+  list?: DomainShareNodeDetailItem[];
+  meta?: DomainNodeMeta;
+  name?: string;
+  parent_id?: string;
+  permissions?: DomainNodePermissions;
+  publisher_account?: string;
+  publisher_id?: string;
+  pv?: number;
+  status?: DomainNodeStatus;
+  type?: DomainNodeType;
+  updated_at?: string;
+}
+
+export interface V1StatConversationDistributionResp {
+  app_type?: DomainAppType;
+  count?: number;
 }
 
 export interface V1StatCountResp {
@@ -1647,6 +1860,13 @@ export interface V1UserListItemResp {
 
 export interface V1UserListResp {
   users?: V1UserListItemResp[];
+}
+
+export interface V1WechatAppInfoResp {
+  disclaimer_content?: string;
+  feedback_enable?: boolean;
+  feedback_type?: string[];
+  wechat_app_is_enabled?: boolean;
 }
 
 export interface PutApiV1AppParams {
@@ -1692,7 +1912,8 @@ export interface GetApiV1AuthGetParams {
     | "wechat_service_bot"
     | "discord_bot"
     | "wechat_official_account"
-    | "openai_api";
+    | "openai_api"
+    | "mcp_server";
 }
 
 export interface GetApiV1CommentParams {
@@ -1783,6 +2004,15 @@ export interface GetApiV1KnowledgeBaseUserListParams {
   kb_id: string;
 }
 
+export interface DeleteApiV1NavDeleteParams {
+  id: string;
+  kb_id: string;
+}
+
+export interface GetApiV1NavListParams {
+  kb_id: string;
+}
+
 export interface GetApiV1NodeDetailParams {
   format?: string;
   id: string;
@@ -1791,7 +2021,14 @@ export interface GetApiV1NodeDetailParams {
 
 export interface GetApiV1NodeListParams {
   kb_id: string;
+  nav_id?: string;
   search?: string;
+}
+
+export interface GetApiV1NodeListGroupNavParams {
+  kb_id: string;
+  search?: string;
+  status?: "unpublished" | "unstudied";
 }
 
 export interface GetApiV1NodePermissionParams {
@@ -1802,6 +2039,10 @@ export interface GetApiV1NodePermissionParams {
 export interface GetApiV1NodeRecommendNodesParams {
   kb_id: string;
   node_ids: string[];
+}
+
+export interface GetApiV1NodeStatsParams {
+  kb_id: string;
 }
 
 export interface GetApiV1StatBrowsersParams {
@@ -1876,6 +2117,10 @@ export interface PostShareV1CommonFileUploadPayload {
 export interface GetShareV1ConversationDetailParams {
   /** conversation id */
   id: string;
+}
+
+export interface GetShareV1NavListParams {
+  kb_id: string;
 }
 
 export interface GetShareV1NodeDetailParams {

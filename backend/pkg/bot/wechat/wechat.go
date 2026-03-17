@@ -14,21 +14,24 @@ import (
 	"github.com/google/uuid"
 	"github.com/sbzhu/weworkapi_golang/wxbizmsgcrypt"
 
+	"github.com/chaitin/panda-wiki/consts"
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/pkg/bot"
 )
 
-func NewWechatConfig(ctx context.Context, CorpID, Token, EncodingAESKey string, kbid string, secret string, agentID string, logger *log.Logger) (*WechatConfig, error) {
+const wechatMessageMaxBytes = 2000
+
+func NewWechatAppConfig(ctx context.Context, logger *log.Logger, kbId, CorpID, Token, EncodingAESKey, secret, agentID string) (*WechatConfig, error) {
 	return &WechatConfig{
 		Ctx:            ctx,
+		logger:         logger,
+		kbID:           kbId,
 		CorpID:         CorpID,
 		Token:          Token,
 		EncodingAESKey: EncodingAESKey,
-		kbID:           kbid,
 		Secret:         secret,
 		AgentID:        agentID,
-		logger:         logger,
 	}, nil
 }
 
@@ -49,22 +52,30 @@ func (cfg *WechatConfig) VerifyUrlWechatAPP(signature, timestamp, nonce, echostr
 	return decryptEchoStr, nil
 }
 
-func (cfg *WechatConfig) Wechat(msg ReceivedMessage, getQA bot.GetQAFun, userinfo *UserInfo) error {
+func (cfg *WechatConfig) Wechat(msg ReceivedMessage, getQA bot.GetQAFun, userinfo *UserInfo, useTextResponse bool, weChatAppAdvancedSetting *domain.WeChatAppAdvancedSetting) error {
 
 	token, err := cfg.GetAccessToken()
 	if err != nil {
 		return err
 	}
-	err = cfg.ProcessMessage(msg, getQA, token, userinfo)
-	if err != nil {
-		cfg.logger.Error("send to ai failed!", log.Error(err))
-		return err
+	if useTextResponse {
+		err = cfg.ProcessTextMessage(msg, getQA, token, userinfo, weChatAppAdvancedSetting.DisclaimerContent)
+		if err != nil {
+			cfg.logger.Error("send to ai failed!", log.Error(err))
+			return err
+		}
+	} else {
+		if err := cfg.ProcessUrlMessage(msg, getQA, token, userinfo); err != nil {
+			cfg.logger.Error("send to ai failed!", log.Error(err))
+			return err
+		}
+
 	}
+
 	return nil
 }
 
-// forwardToBackend
-func (cfg *WechatConfig) ProcessMessage(msg ReceivedMessage, GetQA bot.GetQAFun, token string, userinfo *UserInfo) error {
+func (cfg *WechatConfig) ProcessUrlMessage(msg ReceivedMessage, GetQA bot.GetQAFun, token string, userinfo *UserInfo) error {
 	// 1. get ai channel
 	id, err := uuid.NewV7()
 	if err != nil {
@@ -73,7 +84,7 @@ func (cfg *WechatConfig) ProcessMessage(msg ReceivedMessage, GetQA bot.GetQAFun,
 	}
 	conversationID := id.String()
 
-	wccontent, err := GetQA(cfg.Ctx, msg.Content, domain.ConversationInfo{
+	contentChan, err := GetQA(cfg.Ctx, msg.Content, domain.ConversationInfo{
 		UserInfo: domain.UserInfo{
 			UserID:   userinfo.UserID,
 			NickName: userinfo.Name,
@@ -93,7 +104,7 @@ func (cfg *WechatConfig) ProcessMessage(msg ReceivedMessage, GetQA bot.GetQAFun,
 		}
 		domain.ConversationManager.Store(conversationID, state)
 
-		go cfg.SendQuestionToAI(conversationID, wccontent)
+		go cfg.SendQuestionToAI(conversationID, contentChan)
 	}
 
 	baseUrl, err := cfg.WeRepo.GetWechatBaseURL(cfg.Ctx, cfg.kbID)
@@ -112,6 +123,54 @@ func (cfg *WechatConfig) ProcessMessage(msg ReceivedMessage, GetQA bot.GetQAFun,
 	return nil
 }
 
+func (cfg *WechatConfig) ProcessTextMessage(msg ReceivedMessage, GetQA bot.GetQAFun, token string, userinfo *UserInfo, disclaimerContent string) error {
+	// 1. get ai channel
+	id, err := uuid.NewV7()
+	if err != nil {
+		cfg.logger.Error("failed to generate conversation uuid", log.Error(err))
+		id = uuid.New()
+	}
+	conversationID := id.String()
+
+	contentChan, err := GetQA(cfg.Ctx, msg.Content, domain.ConversationInfo{
+		UserInfo: domain.UserInfo{
+			UserID:   userinfo.UserID,
+			NickName: userinfo.Name,
+			From:     domain.MessageFromPrivate,
+		}}, conversationID)
+
+	if err != nil {
+		return err
+	}
+
+	var fullResponse string
+	for content := range contentChan {
+		fullResponse += content
+		if len([]byte(fullResponse)) > wechatMessageMaxBytes { // wechat limit 2048 byte
+			if _, _, err := cfg.SendResponseToUser(fullResponse, msg.FromUserName, token); err != nil {
+				return err
+			}
+			fullResponse = ""
+		}
+	}
+	if len([]byte(fullResponse+disclaimerContent)) > wechatMessageMaxBytes {
+		if _, _, err := cfg.SendResponseToUser(fullResponse, msg.FromUserName, token); err != nil {
+			return err
+		}
+		if _, _, err := cfg.SendResponseToUser(disclaimerContent, msg.FromUserName, token); err != nil {
+			return err
+		}
+	} else {
+		if disclaimerContent != "" {
+			fullResponse += fmt.Sprintf("\n%s", disclaimerContent)
+		}
+		if _, _, err := cfg.SendResponseToUser(fullResponse, msg.FromUserName, token); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // SendResponseToUser
 func (cfg *WechatConfig) SendURLToUser(touser, question, token, conversationID, baseUrl string) (int, string, error) {
 	msgData := map[string]interface{}{
@@ -120,8 +179,8 @@ func (cfg *WechatConfig) SendURLToUser(touser, question, token, conversationID, 
 		"agentid": cfg.AgentID,
 		"textcard": map[string]interface{}{
 			"title":       question,
-			"description": "<div class = \"highlight\">本回答由 LiteWiki 基于 AI 生成，仅供参考。</div>",
-			"url":         fmt.Sprintf("%s/h5-chat?id=%s", baseUrl, conversationID),
+			"description": "<div class = \"highlight\">本回答由 PandaWiki 基于 AI 生成，仅供参考。</div>",
+			"url":         fmt.Sprintf("%s/h5-chat?id=%s&source_type=%s", baseUrl, conversationID, consts.SourceTypeWechatBot),
 		},
 	}
 
@@ -150,7 +209,6 @@ func (cfg *WechatConfig) SendURLToUser(touser, question, token, conversationID, 
 	return result.Errcode, result.Errmsg, nil
 }
 
-// SendResponseToUser
 func (cfg *WechatConfig) SendResponseToUser(response string, touser string, token string) (int, string, error) {
 
 	msgData := map[string]interface{}{
@@ -183,6 +241,9 @@ func (cfg *WechatConfig) SendResponseToUser(response string, touser string, toke
 	}
 	if err := json.Unmarshal(body, &result); err != nil {
 		return 0, "", err
+	}
+	if result.Errcode != 0 {
+		return result.Errcode, result.Errmsg, fmt.Errorf("wechat Api failed : %s (code: %d)", result.Errmsg, result.Errcode)
 	}
 	return result.Errcode, result.Errmsg, nil
 }
@@ -235,7 +296,7 @@ func (cfg *WechatConfig) GetAccessToken() (string, error) {
 	defer tokenCache.Mutex.Unlock()
 
 	if tokenCache.AccessToken != "" && time.Now().Before(tokenCache.TokenExpire) {
-		cfg.logger.Info("access token has existed and is valid")
+		cfg.logger.Debug("access token has existed and is valid")
 		return tokenCache.AccessToken, nil
 	}
 

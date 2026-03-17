@@ -1,19 +1,21 @@
 import { ITreeItem } from '@/api';
 import Cascader from '@/components/Cascader';
 import { addOpacityToColor } from '@/utils';
-import { Icon } from '@ctzhian/ui';
 import { Box, IconButton, Stack, useTheme } from '@mui/material';
+import { IconXiala, IconGengduo } from '@panda-wiki/icons';
 
 export type TreeMenuItem = {
   key: string;
   label: string;
   onClick?: () => void;
   disabled?: boolean;
+  color?: 'error' | 'default';
   children?: {
     key: string;
     label: string;
     disabled?: boolean;
     onClick?: () => void;
+    color?: 'error' | 'default';
   }[];
 };
 
@@ -86,20 +88,25 @@ const TreeMenu = ({
                 height: 40,
                 width: 180,
                 borderRadius: '5px',
-                color: value?.disabled ? 'text.disabled' : 'text.primary',
+                color: value?.disabled
+                  ? 'text.disabled'
+                  : value.color === 'error'
+                    ? 'error.main'
+                    : 'text.primary',
                 cursor: value?.disabled ? 'not-allowed' : 'pointer',
                 ':hover': {
-                  bgcolor: addOpacityToColor(theme.palette.primary.main, 0.1),
+                  bgcolor: value?.disabled
+                    ? 'transparent'
+                    : value.color === 'error'
+                      ? addOpacityToColor(theme.palette.error.main, 0.1)
+                      : addOpacityToColor(theme.palette.primary.main, 0.1),
                 },
               }}
               onClick={value?.disabled ? undefined : value.onClick}
             >
               {value.label}
               {value.children && (
-                <Icon
-                  type='icon-xiala'
-                  sx={{ fontSize: 20, transform: 'rotate(-90deg)' }}
-                />
+                <IconXiala sx={{ fontSize: 20, transform: 'rotate(-90deg)' }} />
               )}
             </Stack>
             {value.key === 'next-line' && (
@@ -119,7 +126,7 @@ const TreeMenu = ({
       context={
         context || (
           <IconButton size='small'>
-            <Icon type='icon-gengduo' />
+            <IconGengduo sx={{ fontSize: '14px' }} />
           </IconButton>
         )
       }

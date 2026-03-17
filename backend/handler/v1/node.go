@@ -37,6 +37,9 @@ func NewNodeHandler(
 
 	group := echo.Group("/api/v1/node", h.auth.Authorize, h.auth.ValidateKBUserPerm(consts.UserKBPermissionDocManage))
 	group.GET("/list", h.GetNodeList)
+	group.GET("/list/group/nav", h.NodeListGroupNav)
+	group.GET("/stats", h.NodeStats)
+
 	group.POST("", h.CreateNode)
 	group.GET("/detail", h.GetNodeDetail)
 	group.PUT("/detail", h.UpdateNodeDetail)
@@ -44,9 +47,11 @@ func NewNodeHandler(
 
 	group.POST("/action", h.NodeAction)
 	group.POST("/move", h.MoveNode)
+	group.POST("/move/nav", h.NodeMoveNav)
 	group.POST("/batch_move", h.BatchMoveNode)
 
 	group.GET("/recommend_nodes", h.RecommendNodes)
+	group.POST("/restudy", h.NodeRestudy)
 
 	// node permission
 	group.GET("/permission", h.NodePermission)
@@ -80,21 +85,48 @@ func (h *NodeHandler) CreateNode(c echo.Context) error {
 	if err := c.Validate(req); err != nil {
 		return h.NewResponseWithError(c, "validate request body failed", err)
 	}
-	req.MaxNode = 300
-	if maxNode := c.Get("max_node"); maxNode != nil {
-		req.MaxNode = maxNode.(int)
-	}
+
+	req.MaxNode = domain.GetBaseEditionLimitation(ctx).MaxNode
 
 	id, err := h.usecase.Create(c.Request().Context(), req, authInfo.UserId)
 	if err != nil {
 		if errors.Is(err, domain.ErrMaxNodeLimitReached) {
-			return h.NewResponseWithError(c, "已达到最大文档数量限制，请升级到联创版或企业版", nil)
+			return h.NewResponseWithError(c, "已达到最大文档数量限制，请升级到更高版本", nil)
 		}
 		return h.NewResponseWithError(c, "create node failed", err)
 	}
 	return h.NewResponseWithData(c, map[string]any{
 		"id": id,
 	})
+}
+
+// NodeStats
+//
+//	@Summary		Get Node Statistics
+//	@Description	Get Node Statistics
+//	@Tags			node
+//	@Accept			json
+//	@Produce		json
+//	@Security		bearerAuth
+//	@Param			kb_id	query		v1.NodeStatsReq	true	"Knowledge Base ID"
+//	@Success		200		{object}	domain.PWResponse{data=v1.NodeStatsResp}
+//	@Router			/api/v1/node/stats [get]
+func (h *NodeHandler) NodeStats(c echo.Context) error {
+	var req v1.NodeStatsReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "invalid request", err)
+	}
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request params failed", err)
+	}
+
+	ctx := c.Request().Context()
+	stats, err := h.usecase.GetNodeStats(ctx, req.KbId)
+	if err != nil {
+		return h.NewResponseWithError(c, "get node stats failed", err)
+	}
+
+	return h.NewResponseWithData(c, stats)
 }
 
 // GetNodeList
@@ -124,6 +156,33 @@ func (h *NodeHandler) GetNodeList(c echo.Context) error {
 	return h.NewResponseWithData(c, nodes)
 }
 
+// NodeListGroupNav
+//
+//	@Summary		Get Node List Grouped by Nav
+//	@Description	Get unpublished or unstudied document list grouped by nav
+//	@Tags			node
+//	@Accept			json
+//	@Produce		json
+//	@Security		bearerAuth
+//	@Param			params	query		v1.NodeListGroupNavReq	true	"Params"
+//	@Success		200		{object}	domain.PWResponse{data=[]v1.NodeListGroupNavResp}
+//	@Router			/api/v1/node/list/group/nav [get]
+func (h *NodeHandler) NodeListGroupNav(c echo.Context) error {
+	var req v1.NodeListGroupNavReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "invalid request", err)
+	}
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request params failed", err)
+	}
+	ctx := c.Request().Context()
+	result, err := h.usecase.GetNodeListGroupByNav(ctx, req.KbId, req.Status, req.Search)
+	if err != nil {
+		return h.NewResponseWithError(c, "get node list group by nav failed", err)
+	}
+	return h.NewResponseWithData(c, result)
+}
+
 // GetNodeDetail
 //
 //	@Summary		Get Node Detail
@@ -147,6 +206,7 @@ func (h *NodeHandler) GetNodeDetail(c echo.Context) error {
 
 	node, err := h.usecase.GetNodeByKBID(c.Request().Context(), req.ID, req.KbId, req.Format)
 	if err != nil {
+		h.logger.Error("get node by kb id failed", log.Error(err))
 		return h.NewResponseWithError(c, "get node detail failed", err)
 	}
 	return h.NewResponseWithData(c, node)
@@ -232,6 +292,32 @@ func (h *NodeHandler) MoveNode(c echo.Context) error {
 	ctx := c.Request().Context()
 	if err := h.usecase.MoveNode(ctx, req); err != nil {
 		return h.NewResponseWithError(c, "move node failed", err)
+	}
+	return h.NewResponseWithData(c, nil)
+}
+
+// NodeMoveNav
+//
+//	@Summary		Move Node to Nav
+//	@Description	Move node (and all its descendants if folder) to a different nav
+//	@Tags			node
+//	@Accept			json
+//	@Produce		json
+//	@Security		bearerAuth
+//	@Param			body	body		v1.NodeMoveNavReq	true	"Move Node Nav"
+//	@Success		200		{object}	domain.Response
+//	@Router			/api/v1/node/move/nav [post]
+func (h *NodeHandler) NodeMoveNav(c echo.Context) error {
+	req := &v1.NodeMoveNavReq{}
+	if err := c.Bind(req); err != nil {
+		return h.NewResponseWithError(c, "request body is invalid", err)
+	}
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request body failed", err)
+	}
+	ctx := c.Request().Context()
+	if err := h.usecase.MoveNodeNav(ctx, req); err != nil {
+		return h.NewResponseWithError(c, "move node nav failed", err)
 	}
 	return h.NewResponseWithData(c, nil)
 }
@@ -382,5 +468,34 @@ func (h *NodeHandler) NodePermissionEdit(c echo.Context) error {
 	if err != nil {
 		return h.NewResponseWithError(c, "update node permission failed", err)
 	}
+	return h.NewResponseWithData(c, nil)
+}
+
+// NodeRestudy 文档重新学习
+//
+//	@Tags			Node
+//	@Summary		文档重新学习
+//	@Description	文档重新学习
+//	@ID				v1-NodeRestudy
+//	@Accept			json
+//	@Produce		json
+//	@Security		bearerAuth
+//	@Param			param	body		v1.NodeRestudyReq	true	"para"
+//	@Success		200		{object}	domain.Response{data=v1.NodeRestudyResp}
+//	@Router			/api/v1/node/restudy [post]
+func (h *NodeHandler) NodeRestudy(c echo.Context) error {
+	var req v1.NodeRestudyReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "request params is invalid", err)
+	}
+
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request params failed", err)
+	}
+
+	if err := h.usecase.NodeRestudy(c.Request().Context(), &req); err != nil {
+		return h.NewResponseWithError(c, err.Error(), err)
+	}
+
 	return h.NewResponseWithData(c, nil)
 }

@@ -139,6 +139,10 @@ func (r *UserAccessRepository) ValidateKBPerm(kbId, userId string, perm consts.U
 
 	}
 
+	if perm == consts.UserKBPermissionNotNull {
+		return kbUser.Perm != consts.UserKBPermissionNull, nil
+	}
+
 	if kbUser.Perm == perm || kbUser.Perm == consts.UserKBPermissionFullControl {
 		return true, nil
 	}

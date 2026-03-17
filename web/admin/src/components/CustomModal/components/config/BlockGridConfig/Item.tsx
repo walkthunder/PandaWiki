@@ -1,5 +1,5 @@
 import { Box, IconButton, Stack, TextField } from '@mui/material';
-import { Icon } from '@ctzhian/ui';
+import { IconShanchu2, IconDrag } from '@panda-wiki/icons';
 import UploadFile from '@/components/UploadFile';
 import {
   CSSProperties,
@@ -132,7 +132,7 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                 height: '28px',
               }}
             >
-              <Icon type='icon-shanchu2' sx={{ fontSize: '12px' }} />
+              <IconShanchu2 sx={{ fontSize: '12px' }} />
             </IconButton>
             <IconButton
               size='small'
@@ -143,7 +143,7 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
               }}
               {...(dragHandleProps as any)}
             >
-              <Icon type='icon-drag' />
+              <IconDrag sx={{ fontSize: '18px' }} />
             </IconButton>
           </Stack>
         </Stack>

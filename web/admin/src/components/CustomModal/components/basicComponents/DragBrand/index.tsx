@@ -1,4 +1,4 @@
-import { AppDetail, FooterSetting } from '@/api/type';
+import { FooterSetting } from '@/api/type';
 import {
   closestCenter,
   DndContext,
@@ -15,10 +15,9 @@ import {
   rectSortingStrategy,
   SortableContext,
 } from '@dnd-kit/sortable';
-import { Box, Button } from '@mui/material';
-import { Icon } from '@ctzhian/ui';
+import { Box } from '@mui/material';
 import { FC, useCallback, useEffect, useState } from 'react';
-import { Control, FieldErrors, useFieldArray } from 'react-hook-form';
+import { Control, FieldErrors } from 'react-hook-form';
 import Item from './Item';
 import SortableItem from './SortableItem';
 import { useAppDispatch, useAppSelector } from '@/store';
@@ -48,7 +47,7 @@ interface DragBrandProps {
 
 const DragBrand: FC<DragBrandProps> = ({
   setIsEdit,
-  data,
+  data = [],
   onChange,
   control,
   errors,

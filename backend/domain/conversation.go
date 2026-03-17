@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cloudwego/eino/schema"
+	"github.com/lib/pq"
 )
 
 type Conversation struct {
@@ -29,8 +30,9 @@ type ConversationMessage struct {
 	AppID          string `json:"app_id" gorm:"index"`
 	KBID           string `json:"kb_id"`
 
-	Role    schema.RoleType `json:"role"`
-	Content string          `json:"content"`
+	Role       schema.RoleType `json:"role"`
+	Content    string          `json:"content"`
+	ImagePaths pq.StringArray  `json:"image_paths" gorm:"type:text[];not null;default:{}"`
 
 	// model
 	Provider         ModelProvider `json:"provider"`
@@ -151,7 +153,8 @@ type ShareConversationDetailResp struct {
 }
 
 type ShareConversationMessage struct {
-	Role      schema.RoleType `json:"role"`
-	Content   string          `json:"content"`
-	CreatedAt time.Time       `json:"created_at"`
+	Role       schema.RoleType `json:"role"`
+	Content    string          `json:"content"`
+	ImagePaths pq.StringArray  `json:"image_paths"`
+	CreatedAt  time.Time       `json:"created_at"`
 }

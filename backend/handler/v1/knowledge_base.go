@@ -41,7 +41,7 @@ func NewKnowledgeBaseHandler(
 	group := echo.Group("/api/v1/knowledge_base", h.auth.Authorize)
 	group.POST("", h.CreateKnowledgeBase, h.auth.ValidateUserRole(consts.UserRoleAdmin))
 	group.GET("/list", h.GetKnowledgeBaseList)
-	group.GET("/detail", h.GetKnowledgeBaseDetail)
+	group.GET("/detail", h.GetKnowledgeBaseDetail, h.auth.ValidateKBUserPerm(consts.UserKBPermissionNotNull))
 	group.PUT("/detail", h.UpdateKnowledgeBase, h.auth.ValidateKBUserPerm(consts.UserKBPermissionFullControl))
 	group.DELETE("/detail", h.DeleteKnowledgeBase, h.auth.ValidateUserRole(consts.UserRoleAdmin))
 
@@ -103,7 +103,7 @@ func (h *KnowledgeBaseHandler) CreateKnowledgeBase(c echo.Context) error {
 			return h.NewResponseWithError(c, "端口或域名已被其他知识库占用", nil)
 		}
 		if errors.Is(err, domain.ErrSyncCaddyConfigFailed) {
-			return h.NewResponseWithError(c, "端口可能已被其他程序占用，请检查", nil)
+			return h.NewResponseWithError(c, "保存配置失败，请检查端口或证书配置", nil)
 		}
 		return h.NewResponseWithError(c, "failed to create knowledge base", err)
 	}
@@ -158,7 +158,7 @@ func (h *KnowledgeBaseHandler) UpdateKnowledgeBase(c echo.Context) error {
 			return h.NewResponseWithError(c, "端口或域名已被其他知识库占用", nil)
 		}
 		if errors.Is(err, domain.ErrSyncCaddyConfigFailed) {
-			return h.NewResponseWithError(c, "端口可能已被其他程序占用，请检查", nil)
+			return h.NewResponseWithError(c, "保存配置失败，请检查端口或证书配置", nil)
 		}
 		return h.NewResponseWithError(c, "failed to update knowledge base", err)
 	}

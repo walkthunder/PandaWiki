@@ -1,26 +1,18 @@
 'use client';
 import { V1NodeDetailResp } from '@/request/types';
-import { IconBaocun } from '@panda-wiki/icons';
-import { Box, Button, IconButton, Skeleton, Stack } from '@mui/material';
-import { Ellipsis, Icon, message } from '@ctzhian/ui';
+import { Ellipsis } from '@ctzhian/ui';
+import { Box, Button, Skeleton, Stack } from '@mui/material';
+import { IconBaocun, IconMuluzhankai } from '@panda-wiki/icons';
 import dayjs from 'dayjs';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useWrapContext } from '..';
 
 interface HeaderProps {
-  edit: boolean;
-  collaborativeUsers?: Array<{
-    id: string;
-    name: string;
-    color: string;
-  }>;
-  isSyncing?: boolean;
   detail: V1NodeDetailResp;
-  updateDetail: (detail: V1NodeDetailResp) => void;
   handleSave: () => void;
 }
 
-const Header = ({ edit, detail, handleSave }: HeaderProps) => {
+const Header = ({ detail, handleSave }: HeaderProps) => {
   const firstLoad = useRef(true);
 
   const { catalogOpen, nodeDetail, setCatalogOpen, saveLoading } =
@@ -46,14 +38,13 @@ const Header = ({ edit, detail, handleSave }: HeaderProps) => {
             onClick={() => setCatalogOpen(true)}
             sx={{
               cursor: 'pointer',
-              color: 'text.auxiliary',
+              color: 'text.tertiary',
               ':hover': {
                 color: 'text.primary',
               },
             }}
           >
-            <Icon
-              type='icon-muluzhankai'
+            <IconMuluzhankai
               sx={{
                 fontSize: 24,
               }}
@@ -78,7 +69,7 @@ const Header = ({ edit, detail, handleSave }: HeaderProps) => {
               direction={'row'}
               alignItems={'center'}
               gap={0.5}
-              sx={{ fontSize: 12, color: 'text.auxiliary' }}
+              sx={{ fontSize: 12, color: 'text.tertiary' }}
             >
               <IconBaocun sx={{ fontSize: 12 }} />
               {nodeDetail?.updated_at ? (

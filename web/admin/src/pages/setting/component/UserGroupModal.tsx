@@ -1,9 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState, KeyboardEvent, useRef } from 'react';
 import {
   postApiProV1AuthGroupCreate,
   patchApiProV1AuthGroupUpdate,
 } from '@/request/pro/AuthGroup';
-import { TextField, Box, Stack } from '@mui/material';
+import {
+  TextField,
+  Box,
+  Stack,
+  Tooltip,
+  IconButton,
+  Button,
+  ClickAwayListener,
+} from '@mui/material';
 import dayjs from 'dayjs';
 import { Modal, Table, message } from '@ctzhian/ui';
 import NoData from '@/assets/images/nodata.png';
@@ -11,6 +19,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { FormItem } from './Common';
 import { useAppSelector } from '@/store';
 import { ColumnType } from '@ctzhian/ui/dist/Table';
+import SearchIcon from '@mui/icons-material/Search';
 import {
   GithubComChaitinPandaWikiProApiAuthV1AuthGroupListItem,
   GithubComChaitinPandaWikiProApiAuthV1AuthItem,
@@ -37,9 +46,119 @@ const UserGroupModal = ({
   const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>(
     data?.auth_ids || [],
   );
+  const [usernameFilterOpen, setUsernameFilterOpen] = useState(false);
+  const [usernameFilter, setUsernameFilter] = useState('');
+  const [usernameInput, setUsernameInput] = useState('');
+  const usernameTooltipContentRef = useRef<HTMLDivElement | null>(null);
+  const hasUsernameFilter = !!usernameFilter || usernameInput.trim().length > 0;
+
+  const handleApplyUsernameFilter = () => {
+    setUsernameFilter(usernameInput.trim());
+    setUsernameFilterOpen(false);
+  };
+
+  const handleResetUsernameFilter = () => {
+    setUsernameInput('');
+    setUsernameFilter('');
+    setUsernameFilterOpen(false);
+  };
+
+  const handleUsernameClickAway = (event: MouseEvent | TouchEvent) => {
+    if (usernameTooltipContentRef.current?.contains(event.target as Node)) {
+      return;
+    }
+    setUsernameFilterOpen(false);
+  };
+
+  const handleUsernameInputEnter = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleApplyUsernameFilter();
+    }
+  };
+
+  const filteredUserList = useMemo(() => {
+    if (!usernameFilter) return userList;
+    return userList.filter(user =>
+      (user.username || '')
+        .toLowerCase()
+        .includes(usernameFilter.toLowerCase()),
+    );
+  }, [userList, usernameFilter]);
   const columns: ColumnType<GithubComChaitinPandaWikiProApiAuthV1AuthItem>[] = [
     {
-      title: '用户名',
+      title: (
+        <Stack direction={'row'} alignItems={'center'} gap={0.5}>
+          <Box component={'span'}>用户名</Box>
+          <ClickAwayListener onClickAway={handleUsernameClickAway}>
+            <Tooltip
+              open={usernameFilterOpen}
+              disableFocusListener
+              disableHoverListener
+              disableTouchListener
+              title={
+                <Stack gap={1} ref={usernameTooltipContentRef}>
+                  <TextField
+                    size='small'
+                    autoFocus
+                    value={usernameInput}
+                    onChange={e => setUsernameInput(e.target.value)}
+                    onKeyDown={handleUsernameInputEnter}
+                    placeholder='输入用户名筛选'
+                    sx={{ minWidth: 200 }}
+                  />
+                  <Stack
+                    direction={'row'}
+                    justifyContent={'space-between'}
+                    alignItems={'center'}
+                    gap={1}
+                  >
+                    <Button
+                      variant='text'
+                      size='small'
+                      color='primary'
+                      onClick={handleResetUsernameFilter}
+                      disabled={!hasUsernameFilter}
+                    >
+                      重置
+                    </Button>
+                    <Button
+                      variant='contained'
+                      size='small'
+                      onClick={handleApplyUsernameFilter}
+                    >
+                      确定
+                    </Button>
+                  </Stack>
+                </Stack>
+              }
+              slotProps={{
+                tooltip: {
+                  sx: {
+                    bgcolor: 'background.paper',
+                    color: 'text.primary',
+                    boxShadow: 3,
+                    p: 1.5,
+                  },
+                },
+              }}
+            >
+              <IconButton
+                size='small'
+                color={usernameFilter ? 'primary' : 'default'}
+                sx={{ ml: 0.5 }}
+                onClick={event => {
+                  event.stopPropagation();
+                  setUsernameInput(usernameFilter);
+                  setUsernameFilterOpen(prev => !prev);
+                }}
+              >
+                <SearchIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Tooltip>
+          </ClickAwayListener>
+        </Stack>
+      ),
       dataIndex: 'username',
       render: (text: string) => {
         return (
@@ -110,6 +229,9 @@ const UserGroupModal = ({
     if (!open) {
       reset();
       setSelectedRowKeys([]);
+      setUsernameFilter('');
+      setUsernameInput('');
+      setUsernameFilterOpen(false);
     }
   }, [open]);
 
@@ -139,7 +261,7 @@ const UserGroupModal = ({
       </FormItem>
       <Table
         columns={columns}
-        dataSource={userList}
+        dataSource={filteredUserList}
         rowKey='id'
         size='small'
         updateScrollTop={false}

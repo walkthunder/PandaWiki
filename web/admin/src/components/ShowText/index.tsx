@@ -1,23 +1,29 @@
 import { copyText } from '@/utils';
 import { Box, Stack } from '@mui/material';
-import { Ellipsis, Icon } from '@ctzhian/ui';
+import { Ellipsis } from '@ctzhian/ui';
+import { IconFuzhi } from '@panda-wiki/icons';
+import { message } from '@ctzhian/ui';
 
 interface ShowTextProps {
   text: string[];
   copyable?: boolean;
   showIcon?: boolean;
   noEllipsis?: boolean;
-  icon?: string;
+  icon?: React.ReactNode;
   onClick?: () => void;
+  forceCopy?: boolean;
 }
 
 const ShowText = ({
   text,
   copyable = true,
   showIcon = true,
-  icon = 'icon-fuzhi',
+  icon = (
+    <IconFuzhi sx={{ fontSize: 16, color: 'text.disabled', flexShrink: 0 }} />
+  ),
   onClick,
   noEllipsis = false,
+  forceCopy = false,
 }: ShowTextProps) => {
   return (
     <Stack
@@ -45,8 +51,32 @@ const ShowText = ({
       onClick={
         copyable
           ? () => {
-              copyText(text.join('\n'));
-              onClick?.();
+              const content = text.join('\n');
+              if (forceCopy) {
+                try {
+                  if (navigator.clipboard) {
+                    navigator.clipboard.writeText(content);
+                    message.success('复制成功');
+                  } else {
+                    const ta = document.createElement('textarea');
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    ta.style.left = '-9999px';
+                    ta.style.top = '-9999px';
+                    ta.value = content;
+                    document.body.appendChild(ta);
+                    ta.focus();
+                    ta.select();
+                    const ok = document.execCommand('copy');
+                    if (ok) message.success('复制成功');
+                    document.body.removeChild(ta);
+                  }
+                } catch (e) {}
+                onClick?.();
+              } else {
+                copyText(content);
+                onClick?.();
+              }
             }
           : onClick
       }
@@ -62,12 +92,7 @@ const ShowText = ({
           ),
         )}
       </Stack>
-      {showIcon && (
-        <Icon
-          type={icon}
-          sx={{ fontSize: 16, color: 'text.disabled', flexShrink: 0 }}
-        />
-      )}
+      {showIcon && icon}
     </Stack>
   );
 };

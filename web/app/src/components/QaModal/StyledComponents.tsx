@@ -47,9 +47,9 @@ export const StyledUserBubble = styled(Box)(({ theme }) => ({
 
 export const StyledAiBubble = styled(Box)(({ theme }) => ({
   alignSelf: 'flex-start',
-  maxWidth: '85%',
   display: 'flex',
   flexDirection: 'column',
+  width: '100%',
   gap: theme.spacing(3),
 }));
 

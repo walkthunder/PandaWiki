@@ -27,8 +27,9 @@ const (
 type NodeStatus uint16
 
 const (
-	NodeStatusDraft    NodeStatus = 1
-	NodeStatusReleased NodeStatus = 2
+	NodeStatusUnreleased NodeStatus = 0 // 未发布
+	NodeStatusDraft      NodeStatus = 1 // 更新未发布
+	NodeStatusReleased   NodeStatus = 2 // 已发布
 )
 
 const (
@@ -40,6 +41,7 @@ const (
 type Node struct {
 	ID          string          `json:"id" gorm:"primaryKey"`
 	KBID        string          `json:"kb_id" gorm:"index"`
+	NavId       string          `json:"nav_id"`
 	Type        NodeType        `json:"type"`
 	Status      NodeStatus      `json:"status"`
 	RagInfo     RagInfo         `json:"rag_info" gorm:"type:jsonb"`
@@ -63,8 +65,9 @@ func (Node) TableName() string {
 }
 
 type RagInfo struct {
-	Status  consts.NodeRagInfoStatus `json:"status"`
-	Message string                   `json:"message"`
+	Status   consts.NodeRagInfoStatus `json:"status"`
+	Message  string                   `json:"message"`
+	SyncedAt time.Time                `json:"synced_at"`
 }
 
 func (d *RagInfo) Value() (driver.Value, error) {
@@ -137,29 +140,28 @@ func (d *NodeMeta) Scan(value any) error {
 }
 
 type CreateNodeReq struct {
-	KBID     string   `json:"kb_id" validate:"required"`
-	ParentID string   `json:"parent_id"`
-	Type     NodeType `json:"type" validate:"required,oneof=1 2"`
-
-	Name    string `json:"name" validate:"required"`
-	Content string `json:"content"`
-
-	Emoji       string  `json:"emoji"`
-	Summary     *string `json:"summary"`
-	ContentType *string `json:"content_type"`
-
-	MaxNode int `json:"-"`
-
-	Position *float64 `json:"position"`
+	KBID        string   `json:"kb_id" validate:"required"`
+	NavId       string   `json:"nav_id" validate:"required"`
+	ParentID    string   `json:"parent_id"`
+	Type        NodeType `json:"type" validate:"required,oneof=1 2"`
+	Name        string   `json:"name" validate:"required"`
+	Content     string   `json:"content"`
+	Emoji       string   `json:"emoji"`
+	Summary     *string  `json:"summary"`
+	ContentType *string  `json:"content_type"`
+	MaxNode     int      `json:"-"`
+	Position    *float64 `json:"position"`
 }
 
 type GetNodeListReq struct {
 	KBID   string `json:"kb_id" query:"kb_id" validate:"required"`
+	NavId  string `query:"nav_id" json:"nav_id"`
 	Search string `json:"search" query:"search"`
 }
 
 type NodeListItemResp struct {
 	ID          string          `json:"id"`
+	NavId       string          `json:"nav_id"`
 	Type        NodeType        `json:"type"`
 	Status      NodeStatus      `json:"status"`
 	RagInfo     RagInfo         `json:"rag_info"`
@@ -175,6 +177,7 @@ type NodeListItemResp struct {
 	EditorId    string          `json:"editor_id"`
 	Creator     string          `json:"creator"`
 	Editor      string          `json:"editor"`
+	PublisherId string          `json:"publisher_id" gorm:"-"`
 	Permissions NodePermissions `json:"permissions" gorm:"type:jsonb"`
 }
 
@@ -248,6 +251,7 @@ type UpdateNodeReq struct {
 	Summary     *string  `json:"summary"`
 	Position    *float64 `json:"position"`
 	ContentType *string  `json:"content_type"`
+	NavId       *string  `json:"nav_id"`
 }
 
 type ShareNodeListItemResp struct {
@@ -255,10 +259,25 @@ type ShareNodeListItemResp struct {
 	Name        string          `json:"name"`
 	Type        NodeType        `json:"type"`
 	ParentID    string          `json:"parent_id"`
+	NavId       string          `json:"nav_id"`
 	Position    float64         `json:"position"`
 	Emoji       string          `json:"emoji"`
+	Meta        NodeMeta        `json:"meta"`
 	UpdatedAt   time.Time       `json:"updated_at"`
 	Permissions NodePermissions `json:"permissions" gorm:"type:jsonb"`
+}
+
+type ShareNodeDetailItem struct {
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Type        NodeType               `json:"type"`
+	ParentID    string                 `json:"parent_id"`
+	Position    float64                `json:"position"`
+	Emoji       string                 `json:"emoji"`
+	Meta        NodeMeta               `json:"meta"`
+	UpdatedAt   time.Time              `json:"updated_at"`
+	Permissions NodePermissions        `json:"permissions" gorm:"type:jsonb"`
+	Children    []*ShareNodeDetailItem `json:"children,omitempty"`
 }
 
 func (n *ShareNodeListItemResp) GetURL(baseURL string) string {
@@ -308,6 +327,29 @@ type NodeRelease struct {
 
 func (NodeRelease) TableName() string {
 	return "node_releases"
+}
+
+// table: node_release_backup
+type NodeReleaseBackup struct {
+	ID          string    `json:"id" gorm:"primaryKey"`
+	KBID        string    `json:"kb_id" gorm:"index"`
+	PublisherId string    `json:"publisher_id"`
+	EditorId    string    `json:"editor_id"`
+	NodeID      string    `json:"node_id" gorm:"index"`
+	DocID       string    `json:"doc_id"`
+	Type        NodeType  `json:"type"`
+	Name        string    `json:"name"`
+	Meta        NodeMeta  `json:"meta" gorm:"type:jsonb"`
+	Content     string    `json:"content"`
+	Position    float64   `json:"position"`
+	ParentID    string    `json:"parent_id"`
+	DeletedAt   time.Time `json:"deleted_at"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+func (NodeReleaseBackup) TableName() string {
+	return "node_release_backup"
 }
 
 // NodeReleaseWithDirPath extends NodeRelease with directory path information

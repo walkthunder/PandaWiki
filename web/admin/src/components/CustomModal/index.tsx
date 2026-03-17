@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Button, Stack, Typography } from '@mui/material';
-import { CusTabs, Icon, message, Modal } from '@ctzhian/ui';
+import { CusTabs, message, Modal } from '@ctzhian/ui';
 import {
   getApiV1NodeRecommendNodes,
   getApiV1KnowledgeBaseDetail,
@@ -9,6 +9,7 @@ import {
   DomainAppDetailResp,
   DomainWebAppLandingConfigResp,
 } from '@/request/types';
+import { IconPCduan, IconYidongduan } from '@panda-wiki/icons';
 
 import { getApiV1AppDetail, putApiV1App } from '@/request/App';
 import { useAppSelector, useAppDispatch } from '@/store';
@@ -338,18 +339,11 @@ const CustomModal = ({
                   <CusTabs
                     list={[
                       {
-                        label: (
-                          <Icon type='icon-PCduan' sx={{ height: '32px' }} />
-                        ),
+                        label: <IconPCduan sx={{ fontSize: 14 }} />,
                         value: 'pc',
                       },
                       {
-                        label: (
-                          <Icon
-                            type='icon-yidongduan'
-                            sx={{ height: '32px' }}
-                          />
-                        ),
+                        label: <IconYidongduan sx={{ fontSize: 14 }} />,
                         value: 'mobile',
                       },
                     ]}

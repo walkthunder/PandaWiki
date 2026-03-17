@@ -36,10 +36,8 @@ const CardBasicInfo = ({
   };
 
   useEffect(() => {
-    if (kb?.access_settings?.base_url) {
-      setUrl(kb.access_settings.base_url);
-      return;
-    }
+    setUrl(kb?.access_settings?.base_url || '');
+    setIsEdit(false);
   }, [kb]);
 
   const baseUrlPlaceholder = () => {

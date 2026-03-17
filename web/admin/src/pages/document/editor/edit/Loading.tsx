@@ -1,27 +1,19 @@
 import { useTiptap } from '@ctzhian/tiptap';
-import { Icon } from '@ctzhian/ui';
 import { Box, Skeleton, Stack } from '@mui/material';
-import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { WrapContext } from '..';
 import Header from './Header';
 import Toolbar from './Toolbar';
+import { IconAShijian2, IconZiti } from '@panda-wiki/icons';
 
 const LoadingEditorWrap = () => {
   const { catalogOpen } = useOutletContext<WrapContext>();
-  const [isSyncing] = useState(false);
-  const [collaborativeUsers] = useState<
-    Array<{
-      id: string;
-      name: string;
-      color: string;
-    }>
-  >([]);
 
   const editorRef = useTiptap({
     editable: false,
     content: '',
     exclude: ['invisibleCharacters', 'youtube', 'mention'],
+    baseUrl: window.__BASENAME__ || '',
   });
 
   return (
@@ -39,8 +31,6 @@ const LoadingEditorWrap = () => {
       >
         <Header
           edit={false}
-          isSyncing={isSyncing}
-          collaborativeUsers={collaborativeUsers}
           detail={{}}
           updateDetail={() => {}}
           handleSave={() => {}}
@@ -64,11 +54,11 @@ const LoadingEditorWrap = () => {
           </Stack>
           <Stack direction={'row'} alignItems={'center'} gap={2} sx={{ mb: 4 }}>
             <Stack direction={'row'} alignItems={'center'} gap={0.5}>
-              <Icon type='icon-a-shijian2' sx={{ color: 'text.tertiary' }} />
+              <IconAShijian2 sx={{ color: 'text.tertiary', fontSize: 12 }} />
               <Skeleton variant='text' width={130} height={24} />
             </Stack>
             <Stack direction={'row'} alignItems={'center'} gap={0.5}>
-              <Icon type='icon-ziti' sx={{ color: 'text.tertiary' }} />
+              <IconZiti sx={{ color: 'text.tertiary', fontSize: 12 }} />
               <Skeleton variant='text' width={80} height={24} />
             </Stack>
           </Stack>

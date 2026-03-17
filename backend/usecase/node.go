@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
@@ -14,6 +13,7 @@ import (
 	"github.com/samber/lo"
 	"gorm.io/gorm"
 
+	navV1 "github.com/chaitin/panda-wiki/api/nav/v1"
 	v1 "github.com/chaitin/panda-wiki/api/node/v1"
 	shareV1 "github.com/chaitin/panda-wiki/api/share/v1"
 	"github.com/chaitin/panda-wiki/consts"
@@ -27,21 +27,24 @@ import (
 )
 
 type NodeUsecase struct {
-	nodeRepo   *pg.NodeRepository
-	appRepo    *pg.AppRepository
-	ragRepo    *mq.RAGRepository
-	kbRepo     *pg.KnowledgeBaseRepository
-	modelRepo  *pg.ModelRepository
-	userRepo   *pg.UserRepository
-	authRepo   *pg.AuthRepo
-	llmUsecase *LLMUsecase
-	logger     *log.Logger
-	s3Client   *s3.MinioClient
-	rAGService rag.RAGService
+	nodeRepo     *pg.NodeRepository
+	navRepo      *pg.NavRepository
+	appRepo      *pg.AppRepository
+	ragRepo      *mq.RAGRepository
+	kbRepo       *pg.KnowledgeBaseRepository
+	modelRepo    *pg.ModelRepository
+	userRepo     *pg.UserRepository
+	authRepo     *pg.AuthRepo
+	llmUsecase   *LLMUsecase
+	logger       *log.Logger
+	s3Client     *s3.MinioClient
+	rAGService   rag.RAGService
+	modelUsecase *ModelUsecase
 }
 
 func NewNodeUsecase(
 	nodeRepo *pg.NodeRepository,
+	navRepo *pg.NavRepository,
 	appRepo *pg.AppRepository,
 	ragRepo *mq.RAGRepository,
 	userRepo *pg.UserRepository,
@@ -52,19 +55,22 @@ func NewNodeUsecase(
 	s3Client *s3.MinioClient,
 	modelRepo *pg.ModelRepository,
 	authRepo *pg.AuthRepo,
+	modelUsecase *ModelUsecase,
 ) *NodeUsecase {
 	return &NodeUsecase{
-		nodeRepo:   nodeRepo,
-		rAGService: ragService,
-		appRepo:    appRepo,
-		ragRepo:    ragRepo,
-		kbRepo:     kbRepo,
-		authRepo:   authRepo,
-		userRepo:   userRepo,
-		llmUsecase: llmUsecase,
-		modelRepo:  modelRepo,
-		logger:     logger.WithModule("usecase.node"),
-		s3Client:   s3Client,
+		nodeRepo:     nodeRepo,
+		navRepo:      navRepo,
+		rAGService:   ragService,
+		appRepo:      appRepo,
+		ragRepo:      ragRepo,
+		kbRepo:       kbRepo,
+		authRepo:     authRepo,
+		userRepo:     userRepo,
+		llmUsecase:   llmUsecase,
+		modelRepo:    modelRepo,
+		logger:       logger.WithModule("usecase.node"),
+		s3Client:     s3Client,
+		modelUsecase: modelUsecase,
 	}
 }
 
@@ -83,6 +89,21 @@ func (u *NodeUsecase) GetList(ctx context.Context, req *domain.GetNodeListReq) (
 	if err != nil {
 		return nil, err
 	}
+	if len(nodes) == 0 {
+		return nodes, nil
+	}
+
+	publisherMap, err := u.nodeRepo.GetNodeReleasePublisherMap(ctx, req.KBID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, node := range nodes {
+		if publisherID, exists := publisherMap[node.ID]; exists {
+			node.PublisherId = publisherID
+		}
+	}
+
 	return nodes, nil
 }
 
@@ -100,6 +121,12 @@ func (u *NodeUsecase) GetNodeByKBID(ctx context.Context, id, kbId, format string
 		node.PublisherId = nodeRelease.PublisherId
 		node.PublisherAccount = nodeRelease.PublisherAccount
 	}
+
+	nodeStat, err := u.nodeRepo.GetNodeStatsByNodeId(ctx, node.ID)
+	if err != nil {
+		return nil, err
+	}
+	node.PV = nodeStat.PV
 
 	if node.Meta.ContentType == domain.ContentTypeMD {
 		return node, nil
@@ -135,6 +162,12 @@ func (u *NodeUsecase) NodeAction(ctx context.Context, req *domain.NodeActionReq)
 }
 
 func (u *NodeUsecase) Update(ctx context.Context, req *domain.UpdateNodeReq, userId string) error {
+	if req.NavId != nil {
+		_, err := u.navRepo.GetById(ctx, *req.NavId)
+		if err != nil {
+			return errors.New("invalid nav_id")
+		}
+	}
 	err := u.nodeRepo.UpdateNodeContent(ctx, req, userId)
 	if err != nil {
 		return err
@@ -203,6 +236,21 @@ func (u *NodeUsecase) GetNodeReleaseDetailByKBIDAndID(ctx context.Context, kbID,
 		node.PublisherAccount = account
 	}
 
+	if domain.GetBaseEditionLimitation(ctx).AllowNodeStats {
+		webApp, err := u.appRepo.GetOrCreateAppByKBIDAndType(ctx, kbID, domain.AppTypeWeb)
+		if err != nil {
+			return nil, err
+		}
+
+		if webApp.Settings.StatsSetting.PVEnable {
+			nodeStat, err := u.nodeRepo.GetNodeStatsByNodeId(ctx, nodeId)
+			if err != nil {
+				return nil, err
+			}
+			node.PV = nodeStat.PV
+		}
+	}
+
 	if node.Meta.ContentType == domain.ContentTypeMD {
 		return node, nil
 	}
@@ -220,7 +268,7 @@ func (u *NodeUsecase) MoveNode(ctx context.Context, req *domain.MoveNodeReq) err
 }
 
 func (u *NodeUsecase) SummaryNode(ctx context.Context, req *domain.NodeSummaryReq) (string, error) {
-	model, err := u.modelRepo.GetChatModel(ctx)
+	model, err := u.modelUsecase.GetChatModel(ctx)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return "", domain.ErrModelNotConfigured
@@ -232,7 +280,7 @@ func (u *NodeUsecase) SummaryNode(ctx context.Context, req *domain.NodeSummaryRe
 		if err != nil {
 			return "", fmt.Errorf("get latest node release failed: %w", err)
 		}
-		summary, err := u.llmUsecase.SummaryNode(ctx, model, node.Name, node.Content)
+		summary, err := u.llmUsecase.SummaryNode(ctx, req.KBID, model, node.Name, node.Content)
 		if err != nil {
 			return "", fmt.Errorf("summary node failed: %w", err)
 		}
@@ -304,6 +352,20 @@ func (u *NodeUsecase) BatchMoveNode(ctx context.Context, req *domain.BatchMoveRe
 	return u.nodeRepo.BatchMove(ctx, req)
 }
 
+func (u *NodeUsecase) MoveNodeNav(ctx context.Context, req *v1.NodeMoveNavReq) error {
+	nav, err := u.navRepo.GetById(ctx, req.NavID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("nav not found: %w", err)
+		}
+		return err
+	}
+	if nav.KbID != req.KbID {
+		return fmt.Errorf("nav does not belong to kb %s", req.KbID)
+	}
+	return u.nodeRepo.MoveNodeNav(ctx, req.KbID, req.NavID, req.IDs)
+}
+
 func (u *NodeUsecase) convertMDToHTML(mdStr string) string {
 	extensions := parser.CommonExtensions & ^parser.Autolink & ^parser.MathJax
 	p := parser.NewWithExtensions(extensions)
@@ -319,9 +381,9 @@ func (u *NodeUsecase) convertMDToHTML(mdStr string) string {
 	return string(html)
 }
 
-func (u *NodeUsecase) GetNodeReleaseListByKBID(ctx context.Context, kbID string, authId uint) ([]*domain.ShareNodeListItemResp, error) {
+func (u *NodeUsecase) GetShareNodeList(ctx context.Context, kbId string, authId uint) ([]*shareV1.NodeListGroupNavResp, error) {
 
-	nodes, err := u.nodeRepo.GetNodeReleaseListByKBID(ctx, kbID)
+	nodes, err := u.nodeRepo.GetNodeReleaseListByKBID(ctx, kbId)
 	if err != nil {
 		return nil, err
 	}
@@ -331,20 +393,114 @@ func (u *NodeUsecase) GetNodeReleaseListByKBID(ctx context.Context, kbID string,
 		return nil, err
 	}
 
-	items := make([]*domain.ShareNodeListItemResp, 0)
+	navs, err := u.navRepo.GetReleaseList(ctx, kbId)
+	if err != nil {
+		return nil, err
+	}
 
-	for i, node := range nodes {
+	result := make([]*shareV1.NodeListGroupNavResp, 0, len(navs))
+	navIndexMap := make(map[string]int, len(navs))
+	for _, nav := range navs {
+		navIndexMap[nav.ID] = len(result)
+		result = append(result, &shareV1.NodeListGroupNavResp{
+			NavID:    nav.ID,
+			NavName:  nav.Name,
+			Position: nav.Position,
+			List:     []domain.ShareNodeListItemResp{},
+		})
+	}
+
+	// O(1) auth group lookup
+	nodeGroupIdSet := lo.SliceToMap(nodeGroupIds, func(id string) (string, struct{}) {
+		return id, struct{}{}
+	})
+
+	for _, node := range nodes {
 		switch node.Permissions.Visible {
 		case consts.NodeAccessPermOpen:
-			items = append(items, nodes[i])
+		case consts.NodeAccessPermPartial:
+			if _, ok := nodeGroupIdSet[node.ID]; !ok {
+				continue
+			}
+		default:
+			continue
+		}
+		if idx, ok := navIndexMap[node.NavId]; ok {
+			result[idx].List = append(result[idx].List, *node)
+			result[idx].Count++
+		}
+	}
+
+	return result, nil
+}
+
+func (u *NodeUsecase) GetNodeReleaseListByParentID(ctx context.Context, kbID, parentID string, authId uint) ([]*domain.ShareNodeDetailItem, error) {
+	// 一次性查询所有节点
+	allNodes, err := u.nodeRepo.GetNodeReleaseListByKBID(ctx, kbID)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeGroupIds, err := u.GetNodeIdsByAuthId(ctx, authId, consts.NodePermNameVisible)
+	if err != nil {
+		return nil, err
+	}
+
+	// 先过滤权限
+	visibleNodes := make([]*domain.ShareNodeListItemResp, 0)
+	for i, node := range allNodes {
+		switch node.Permissions.Visible {
+		case consts.NodeAccessPermOpen:
+			visibleNodes = append(visibleNodes, allNodes[i])
 		case consts.NodeAccessPermPartial:
 			if slices.Contains(nodeGroupIds, node.ID) {
-				items = append(items, nodes[i])
+				visibleNodes = append(visibleNodes, allNodes[i])
 			}
 		}
 	}
 
-	return items, nil
+	// 构建父子关系映射
+	childrenMap := make(map[string][]*domain.ShareNodeListItemResp)
+	for _, node := range visibleNodes {
+		childrenMap[node.ParentID] = append(childrenMap[node.ParentID], node)
+	}
+
+	// 构建树结构
+	result := u.buildNodeTree(parentID, childrenMap)
+
+	return result, nil
+}
+
+// buildNodeTree 递归构建节点树结构
+func (u *NodeUsecase) buildNodeTree(parentID string, childrenMap map[string][]*domain.ShareNodeListItemResp) []*domain.ShareNodeDetailItem {
+	children := childrenMap[parentID]
+	result := make([]*domain.ShareNodeDetailItem, 0, len(children))
+
+	for _, child := range children {
+		node := &domain.ShareNodeDetailItem{
+			ID:        child.ID,
+			Name:      child.Name,
+			Type:      child.Type,
+			ParentID:  child.ParentID,
+			Position:  child.Position,
+			Meta:      child.Meta,
+			Emoji:     child.Emoji,
+			UpdatedAt: child.UpdatedAt,
+			Children:  make([]*domain.ShareNodeDetailItem, 0),
+		}
+
+		// 如果是文件夹，递归构建其子节点
+		if child.Type == domain.NodeTypeFolder {
+			childNodes := u.buildNodeTree(child.ID, childrenMap)
+			if len(childNodes) > 0 {
+				node.Children = append(node.Children, childNodes...)
+			}
+		}
+
+		result = append(result, node)
+	}
+
+	return result
 }
 
 func (u *NodeUsecase) GetNodeIdsByAuthId(ctx context.Context, authId uint, PermName consts.NodePermName) ([]string, error) {
@@ -404,7 +560,7 @@ func (u *NodeUsecase) GetNodePermissionsByID(ctx context.Context, id, kbID strin
 }
 
 func (u *NodeUsecase) ValidateNodePermissionsEdit(req v1.NodePermissionEditReq, edition consts.LicenseEdition) error {
-	if edition != consts.LicenseEditionEnterprise {
+	if !slices.Contains([]consts.LicenseEdition{consts.LicenseEditionBusiness, consts.LicenseEditionEnterprise}, edition) {
 		if req.Permissions.Answerable == consts.NodeAccessPermPartial || req.Permissions.Visitable == consts.NodeAccessPermPartial || req.Permissions.Visible == consts.NodeAccessPermPartial {
 			return domain.ErrPermissionDenied
 		}
@@ -502,9 +658,7 @@ func (u *NodeUsecase) SyncRagNodeStatus(ctx context.Context) error {
 
 		chunks := lo.Chunk(docIds, ragSyncChunkSize)
 		for _, chunk := range chunks {
-			docs, err := u.rAGService.ListDocuments(ctx, kb.DatasetID, map[string]string{
-				"ids": strings.Join(chunk, ","),
-			})
+			docs, err := u.rAGService.ListDocuments(ctx, kb.DatasetID, chunk)
 			if err != nil {
 				u.logger.Error("list documents from RAG failed",
 					log.String("kb_id", kb.ID),
@@ -572,4 +726,123 @@ func (u *NodeUsecase) SyncRagNodeStatus(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (u *NodeUsecase) NodeRestudy(ctx context.Context, req *v1.NodeRestudyReq) error {
+	nodeReleases, err := u.nodeRepo.GetLatestNodeReleaseByNodeIDs(ctx, req.KbId, req.NodeIds)
+	if err != nil {
+		u.logger.Error("get latest node release failed", log.Error(err))
+		return fmt.Errorf("get latest node release failed")
+	}
+
+	if len(nodeReleases) == 0 {
+		return fmt.Errorf("文档未首次发布，无法重新学习")
+	}
+
+	for _, nodeRelease := range nodeReleases {
+		if nodeRelease.DocID == "" {
+			continue
+		}
+		if err := u.ragRepo.AsyncUpdateNodeReleaseVector(ctx, []*domain.NodeReleaseVectorRequest{
+			{
+				KBID:          nodeRelease.KBID,
+				NodeReleaseID: nodeRelease.ID,
+				Action:        "upsert",
+			},
+		}); err != nil {
+			u.logger.Error("async update node release vector failed",
+				log.String("node_release_id", nodeRelease.ID),
+				log.Error(err))
+			continue
+		}
+	}
+
+	return nil
+}
+
+func (u *NodeUsecase) GetNodeStats(ctx context.Context, kbId string) (*v1.NodeStatsResp, error) {
+	resp, err := u.nodeRepo.GetNodeStats(ctx, kbId)
+	if err != nil {
+		return nil, err
+	}
+
+	navs, err := u.navRepo.GetList(ctx, kbId)
+	if err != nil {
+		return nil, err
+	}
+
+	navsReleased, err := u.navRepo.GetReleaseList(ctx, kbId)
+	if err != nil {
+		return nil, err
+	}
+
+	navsReleasedMap := make(map[string]*navV1.NavListResp, len(navsReleased))
+	for _, nr := range navsReleased {
+		navsReleasedMap[nr.ID] = &nr
+	}
+
+	for _, nav := range navs {
+		navsRelease, found := navsReleasedMap[nav.ID]
+		if !found || navsRelease.Position != nav.Position || navsRelease.Name != nav.Name {
+			resp.UnreleasedNavCount++
+		}
+	}
+	return resp, nil
+}
+
+func (u *NodeUsecase) GetNodeListGroupByNav(ctx context.Context, kbId, status, search string) ([]*v1.NodeListGroupNavResp, error) {
+	nodes, err := u.nodeRepo.GetNodeListByStatus(ctx, kbId, status, search)
+	if err != nil {
+		return nil, err
+	}
+
+	navs, err := u.navRepo.GetList(ctx, kbId)
+	if err != nil {
+		return nil, err
+	}
+
+	navsReleased, err := u.navRepo.GetReleaseList(ctx, kbId)
+	if err != nil {
+		return nil, err
+	}
+
+	navsReleasedMap := make(map[string]*navV1.NavListResp, len(navsReleased))
+	for _, nr := range navsReleased {
+		navsReleasedMap[nr.ID] = &nr
+	}
+
+	// 按 position 顺序预建分组，用 map 做 O(1) 索引
+	result := make([]*v1.NodeListGroupNavResp, 0, len(navs))
+	navIndexMap := make(map[string]int, len(navs))
+	for _, nav := range navs {
+		release, found := navsReleasedMap[nav.ID]
+		navIndexMap[nav.ID] = len(result)
+		result = append(result, &v1.NodeListGroupNavResp{
+			NavID:      nav.ID,
+			NavName:    nav.Name,
+			Position:   nav.Position,
+			IsReleased: found && release.Position == nav.Position && release.Name == nav.Name,
+			List:       []domain.NodeListItemResp{},
+		})
+	}
+
+	for _, node := range nodes {
+		if idx, ok := navIndexMap[node.NavId]; ok {
+			result[idx].List = append(result[idx].List, *node)
+			result[idx].Count++
+		}
+	}
+
+	// 搜索时过滤掉空分组
+	if search != "" {
+		filtered := make([]*v1.NodeListGroupNavResp, 0, len(result))
+		for _, group := range result {
+			if group.Count > 0 {
+				filtered = append(filtered, group)
+			}
+		}
+		return filtered, nil
+	}
+
+	return result, nil
 }

@@ -64,6 +64,13 @@ func (r *ModelRepository) Update(ctx context.Context, req *domain.UpdateModelReq
 		Updates(updateMap).Error
 }
 
+func (r *ModelRepository) Updates(ctx context.Context, modelId string, updateMap map[string]interface{}) error {
+	return r.db.WithContext(ctx).
+		Model(&domain.Model{}).
+		Where("id = ?", modelId).
+		Updates(updateMap).Error
+}
+
 func (r *ModelRepository) Delete(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// delete model

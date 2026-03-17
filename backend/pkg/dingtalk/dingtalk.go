@@ -119,10 +119,12 @@ func NewDingTalkClient(ctx context.Context, logger *log.Logger, clientId, client
 }
 
 // GenerateAuthURL 生成钉钉授权URL
-func (c *Client) GenerateAuthURL(redirectURI string, state string) string {
-	redirectURL, _ := url.Parse(redirectURI)
-	redirectURL.Path = callbackPath
-	redirectURI = redirectURL.String()
+func (c *Client) GenerateAuthURL(baseUrl string, state string) string {
+	redirectURI, err := url.JoinPath(baseUrl, callbackPath)
+	if err != nil {
+		c.logger.Error("failed to join path", log.Error(err))
+		return ""
+	}
 
 	params := url.Values{}
 	params.Add("response_type", "code")

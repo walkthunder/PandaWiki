@@ -59,7 +59,7 @@ func (r *NodeRepository) Create(ctx context.Context, req *domain.CreateNodeReq, 
 		var newPos float64
 		if req.Position != nil { // user specify position
 			if *req.Position > domain.MaxPosition || *req.Position < 0 {
-				return errors.New("user specify position out of range")
+				return errors.New("specified position is out of range")
 			}
 			newPos = *req.Position
 		} else { // default the last
@@ -83,20 +83,21 @@ func (r *NodeRepository) Create(ctx context.Context, req *domain.CreateNodeReq, 
 		node := &domain.Node{
 			ID:        nodeIDStr,
 			KBID:      req.KBID,
+			NavId:     req.NavId,
 			Name:      req.Name,
 			Content:   req.Content,
 			Meta:      meta,
 			Type:      req.Type,
 			ParentID:  req.ParentID,
 			Position:  newPos,
-			Status:    domain.NodeStatusDraft,
+			Status:    domain.NodeStatusUnreleased,
 			CreatorId: userId,
 			EditorId:  userId,
 			CreatedAt: now,
 			UpdatedAt: now,
 			EditTime:  now,
 			RagInfo: domain.RagInfo{
-				Status:  consts.NodeRagStatusBasicPending,
+				Status:  consts.NodeRagStatusPending,
 				Message: "",
 			},
 			Permissions: domain.NodePermissions{
@@ -122,10 +123,13 @@ func (r *NodeRepository) GetList(ctx context.Context, req *domain.GetNodeListReq
 		Joins("LEFT JOIN users cu ON nodes.creator_id = cu.id").
 		Joins("LEFT JOIN users eu ON nodes.editor_id = eu.id").
 		Where("nodes.kb_id = ?", req.KBID).
-		Select("cu.account AS creator, eu.account AS editor, nodes.editor_id, nodes.rag_info, nodes.creator_id, nodes.id, nodes.permissions, nodes.type, nodes.status, nodes.name, nodes.parent_id, nodes.position, nodes.created_at, nodes.edit_time as updated_at, nodes.meta->>'summary' as summary, nodes.meta->>'emoji' as emoji, nodes.meta->>'content_type' as content_type")
+		Select("cu.account AS creator, eu.account AS editor, nodes.editor_id, nodes.nav_id, nodes.rag_info, nodes.creator_id, nodes.id, nodes.permissions, nodes.type, nodes.status, nodes.name, nodes.parent_id, nodes.position, nodes.created_at, nodes.edit_time as updated_at, nodes.meta->>'summary' as summary, nodes.meta->>'emoji' as emoji, nodes.meta->>'content_type' as content_type")
 	if req.Search != "" {
 		searchPattern := "%" + req.Search + "%"
 		query = query.Where("name LIKE ? OR content LIKE ?", searchPattern, searchPattern)
+	}
+	if req.NavId != "" {
+		query = query.Where("nodes.nav_id = ?", req.NavId)
 	}
 	if err := query.Find(&nodes).Error; err != nil {
 		return nil, err
@@ -145,6 +149,32 @@ func (r *NodeRepository) GetLatestNodeReleaseByNodeIDs(ctx context.Context, kbID
 		return nil, err
 	}
 	return nodeReleases, nil
+}
+
+func (r *NodeRepository) GetNodeReleasePublisherMap(ctx context.Context, kbID string) (map[string]string, error) {
+	type Result struct {
+		NodeID      string `gorm:"column:node_id"`
+		PublisherID string `gorm:"column:publisher_id"`
+	}
+
+	var results []Result
+	if err := r.db.WithContext(ctx).
+		Model(&domain.NodeRelease{}).
+		Select("node_id, publisher_id").
+		Where("kb_id = ?", kbID).
+		Where("node_releases.doc_id != '' ").
+		Find(&results).Error; err != nil {
+		return nil, err
+	}
+
+	publisherMap := make(map[string]string)
+	for _, result := range results {
+		if result.PublisherID != "" {
+			publisherMap[result.NodeID] = result.PublisherID
+		}
+	}
+
+	return publisherMap, nil
 }
 
 func (r *NodeRepository) UpdateNodeContent(ctx context.Context, req *domain.UpdateNodeReq, userId string) error {
@@ -178,10 +208,15 @@ func (r *NodeRepository) UpdateNodeContent(ctx context.Context, req *domain.Upda
 			updateStatus = true
 		}
 
+		if req.NavId != nil && *req.NavId != currentNode.NavId {
+			updateMap["nav_id"] = *req.NavId
+			updateStatus = true
+		}
+
 		if req.Position != nil && *req.Position != currentNode.Position { // user specify position
 			updateMap["position"] = *req.Position
 			if *req.Position > domain.MaxPosition || *req.Position < 0 {
-				return errors.New("user specify position out of range")
+				return errors.New("specified position is out of range")
 			}
 			updateStatus = true
 		}
@@ -224,8 +259,8 @@ func (r *NodeRepository) UpdateNodeContent(ctx context.Context, req *domain.Upda
 			}
 		}
 
-		// If any field is updated, set status to draft
-		if updateStatus {
+		// If any field is updated and node released, set status to draft
+		if updateStatus && currentNode.Status != domain.NodeStatusUnreleased {
 			updateMap["status"] = domain.NodeStatusDraft
 			updateMap["edit_time"] = time.Now()
 		}
@@ -274,6 +309,11 @@ func (r *NodeRepository) Delete(ctx context.Context, kbID string, ids []string) 
 			Delete(&nodes).Error; err != nil {
 			return err
 		}
+		// backup node releases before deletion
+		if err := r.backupNodeReleasesTx(tx, allIDs); err != nil {
+			return err
+		}
+
 		// delete node release
 		var nodeReleases []*domain.NodeRelease
 		if err := tx.Model(&domain.NodeRelease{}).
@@ -297,6 +337,40 @@ func (r *NodeRepository) Delete(ctx context.Context, kbID string, ids []string) 
 		return nil, err
 	}
 	return lo.Uniq(docIDs), nil
+}
+
+func (r *NodeRepository) backupNodeReleasesTx(tx *gorm.DB, nodeIDs []string) error {
+	var nodeReleases []*domain.NodeRelease
+	if err := tx.Model(&domain.NodeRelease{}).
+		Where("node_id IN ?", nodeIDs).
+		Find(&nodeReleases).Error; err != nil {
+		return err
+	}
+	if len(nodeReleases) == 0 {
+		return nil
+	}
+	now := time.Now()
+	backups := make([]*domain.NodeReleaseBackup, len(nodeReleases))
+	for i, nr := range nodeReleases {
+		backups[i] = &domain.NodeReleaseBackup{
+			ID:          nr.ID,
+			KBID:        nr.KBID,
+			PublisherId: nr.PublisherId,
+			EditorId:    nr.EditorId,
+			NodeID:      nr.NodeID,
+			DocID:       nr.DocID,
+			Type:        nr.Type,
+			Name:        nr.Name,
+			Meta:        nr.Meta,
+			Content:     nr.Content,
+			Position:    nr.Position,
+			ParentID:    nr.ParentID,
+			DeletedAt:   now,
+			CreatedAt:   nr.CreatedAt,
+			UpdatedAt:   nr.UpdatedAt,
+		}
+	}
+	return tx.Clauses(clause.OnConflict{DoNothing: true}).CreateInBatches(&backups, 500).Error
 }
 
 // collectAllChildNodeIDs recursively collects all child node IDs for the given parent IDs
@@ -335,6 +409,25 @@ func (r *NodeRepository) GetNodeByID(ctx context.Context, id string) (*domain.No
 		return nil, err
 	}
 	return node, nil
+}
+
+// GetNodesByIDs retrieves nodes by their IDs
+func (r *NodeRepository) GetNodesByIDs(ctx context.Context, ids []string) (map[string]*domain.Node, error) {
+	if len(ids) == 0 {
+		return make(map[string]*domain.Node), nil
+	}
+	var nodes []*domain.Node
+	if err := r.db.WithContext(ctx).
+		Model(&domain.Node{}).
+		Where("id IN ?", ids).
+		Find(&nodes).Error; err != nil {
+		return nil, err
+	}
+	nodesMap := make(map[string]*domain.Node, len(nodes))
+	for _, node := range nodes {
+		nodesMap[node.ID] = node
+	}
+	return nodesMap, nil
 }
 
 // buildNodePath builds the directory path for a node release by traversing up the parent hierarchy (max 5 levels)
@@ -666,15 +759,16 @@ func (r *NodeRepository) GetNodeReleaseListByKBID(ctx context.Context, kbID stri
 	}
 
 	var nodes []*domain.ShareNodeListItemResp
-	if err := r.db.WithContext(ctx).
+	qs := r.db.WithContext(ctx).
 		Model(&domain.KBReleaseNodeRelease{}).
 		Joins("LEFT JOIN node_releases ON node_releases.id = kb_release_node_releases.node_release_id").
 		Joins("LEFT JOIN nodes ON nodes.id = kb_release_node_releases.node_id").
 		Where("kb_release_node_releases.kb_id = ?", kbID).
 		Where("kb_release_node_releases.release_id = ?", kbRelease.ID).
 		Where("nodes.permissions->>'visible' != ?", consts.NodeAccessPermClosed).
-		Select("node_releases.node_id as id, node_releases.name, node_releases.type, node_releases.parent_id, node_releases.position, node_releases.meta->>'emoji' as emoji, node_releases.updated_at, nodes.permissions").
-		Find(&nodes).Error; err != nil {
+		Select("node_releases.node_id as id, node_releases.name, node_releases.type, node_releases.parent_id, nodes.position, node_releases.meta->>'emoji' as emoji, node_releases.updated_at, nodes.permissions, nodes.meta, kb_release_node_releases.nav_id")
+
+	if err := qs.Find(&nodes).Error; err != nil {
 		return nil, err
 	}
 	return nodes, nil
@@ -700,7 +794,6 @@ func (r *NodeRepository) GetNodeReleaseDetailByKBIDAndID(ctx context.Context, kb
 		Where("kb_release_node_releases.release_id = ?", kbRelease.ID).
 		Where("node_releases.node_id = ?", id).
 		Where("node_releases.kb_id = ?", kbID).
-		Where("nodes.permissions->>'visitable' != ?", consts.NodeAccessPermClosed).
 		First(&node).Error; err != nil {
 		return nil, err
 	}
@@ -747,12 +840,13 @@ func (r *NodeRepository) MoveNodeBetween(ctx context.Context, id, parentID, prev
 			}
 		}
 
-		return tx.Model(&domain.Node{}).
-			Where("id = ?", id).
-			Update("position", newPos).
-			Update("parent_id", parentID).
-			Update("status", domain.NodeStatusDraft).
-			Error
+		querySet := tx.Model(&domain.Node{}).Where("id = ?", id).Update("position", newPos).Update("parent_id", parentID)
+
+		if node.Status == domain.NodeStatusReleased {
+			querySet = querySet.Update("status", domain.NodeStatusDraft)
+		}
+
+		return querySet.Error
 	})
 }
 
@@ -783,8 +877,16 @@ func (r *NodeRepository) UpdateNodeSummary(ctx context.Context, kbID, nodeID, su
 		Model(&domain.Node{}).
 		Where("kb_id = ? AND id = ?", kbID, nodeID).
 		Updates(map[string]any{
-			"meta":   gorm.Expr("jsonb_set(meta, '{summary}', to_jsonb(?::text))", summary),
-			"status": domain.NodeStatusDraft,
+			"meta": gorm.Expr("jsonb_set(meta, '{summary}', to_jsonb(?::text))", summary),
+		}).Error
+}
+
+func (r *NodeRepository) UpdateNodeStatus(ctx context.Context, kbID, nodeID string, nodeStatus domain.NodeStatus) error {
+	return r.db.WithContext(ctx).
+		Model(&domain.Node{}).
+		Where("kb_id = ? AND id = ?", kbID, nodeID).
+		Updates(map[string]any{
+			"status": nodeStatus,
 		}).Error
 }
 
@@ -892,13 +994,47 @@ func (r *NodeRepository) GetOldNodeDocIDsByNodeID(ctx context.Context, nodeRelea
 	return docIDs, nil
 }
 
+func (r *NodeRepository) MoveNodeNav(ctx context.Context, kbID, navID string, nodeIDs []string) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		allIDs := r.collectAllChildNodeIDs(tx, kbID, nodeIDs)
+		if err := tx.Model(&domain.Node{}).
+			Where("kb_id = ? AND id IN ?", kbID, allIDs).
+			Update("nav_id", navID).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Model(&domain.Node{}).
+			Where("kb_id = ? AND id IN ?", kbID, allIDs).
+			Where("parent_id != ''").
+			Where("parent_id NOT IN ?", allIDs).
+			Update("parent_id", "").Error; err != nil {
+			return err
+		}
+
+		if err := tx.Model(&domain.Node{}).
+			Where("kb_id = ? AND id IN ?", kbID, allIDs).
+			Where("status = ?", domain.NodeStatusReleased).
+			Update("status", domain.NodeStatusDraft).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
 func (r *NodeRepository) BatchMove(ctx context.Context, req *domain.BatchMoveReq) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		// update node parent_id
-		if err := tx.Model(&domain.Node{}).
+		if err := tx.WithContext(ctx).Model(&domain.Node{}).
 			Where("kb_id = ?", req.KBID).
 			Where("id IN ?", req.IDs).
 			Update("parent_id", req.ParentID).
+			Error; err != nil {
+			return err
+		}
+		if err := tx.WithContext(ctx).Model(&domain.Node{}).
+			Where("kb_id = ?", req.KBID).
+			Where("id IN ?", req.IDs).
+			Where("status = ?", domain.NodeStatusReleased).
 			Update("status", domain.NodeStatusDraft).
 			Error; err != nil {
 			return err
@@ -1141,4 +1277,104 @@ func (r *NodeRepository) GetNodeIdsByDocIds(ctx context.Context, docIds []string
 	}
 
 	return docToNodeMap, nil
+}
+
+func (r *NodeRepository) DeleteOldNodeReleaseBackups(ctx context.Context, before time.Time) error {
+	return r.db.WithContext(ctx).
+		Where("deleted_at < ?", before).
+		Delete(&domain.NodeReleaseBackup{}).Error
+}
+
+func (r *NodeRepository) GetNodeCount(ctx context.Context) (int, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&domain.Node{}).
+		Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	return int(count), nil
+}
+
+func (r *NodeRepository) CountNodeByNavId(ctx context.Context, kbId, navId string) (int64, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).
+		Model(&domain.Node{}).
+		Where("kb_id = ?", kbId).
+		Where("nav_id = ?", navId).
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (r *NodeRepository) GetNodeIDsByNavId(ctx context.Context, kbId, navId string) ([]string, error) {
+	var ids []string
+	if err := r.db.WithContext(ctx).
+		Model(&domain.Node{}).
+		Where("kb_id = ? AND nav_id = ?", kbId, navId).
+		Pluck("id", &ids).Error; err != nil {
+		return nil, err
+	}
+	return ids, nil
+}
+
+func (r *NodeRepository) GetNodeListByStatus(ctx context.Context, kbId, status, search string) ([]*domain.NodeListItemResp, error) {
+	var nodes []*domain.NodeListItemResp
+	query := r.db.WithContext(ctx).
+		Model(&domain.Node{}).
+		Joins("LEFT JOIN users cu ON nodes.creator_id = cu.id").
+		Joins("LEFT JOIN users eu ON nodes.editor_id = eu.id").
+		Where("nodes.kb_id = ?", kbId).
+		Select("cu.account AS creator, eu.account AS editor, nodes.editor_id, nodes.nav_id, nodes.rag_info, nodes.creator_id, nodes.id, nodes.permissions, nodes.type, nodes.status, nodes.name, nodes.parent_id, nodes.position, nodes.created_at, nodes.edit_time as updated_at, nodes.meta->>'summary' as summary, nodes.meta->>'emoji' as emoji, nodes.meta->>'content_type' as content_type")
+
+	if search != "" {
+		searchPattern := "%" + search + "%"
+		query = query.Where("name LIKE ? OR content LIKE ?", searchPattern, searchPattern)
+	}
+
+	switch status {
+	case "unpublished":
+		query = query.Where("nodes.status IN ?", []domain.NodeStatus{domain.NodeStatusUnreleased, domain.NodeStatusDraft})
+	case "unstudied":
+		query = query.Where("nodes.type = ?", domain.NodeTypeDocument).
+			Where("nodes.rag_info->>'status' NOT IN ? OR nodes.rag_info->>'status' IS NULL",
+				[]string{string(consts.NodeRagStatusSucceeded), string(consts.NodeRagStatusRunning), string(consts.NodeRagStatusReindexing)})
+	}
+
+	if err := query.Find(&nodes).Error; err != nil {
+		return nil, err
+	}
+	return nodes, nil
+}
+
+func (r *NodeRepository) GetNodeStats(ctx context.Context, kbId string) (*v1.NodeStatsResp, error) {
+	var stats v1.NodeStatsResp
+
+	// Count unpublished documents (status = 0 or 1)
+	unpublishedQuery := r.db.WithContext(ctx).
+		Model(&domain.Node{}).
+		Where("kb_id = ? AND status IN ?", kbId, []domain.NodeStatus{domain.NodeStatusUnreleased, domain.NodeStatusDraft})
+
+	if err := unpublishedQuery.Count(&stats.UnpublishedCount).Error; err != nil {
+		return nil, err
+	}
+
+	studiedStatuses := []consts.NodeRagInfoStatus{
+		consts.NodeRagStatusSucceeded,
+		consts.NodeRagStatusRunning,
+		consts.NodeRagStatusReindexing,
+	}
+
+	unstudiedQuery := r.db.WithContext(ctx).
+		Model(&domain.Node{}).
+		Where("kb_id = ?", kbId).
+		Where("nodes.type = ?", domain.NodeTypeDocument).
+		Where("rag_info->>'status' NOT IN ? OR rag_info->>'status' IS NULL", studiedStatuses)
+
+	if err := unstudiedQuery.Count(&stats.UnstudiedCount).Error; err != nil {
+		return nil, err
+	}
+
+	return &stats, nil
 }

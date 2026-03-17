@@ -6,7 +6,11 @@ import { v4 as uuidv4 } from 'uuid';
 import { ListDataItem } from '..';
 import { TYPE_CONFIG } from '../constants';
 import { useGlobalQueue } from '../hooks/useGlobalQueue';
-import { flattenCrawlerParseResponse, validateFormData } from '../util';
+import {
+  flattenCrawlerParseResponse,
+  FormData,
+  validateFormData,
+} from '../util';
 import FormInput from './FormInput';
 
 interface FormSubmitProps {
@@ -18,13 +22,6 @@ interface FormSubmitProps {
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   queue: ReturnType<typeof useGlobalQueue>;
 }
-
-type FormData = {
-  app_id?: string;
-  app_secret?: string;
-  user_access_token?: string;
-  url?: string;
-};
 
 const FormSubmit = ({
   type,
@@ -55,7 +52,6 @@ const FormSubmit = ({
         case ConstsCrawlerSource.CrawlerSourceUrl: {
           const urls = formData.url?.split('\n').filter(u => u.trim()) || [];
 
-          // 创建url到uuid的映射
           const urlToUuidMap = new Map<string, string>();
           const newItems: ListDataItem[] = urls.map(url => {
             const uuid = uuidv4();
@@ -74,10 +70,8 @@ const FormSubmit = ({
             } as ListDataItem;
           });
 
-          // 先添加所有解析中的项
           setData(prev => [...prev, ...newItems]);
 
-          // 使用队列控制并发请求所有url
           await Promise.all(
             urls.map(url =>
               queue.enqueue(async () => {
@@ -88,7 +82,6 @@ const FormSubmit = ({
                     key: url,
                     kb_id,
                   });
-                  // 更新对应的item，而不是添加新item
                   setData(prev =>
                     prev.map(item =>
                       item.uuid === itemUuid
@@ -104,7 +97,6 @@ const FormSubmit = ({
                     ),
                   );
                 } catch (error) {
-                  // 更新为错误状态
                   setData(prev =>
                     prev.map(item =>
                       item.uuid === itemUuid
@@ -148,7 +140,6 @@ const FormSubmit = ({
             kb_id,
           });
 
-          // 创建"我的文件夹"根节点
           const myfolder: ListDataItem = {
             uuid: uuidv4(),
             task_id: '',
@@ -168,7 +159,6 @@ const FormSubmit = ({
             },
           };
 
-          // 使用工具函数平铺知识库列表数据，parent_id 指向 myfolder
           const children = flattenCrawlerParseResponse(resp, parent_id, {
             folderReq: false,
             feishu_setting: {
@@ -179,6 +169,27 @@ const FormSubmit = ({
           });
 
           setData([myfolder, ...children]);
+          break;
+        }
+        case ConstsCrawlerSource.CrawlerSourceDingtalk: {
+          const resp = await postApiV1CrawlerParse({
+            crawler_source: type,
+            dingtalk_setting: {
+              app_id: formData.app_id!,
+              app_secret: formData.app_secret!,
+              unionid: formData.unionid!,
+            },
+            kb_id,
+          });
+          const flattenedData = flattenCrawlerParseResponse(resp, parent_id, {
+            folderReq: false,
+            dingtalk_setting: {
+              app_id: formData.app_id!,
+              app_secret: formData.app_secret!,
+              unionid: formData.unionid!,
+            },
+          });
+          setData([...flattenedData]);
           break;
         }
         default: {

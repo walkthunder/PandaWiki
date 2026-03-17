@@ -11,7 +11,11 @@
  */
 
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
-import { DomainResponse, GetShareV1NodeDetailParams } from "./types";
+import {
+  DomainResponse,
+  GetShareV1NodeDetailParams,
+  V1ShareNodeDetailResp,
+} from "./types";
 
 /**
  * @description GetNodeDetail
@@ -20,14 +24,21 @@ import { DomainResponse, GetShareV1NodeDetailParams } from "./types";
  * @name GetShareV1NodeDetail
  * @summary GetNodeDetail
  * @request GET:/share/v1/node/detail
- * @response `200` `DomainResponse` OK
+ * @response `200` `(DomainResponse & {
+    data?: V1ShareNodeDetailResp,
+
+})` OK
  */
 
 export const getShareV1NodeDetail = (
   query: GetShareV1NodeDetailParams,
   params: RequestParams = {},
 ) =>
-  httpRequest<DomainResponse>({
+  httpRequest<
+    DomainResponse & {
+      data?: V1ShareNodeDetailResp;
+    }
+  >({
     path: `/share/v1/node/detail`,
     method: "GET",
     query: query,
@@ -37,11 +48,11 @@ export const getShareV1NodeDetail = (
   });
 
 /**
- * @description GetNodeList
+ * @description ShareNodeList
  *
  * @tags share_node
  * @name GetShareV1NodeList
- * @summary GetNodeList
+ * @summary ShareNodeList
  * @request GET:/share/v1/node/list
  * @response `200` `DomainResponse` OK
  */

@@ -7,9 +7,10 @@ import {
   H6Icon,
   TocList,
 } from '@ctzhian/tiptap';
-import { Ellipsis, Icon } from '@ctzhian/ui';
+import { Ellipsis } from '@ctzhian/ui';
 import { Box, Drawer, IconButton, Stack } from '@mui/material';
 import { useState } from 'react';
+import { IconDingzi, IconIcon_tool_close } from '@panda-wiki/icons';
 
 interface TocProps {
   headings: TocList;
@@ -30,7 +31,7 @@ const HeadingIcon = [
 
 const HeadingSx = [
   { fontSize: 14, fontWeight: 700, color: 'text.secondary' },
-  { fontSize: 14, fontWeight: 400, color: 'text.auxiliary' },
+  { fontSize: 14, fontWeight: 400, color: 'text.tertiary' },
   { fontSize: 14, fontWeight: 400, color: 'text.disabled' },
 ];
 
@@ -117,7 +118,7 @@ const Toc = ({
           sx={{
             fontSize: 14,
             fontWeight: 'bold',
-            color: 'text.auxiliary',
+            color: 'text.tertiary',
             mb: 1,
             p: 1,
             pb: 0,
@@ -133,10 +134,11 @@ const Toc = ({
               setFixed(!fixed);
             }}
           >
-            <Icon
-              type={!fixed ? 'icon-dingzi' : 'icon-icon_tool_close'}
-              sx={{ fontSize: 18 }}
-            />
+            {!fixed ? (
+              <IconDingzi sx={{ fontSize: 18 }} />
+            ) : (
+              <IconIcon_tool_close sx={{ fontSize: 18 }} />
+            )}
           </IconButton>
         </Stack>
         <Stack

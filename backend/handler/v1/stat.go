@@ -118,7 +118,7 @@ func (h *StatHandler) StatGeoCountReq(c echo.Context) error {
 //	@Produce		json
 //	@Security		bearerAuth
 //	@Param			para	query		v1.StatConversationDistributionReq	true	"para"
-//	@Success		200		{object}	domain.Response{data=[]domain.ConversationDistribution}
+//	@Success		200		{object}	domain.Response{data=[]v1.StatConversationDistributionResp}
 //	@Router			/api/v1/stat/conversation_distribution [get]
 func (h *StatHandler) StatConversationDistribution(c echo.Context) error {
 	var req v1.StatConversationDistributionReq

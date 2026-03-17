@@ -1,8 +1,9 @@
 'use effect';
-import React, { useEffect, useState } from 'react';
+import { useBasePath } from '@/hooks';
 import { Modal, message } from '@ctzhian/ui';
-import { Box, TextField, Typography, styled, FormLabel } from '@mui/material';
-import { IconErrorCorrection } from '@/components/icons';
+import { Box, FormLabel, TextField, Typography, styled } from '@mui/material';
+import { IconCorrection } from '@panda-wiki/icons';
+import { useEffect, useState } from 'react';
 
 interface ConfirmModalProps {
   open: boolean;
@@ -60,6 +61,7 @@ export const StyledFormLabel = styled(FormLabel)(({ theme }) => ({
 }));
 
 const ConfirmModal = ({ open, onCancel, onOk }: ConfirmModalProps) => {
+  const basePath = useBasePath();
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState(false);
 
@@ -74,16 +76,15 @@ const ConfirmModal = ({ open, onCancel, onOk }: ConfirmModalProps) => {
       return;
     }
     let token = '';
-    const Cap = (await import('@cap.js/widget')).default;
+    const Cap = (await import(`@cap.js/widget`)).default;
     const cap = new Cap({
-      apiEndpoint: '/share/v1/captcha/',
+      apiEndpoint: `${basePath}/share/v1/captcha/`,
     });
     try {
       const solution = await cap.solve();
       token = solution.token;
     } catch (error) {
       message.error('验证失败');
-      console.log(error, 'error---------');
       return;
     }
     return onOk(reason, token);
@@ -99,7 +100,7 @@ const ConfirmModal = ({ open, onCancel, onOk }: ConfirmModalProps) => {
     >
       <StyledInfoBox>
         <StyledIconBox>
-          <IconErrorCorrection sx={{ fontSize: 20 }} />
+          <IconCorrection sx={{ fontSize: 20 }} />
         </StyledIconBox>
         <StyledContentBox>
           <Typography className='title'>文档贡献流程</Typography>

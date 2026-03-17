@@ -4,3 +4,4 @@ export type {
   UseSmartScrollOptions,
   UseSmartScrollReturn,
 } from './useSmartScroll';
+export { useBasePath } from './useBasePath';

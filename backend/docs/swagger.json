@@ -233,7 +233,8 @@
                             "wechat_service_bot",
                             "discord_bot",
                             "wechat_official_account",
-                            "openai_api"
+                            "openai_api",
+                            "mcp_server"
                         ],
                         "type": "string",
                         "x-enum-varnames": [
@@ -253,7 +254,8 @@
                             "SourceTypeWechatServiceBot",
                             "SourceTypeDiscordBot",
                             "SourceTypeWechatOfficialAccount",
-                            "SourceTypeOpenAIAPI"
+                            "SourceTypeOpenAIAPI",
+                            "SourceTypeMcpServer"
                         ],
                         "name": "source_type",
                         "in": "query",
@@ -979,6 +981,52 @@
                 }
             }
         },
+        "/api/v1/file/upload/url": {
+            "post": {
+                "description": "Upload File By Url",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "file"
+                ],
+                "summary": "Upload File By Url",
+                "parameters": [
+                    {
+                        "description": "Request Body",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.UploadByUrlReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/domain.ObjectUploadResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/knowledge_base": {
             "post": {
                 "description": "CreateKnowledgeBase",
@@ -1676,6 +1724,41 @@
                 }
             }
         },
+        "/api/v1/model/mode-setting": {
+            "get": {
+                "description": "get current model mode setting including mode, API key and chat model",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "model"
+                ],
+                "summary": "get model mode setting",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/domain.ModelModeSetting"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/model/provider/supported": {
             "post": {
                 "description": "get provider supported model list",
@@ -1717,6 +1800,262 @@
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/model/switch-mode": {
+            "post": {
+                "description": "switch model mode between manual and auto",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "model"
+                ],
+                "summary": "switch mode",
+                "parameters": [
+                    {
+                        "description": "switch mode request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.SwitchModeReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/domain.SwitchModeResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/nav/add": {
+            "post": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "Add Nav",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Nav"
+                ],
+                "summary": "添加分栏",
+                "parameters": [
+                    {
+                        "description": "Params",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.NavAddReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.PWResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/nav/delete": {
+            "delete": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "DeleteNav Nav",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Nav"
+                ],
+                "summary": "删除栏目",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "kb_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.PWResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/nav/list": {
+            "get": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "Get Nav List",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Nav"
+                ],
+                "summary": "获取分栏列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "kb_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.PWResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/v1.NavListResp"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/nav/move": {
+            "post": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "Move Nav",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Nav"
+                ],
+                "summary": "移动栏目",
+                "parameters": [
+                    {
+                        "description": "Params",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.NavMoveReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.PWResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/nav/update": {
+            "patch": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "Update Nav",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Nav"
+                ],
+                "summary": "更新栏目信息",
+                "parameters": [
+                    {
+                        "description": "Params",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.NavUpdateReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.PWResponse"
                         }
                     }
                 }
@@ -1992,6 +2331,11 @@
                     },
                     {
                         "type": "string",
+                        "name": "nav_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "name": "search",
                         "in": "query"
                     }
@@ -2011,6 +2355,71 @@
                                             "type": "array",
                                             "items": {
                                                 "$ref": "#/definitions/domain.NodeListItemResp"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/node/list/group/nav": {
+            "get": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "Get unpublished or unstudied document list grouped by nav",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "node"
+                ],
+                "summary": "Get Node List Grouped by Nav",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "kb_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "unpublished",
+                            "unstudied"
+                        ],
+                        "type": "string",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.PWResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/github_com_chaitin_panda-wiki_api_node_v1.NodeListGroupNavResp"
                                             }
                                         }
                                     }
@@ -2047,6 +2456,45 @@
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/domain.MoveNodeReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/node/move/nav": {
+            "post": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "Move node (and all its descendants if folder) to a different nav",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "node"
+                ],
+                "summary": "Move Node to Nav",
+                "parameters": [
+                    {
+                        "description": "Move Node Nav",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.NodeMoveNavReq"
                         }
                     }
                 ],
@@ -2228,6 +2676,106 @@
                 }
             }
         },
+        "/api/v1/node/restudy": {
+            "post": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "文档重新学习",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Node"
+                ],
+                "summary": "文档重新学习",
+                "operationId": "v1-NodeRestudy",
+                "parameters": [
+                    {
+                        "description": "para",
+                        "name": "param",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.NodeRestudyReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/v1.NodeRestudyResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/node/stats": {
+            "get": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "Get Node Statistics",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "node"
+                ],
+                "summary": "Get Node Statistics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "kb_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.PWResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/v1.NodeStatsResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/node/summary": {
             "post": {
                 "security": [
@@ -2389,7 +2937,7 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/domain.ConversationDistribution"
+                                                "$ref": "#/definitions/v1.StatConversationDistributionResp"
                                             }
                                         }
                                     }
@@ -3000,6 +3548,50 @@
                 }
             }
         },
+        "/share/v1/app/wechat/info": {
+            "get": {
+                "description": "WechatAppInfo",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "share_chat"
+                ],
+                "summary": "WechatAppInfo",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "kb id",
+                        "name": "X-KB-ID",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/v1.WechatAppInfoResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/share/v1/app/wechat/service/answer": {
             "get": {
                 "description": "GetWechatAnswer",
@@ -3456,7 +4048,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "share_chat"
+                    "Widget"
                 ],
                 "summary": "ChatWidget",
                 "parameters": [
@@ -3482,6 +4074,52 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/domain.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/share/v1/chat/widget/search": {
+            "post": {
+                "description": "WidgetSearch",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Widget"
+                ],
+                "summary": "WidgetSearch",
+                "parameters": [
+                    {
+                        "description": "Comment",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.ChatSearchReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/domain.ChatSearchResp"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -3636,6 +4274,53 @@
                 }
             }
         },
+        "/share/v1/common/file/upload/url": {
+            "post": {
+                "description": "前台用户上传文件,目前只支持图片文件上传",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ShareFile"
+                ],
+                "summary": "文件上传",
+                "operationId": "share-FileUploadByUrl",
+                "parameters": [
+                    {
+                        "description": "body",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.ShareFileUploadUrlReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/v1.ShareFileUploadUrlResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/share/v1/conversation/detail": {
             "get": {
                 "description": "GetConversationDetail",
@@ -3682,6 +4367,37 @@
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            }
+        },
+        "/share/v1/nav/list": {
+            "get": {
+                "description": "ShareNavList",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "share_nav"
+                ],
+                "summary": "前台获取栏目列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "kb_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Response"
                         }
                     }
                 }
@@ -3747,7 +4463,7 @@
         },
         "/share/v1/node/list": {
             "get": {
-                "description": "GetNodeList",
+                "description": "ShareNodeList",
                 "consumes": [
                     "application/json"
                 ],
@@ -3757,7 +4473,7 @@
                 "tags": [
                     "share_node"
                 ],
-                "summary": "GetNodeList",
+                "summary": "ShareNodeList",
                 "parameters": [
                     {
                         "type": "string",
@@ -3908,6 +4624,43 @@
                 }
             }
         },
+        "anydoc.DingtalkSetting": {
+            "type": "object",
+            "properties": {
+                "app_id": {
+                    "type": "string"
+                },
+                "app_secret": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "space_id": {
+                    "type": "string"
+                },
+                "unionid": {
+                    "type": "string"
+                }
+            }
+        },
+        "anydoc.FeishuSetting": {
+            "type": "object",
+            "properties": {
+                "app_id": {
+                    "type": "string"
+                },
+                "app_secret": {
+                    "type": "string"
+                },
+                "space_id": {
+                    "type": "string"
+                },
+                "user_access_token": {
+                    "type": "string"
+                }
+            }
+        },
         "anydoc.Value": {
             "type": "object",
             "properties": {
@@ -3982,6 +4735,7 @@
                 "sitemap",
                 "notion",
                 "feishu",
+                "dingtalk",
                 "file",
                 "epub",
                 "yuque",
@@ -3996,6 +4750,7 @@
                 "CrawlerSourceSitemap",
                 "CrawlerSourceNotion",
                 "CrawlerSourceFeishu",
+                "CrawlerSourceDingtalk",
                 "CrawlerSourceFile",
                 "CrawlerSourceEpub",
                 "CrawlerSourceYuque",
@@ -4045,22 +4800,37 @@
             "enum": [
                 0,
                 1,
-                2
+                2,
+                3
             ],
             "x-enum-comments": {
-                "LicenseEditionContributor": "联创版",
+                "LicenseEditionBusiness": "商业版",
                 "LicenseEditionEnterprise": "企业版",
-                "LicenseEditionFree": "开源版"
+                "LicenseEditionFree": "开源版",
+                "LicenseEditionProfession": "专业版"
             },
             "x-enum-descriptions": [
                 "开源版",
-                "联创版",
-                "企业版"
+                "专业版",
+                "企业版",
+                "商业版"
             ],
             "x-enum-varnames": [
                 "LicenseEditionFree",
-                "LicenseEditionContributor",
-                "LicenseEditionEnterprise"
+                "LicenseEditionProfession",
+                "LicenseEditionEnterprise",
+                "LicenseEditionBusiness"
+            ]
+        },
+        "consts.ModelSettingMode": {
+            "type": "string",
+            "enum": [
+                "manual",
+                "auto"
+            ],
+            "x-enum-varnames": [
+                "ModelSettingModeManual",
+                "ModelSettingModeAuto"
             ]
         },
         "consts.NodeAccessPerm": {
@@ -4112,44 +4882,32 @@
         "consts.NodeRagInfoStatus": {
             "type": "string",
             "enum": [
-                "BASIC_PENDING",
-                "BASIC_RUNNING",
-                "BASIC_FAILED",
-                "BASIC_SUCCEEDED",
-                "ENHANCE_PENDING",
-                "ENHANCE_RUNNING",
-                "ENHANCE_FAILED",
-                "ENHANCE_SUCCEEDED"
+                "PENDING",
+                "RUNNING",
+                "FAILED",
+                "SUCCEEDED",
+                "REINDEX"
             ],
             "x-enum-comments": {
-                "NodeRagStatusBasicFailed": "基础处理失败",
-                "NodeRagStatusBasicPending": "等待基础处理",
-                "NodeRagStatusBasicRunning": "正在进行基础处理（文本分割、向量化等）",
-                "NodeRagStatusBasicSucceeded": "基础处理成功",
-                "NodeRagStatusEnhanceFailed": "增强处理失败",
-                "NodeRagStatusEnhancePending": "基础处理完成，等待增强处理",
-                "NodeRagStatusEnhanceRunning": "正在进行增强处理（关键词提取等）",
-                "NodeRagStatusEnhanceSucceeded": "增强处理成功"
+                "NodeRagStatusFailed": "处理失败",
+                "NodeRagStatusPending": "等待处理",
+                "NodeRagStatusReindexing": "重新索引中",
+                "NodeRagStatusRunning": "正在进行处理（文本分割、向量化等）",
+                "NodeRagStatusSucceeded": "处理成功"
             },
             "x-enum-descriptions": [
-                "等待基础处理",
-                "正在进行基础处理（文本分割、向量化等）",
-                "基础处理失败",
-                "基础处理成功",
-                "基础处理完成，等待增强处理",
-                "正在进行增强处理（关键词提取等）",
-                "增强处理失败",
-                "增强处理成功"
+                "等待处理",
+                "正在进行处理（文本分割、向量化等）",
+                "处理失败",
+                "处理成功",
+                "重新索引中"
             ],
             "x-enum-varnames": [
-                "NodeRagStatusBasicPending",
-                "NodeRagStatusBasicRunning",
-                "NodeRagStatusBasicFailed",
-                "NodeRagStatusBasicSucceeded",
-                "NodeRagStatusEnhancePending",
-                "NodeRagStatusEnhanceRunning",
-                "NodeRagStatusEnhanceFailed",
-                "NodeRagStatusEnhanceSucceeded"
+                "NodeRagStatusPending",
+                "NodeRagStatusRunning",
+                "NodeRagStatusFailed",
+                "NodeRagStatusSucceeded",
+                "NodeRagStatusReindexing"
             ]
         },
         "consts.RedeemCaptchaReq": {
@@ -4185,7 +4943,8 @@
                 "wechat_service_bot",
                 "discord_bot",
                 "wechat_official_account",
-                "openai_api"
+                "openai_api",
+                "mcp_server"
             ],
             "x-enum-varnames": [
                 "SourceTypeDingTalk",
@@ -4204,7 +4963,8 @@
                 "SourceTypeWechatServiceBot",
                 "SourceTypeDiscordBot",
                 "SourceTypeWechatOfficialAccount",
-                "SourceTypeOpenAIAPI"
+                "SourceTypeOpenAIAPI",
+                "SourceTypeMcpServer"
             ]
         },
         "consts.StatDay": {
@@ -4226,6 +4986,7 @@
             "type": "string",
             "enum": [
                 "",
+                "not null",
                 "full_control",
                 "doc_manage",
                 "data_operate"
@@ -4234,16 +4995,19 @@
                 "UserKBPermissionDataOperate": "数据运营",
                 "UserKBPermissionDocManage": "文档管理",
                 "UserKBPermissionFullControl": "完全控制",
+                "UserKBPermissionNotNull": "有权限",
                 "UserKBPermissionNull": "无权限"
             },
             "x-enum-descriptions": [
                 "无权限",
+                "有权限",
                 "完全控制",
                 "文档管理",
                 "数据运营"
             ],
             "x-enum-varnames": [
                 "UserKBPermissionNull",
+                "UserKBPermissionNotNull",
                 "UserKBPermissionFullControl",
                 "UserKBPermissionDocManage",
                 "UserKBPermissionDataOperate"
@@ -4404,6 +5168,9 @@
         "domain.AppInfoResp": {
             "type": "object",
             "properties": {
+                "base_url": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -4429,9 +5196,6 @@
                         }
                     ]
                 },
-                "auto_sitemap": {
-                    "type": "boolean"
-                },
                 "body_code": {
                     "type": "string"
                 },
@@ -4449,6 +5213,9 @@
                 },
                 "contribute_settings": {
                     "$ref": "#/definitions/domain.ContributeSettings"
+                },
+                "conversation_setting": {
+                    "$ref": "#/definitions/domain.ConversationSetting"
                 },
                 "copy_setting": {
                     "enum": [
@@ -4537,6 +5304,14 @@
                         }
                     ]
                 },
+                "mcp_server_settings": {
+                    "description": "MCP Server Settings",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.MCPServerSettings"
+                        }
+                    ]
+                },
                 "openai_api_bot_settings": {
                     "description": "OpenAI API Bot settings",
                     "allOf": [
@@ -4559,6 +5334,9 @@
                 },
                 "search_placeholder": {
                     "type": "string"
+                },
+                "stats_setting": {
+                    "$ref": "#/definitions/domain.StatsSetting"
                 },
                 "theme_and_style": {
                     "$ref": "#/definitions/domain.ThemeAndStyle"
@@ -4611,6 +5389,9 @@
                 },
                 "web_app_landing_theme": {
                     "$ref": "#/definitions/domain.WebAppLandingTheme"
+                },
+                "wechat_app_advanced_setting": {
+                    "$ref": "#/definitions/domain.WeChatAppAdvancedSetting"
                 },
                 "wechat_app_agent_id": {
                     "type": "string"
@@ -4669,6 +5450,9 @@
                     "description": "WechatServiceBot",
                     "type": "boolean"
                 },
+                "wechat_service_logo": {
+                    "type": "string"
+                },
                 "wechat_service_secret": {
                     "type": "string"
                 },
@@ -4708,9 +5492,6 @@
                         }
                     ]
                 },
-                "auto_sitemap": {
-                    "type": "boolean"
-                },
                 "body_code": {
                     "type": "string"
                 },
@@ -4728,6 +5509,9 @@
                 },
                 "contribute_settings": {
                     "$ref": "#/definitions/domain.ContributeSettings"
+                },
+                "conversation_setting": {
+                    "$ref": "#/definitions/domain.ConversationSetting"
                 },
                 "copy_setting": {
                     "$ref": "#/definitions/consts.CopySetting"
@@ -4807,6 +5591,14 @@
                         }
                     ]
                 },
+                "mcp_server_settings": {
+                    "description": "MCP Server Settings",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.MCPServerSettings"
+                        }
+                    ]
+                },
                 "openai_api_bot_settings": {
                     "description": "OpenAI API settings",
                     "allOf": [
@@ -4829,6 +5621,9 @@
                 },
                 "search_placeholder": {
                     "type": "string"
+                },
+                "stats_setting": {
+                    "$ref": "#/definitions/domain.StatsSetting"
                 },
                 "theme_and_style": {
                     "$ref": "#/definitions/domain.ThemeAndStyle"
@@ -4872,6 +5667,9 @@
                 },
                 "web_app_landing_theme": {
                     "$ref": "#/definitions/domain.WebAppLandingTheme"
+                },
+                "wechat_app_advanced_setting": {
+                    "$ref": "#/definitions/domain.WeChatAppAdvancedSetting"
                 },
                 "wechat_app_agent_id": {
                     "type": "string"
@@ -4930,6 +5728,9 @@
                     "description": "WechatServiceBot",
                     "type": "boolean"
                 },
+                "wechat_service_logo": {
+                    "type": "string"
+                },
                 "wechat_service_secret": {
                     "type": "string"
                 },
@@ -4967,7 +5768,8 @@
                 8,
                 9,
                 10,
-                11
+                11,
+                12
             ],
             "x-enum-varnames": [
                 "AppTypeWeb",
@@ -4980,7 +5782,8 @@
                 "AppTypeWechatOfficialAccount",
                 "AppTypeOpenAIAPI",
                 "AppTypeWecomAIBot",
-                "AppTypeLarkBot"
+                "AppTypeLarkBot",
+                "AppTypeMcpServer"
             ]
         },
         "domain.AuthUserInfo": {
@@ -5219,8 +6022,7 @@
         "domain.ChatRequest": {
             "type": "object",
             "required": [
-                "app_type",
-                "message"
+                "app_type"
             ],
             "properties": {
                 "app_type": {
@@ -5239,6 +6041,13 @@
                 },
                 "conversation_id": {
                     "type": "string"
+                },
+                "image_paths": {
+                    "type": "array",
+                    "maxItems": 3,
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "message": {
                     "type": "string"
@@ -5477,20 +6286,6 @@
                 }
             }
         },
-        "domain.ConversationDistribution": {
-            "type": "object",
-            "properties": {
-                "app_id": {
-                    "type": "string"
-                },
-                "app_type": {
-                    "$ref": "#/definitions/domain.AppType"
-                },
-                "count": {
-                    "type": "integer"
-                }
-            }
-        },
         "domain.ConversationInfo": {
             "type": "object",
             "properties": {
@@ -5561,6 +6356,12 @@
                 },
                 "id": {
                     "type": "string"
+                },
+                "image_paths": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "info": {
                     "description": "feedbackinfo",
@@ -5665,6 +6466,17 @@
                     "type": "string"
                 },
                 "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.ConversationSetting": {
+            "type": "object",
+            "properties": {
+                "copyright_hide_enabled": {
+                    "type": "boolean"
+                },
+                "copyright_info": {
                     "type": "string"
                 }
             }
@@ -5782,6 +6594,7 @@
             "required": [
                 "kb_id",
                 "name",
+                "nav_id",
                 "type"
             ],
             "properties": {
@@ -5798,6 +6611,9 @@
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "nav_id": {
                     "type": "string"
                 },
                 "parent_id": {
@@ -6188,6 +7004,9 @@
                 "message": {
                     "type": "string"
                 },
+                "publisher_account": {
+                    "type": "string"
+                },
                 "tag": {
                     "type": "string"
                 }
@@ -6278,6 +7097,34 @@
                 }
             }
         },
+        "domain.MCPServerSettings": {
+            "type": "object",
+            "properties": {
+                "docs_tool_settings": {
+                    "$ref": "#/definitions/domain.MCPToolSettings"
+                },
+                "is_enabled": {
+                    "type": "boolean"
+                },
+                "sample_auth": {
+                    "$ref": "#/definitions/domain.SimpleAuth"
+                }
+            }
+        },
+        "domain.MCPToolSettings": {
+            "type": "object",
+            "properties": {
+                "desc": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.MessageContent": {
+            "type": "object"
+        },
         "domain.MessageFrom": {
             "type": "integer",
             "enum": [
@@ -6314,6 +7161,31 @@
                 },
                 "type": {
                     "type": "string"
+                }
+            }
+        },
+        "domain.ModelModeSetting": {
+            "type": "object",
+            "properties": {
+                "auto_mode_api_key": {
+                    "description": "百智云 API Key",
+                    "type": "string"
+                },
+                "chat_model": {
+                    "description": "自定义对话模型名称",
+                    "type": "string"
+                },
+                "is_manual_embedding_updated": {
+                    "description": "手动模式下嵌入模型是否更新",
+                    "type": "boolean"
+                },
+                "mode": {
+                    "description": "模式: manual 或 auto",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/consts.ModelSettingMode"
+                        }
+                    ]
                 }
             }
         },
@@ -6462,6 +7334,9 @@
                 "name": {
                     "type": "string"
                 },
+                "nav_id": {
+                    "type": "string"
+                },
                 "parent_id": {
                     "type": "string"
                 },
@@ -6470,6 +7345,9 @@
                 },
                 "position": {
                     "type": "number"
+                },
+                "publisher_id": {
+                    "type": "string"
                 },
                 "rag_info": {
                     "$ref": "#/definitions/domain.RagInfo"
@@ -6535,10 +7413,22 @@
             "type": "integer",
             "format": "int32",
             "enum": [
+                0,
                 1,
                 2
             ],
+            "x-enum-comments": {
+                "NodeStatusDraft": "更新未发布",
+                "NodeStatusReleased": "已发布",
+                "NodeStatusUnreleased": "未发布"
+            },
+            "x-enum-descriptions": [
+                "未发布",
+                "更新未发布",
+                "已发布"
+            ],
             "x-enum-varnames": [
+                "NodeStatusUnreleased",
                 "NodeStatusDraft",
                 "NodeStatusReleased"
             ]
@@ -6653,6 +7543,9 @@
                 },
                 "stream": {
                     "type": "boolean"
+                },
+                "stream_options": {
+                    "$ref": "#/definitions/domain.OpenAIStreamOptions"
                 },
                 "temperature": {
                     "type": "number"
@@ -6776,7 +7669,7 @@
             ],
             "properties": {
                 "content": {
-                    "type": "string"
+                    "$ref": "#/definitions/domain.MessageContent"
                 },
                 "name": {
                     "type": "string"
@@ -6803,6 +7696,14 @@
             "properties": {
                 "type": {
                     "type": "string"
+                }
+            }
+        },
+        "domain.OpenAIStreamOptions": {
+            "type": "object",
+            "properties": {
+                "include_usage": {
+                    "type": "boolean"
                 }
             }
         },
@@ -6934,6 +7835,9 @@
                 },
                 "status": {
                     "$ref": "#/definitions/consts.NodeRagInfoStatus"
+                },
+                "synced_at": {
+                    "type": "string"
                 }
             }
         },
@@ -7067,8 +7971,52 @@
                 "created_at": {
                     "type": "string"
                 },
+                "image_paths": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "role": {
                     "$ref": "#/definitions/schema.RoleType"
+                }
+            }
+        },
+        "domain.ShareNodeDetailItem": {
+            "type": "object",
+            "properties": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.ShareNodeDetailItem"
+                    }
+                },
+                "emoji": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "meta": {
+                    "$ref": "#/definitions/domain.NodeMeta"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parent_id": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "$ref": "#/definitions/domain.NodePermissions"
+                },
+                "position": {
+                    "type": "number"
+                },
+                "type": {
+                    "$ref": "#/definitions/domain.NodeType"
+                },
+                "updated_at": {
+                    "type": "string"
                 }
             }
         },
@@ -7155,6 +8103,45 @@
                 "StatPageSceneChat",
                 "StatPageSceneLogin"
             ]
+        },
+        "domain.StatsSetting": {
+            "type": "object",
+            "properties": {
+                "pv_enable": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "domain.SwitchModeReq": {
+            "type": "object",
+            "required": [
+                "mode"
+            ],
+            "properties": {
+                "auto_mode_api_key": {
+                    "description": "百智云 API Key",
+                    "type": "string"
+                },
+                "chat_model": {
+                    "description": "自定义对话模型名称",
+                    "type": "string"
+                },
+                "mode": {
+                    "type": "string",
+                    "enum": [
+                        "manual",
+                        "auto"
+                    ]
+                }
+            }
+        },
+        "domain.SwitchModeResp": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
         },
         "domain.TextConfig": {
             "type": "object",
@@ -7328,10 +8315,27 @@
                 "name": {
                     "type": "string"
                 },
+                "nav_id": {
+                    "type": "string"
+                },
                 "position": {
                     "type": "number"
                 },
                 "summary": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.UploadByUrlReq": {
+            "type": "object",
+            "required": [
+                "url"
+            ],
+            "properties": {
+                "kb_id": {
+                    "type": "string"
+                },
+                "url": {
                     "type": "string"
                 }
             }
@@ -7360,6 +8364,29 @@
                 },
                 "user_id": {
                     "type": "string"
+                }
+            }
+        },
+        "domain.WeChatAppAdvancedSetting": {
+            "type": "object",
+            "properties": {
+                "disclaimer_content": {
+                    "type": "string"
+                },
+                "feedback_enable": {
+                    "type": "boolean"
+                },
+                "feedback_type": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "prompt": {
+                    "type": "string"
+                },
+                "text_response_enable": {
+                    "type": "boolean"
                 }
             }
         },
@@ -7558,14 +8585,38 @@
         "domain.WidgetBotSettings": {
             "type": "object",
             "properties": {
+                "btn_id": {
+                    "type": "string"
+                },
                 "btn_logo": {
+                    "type": "string"
+                },
+                "btn_position": {
+                    "type": "string"
+                },
+                "btn_style": {
                     "type": "string"
                 },
                 "btn_text": {
                     "type": "string"
                 },
+                "copyright_hide_enabled": {
+                    "type": "boolean"
+                },
+                "copyright_info": {
+                    "type": "string"
+                },
+                "disclaimer": {
+                    "type": "string"
+                },
                 "is_open": {
                     "type": "boolean"
+                },
+                "modal_position": {
+                    "type": "string"
+                },
+                "placeholder": {
+                    "type": "string"
                 },
                 "recommend_node_ids": {
                     "type": "array",
@@ -7578,6 +8629,9 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "search_mode": {
+                    "type": "string"
                 },
                 "theme_mode": {
                     "type": "string"
@@ -7604,6 +8658,32 @@
                 },
                 "source_type": {
                     "$ref": "#/definitions/consts.SourceType"
+                }
+            }
+        },
+        "github_com_chaitin_panda-wiki_api_node_v1.NodeListGroupNavResp": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "is_released": {
+                    "type": "boolean"
+                },
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.NodeListItemResp"
+                    }
+                },
+                "nav_id": {
+                    "type": "string"
+                },
+                "nav_name": {
+                    "type": "string"
+                },
+                "position": {
+                    "type": "number"
                 }
             }
         },
@@ -8000,8 +9080,11 @@
                 "crawler_source": {
                     "$ref": "#/definitions/consts.CrawlerSource"
                 },
+                "dingtalk_setting": {
+                    "$ref": "#/definitions/anydoc.DingtalkSetting"
+                },
                 "feishu_setting": {
-                    "$ref": "#/definitions/v1.FeishuSetting"
+                    "$ref": "#/definitions/anydoc.FeishuSetting"
                 },
                 "filename": {
                     "type": "string"
@@ -8128,23 +9211,6 @@
                 }
             }
         },
-        "v1.FeishuSetting": {
-            "type": "object",
-            "properties": {
-                "app_id": {
-                    "type": "string"
-                },
-                "app_secret": {
-                    "type": "string"
-                },
-                "space_id": {
-                    "type": "string"
-                },
-                "user_access_token": {
-                    "type": "string"
-                }
-            }
-        },
         "v1.FileUploadResp": {
             "type": "object",
             "properties": {
@@ -8266,6 +9332,84 @@
                 }
             }
         },
+        "v1.NavAddReq": {
+            "type": "object",
+            "required": [
+                "kb_id",
+                "name"
+            ],
+            "properties": {
+                "kb_id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "position": {
+                    "type": "number"
+                }
+            }
+        },
+        "v1.NavListResp": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "position": {
+                    "type": "number"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.NavMoveReq": {
+            "type": "object",
+            "required": [
+                "id",
+                "kb_id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "kb_id": {
+                    "type": "string"
+                },
+                "next_id": {
+                    "type": "string"
+                },
+                "prev_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.NavUpdateReq": {
+            "type": "object",
+            "required": [
+                "id",
+                "kb_id",
+                "name"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "kb_id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "v1.NodeDetailResp": {
             "type": "object",
             "properties": {
@@ -8299,6 +9443,9 @@
                 "name": {
                     "type": "string"
                 },
+                "nav_id": {
+                    "type": "string"
+                },
                 "parent_id": {
                     "type": "string"
                 },
@@ -8311,6 +9458,9 @@
                 "publisher_id": {
                     "type": "string"
                 },
+                "pv": {
+                    "type": "integer"
+                },
                 "status": {
                     "$ref": "#/definitions/domain.NodeStatus"
                 },
@@ -8318,6 +9468,29 @@
                     "$ref": "#/definitions/domain.NodeType"
                 },
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.NodeMoveNavReq": {
+            "type": "object",
+            "required": [
+                "ids",
+                "kb_id",
+                "nav_id"
+            ],
+            "properties": {
+                "ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "kb_id": {
+                    "type": "string"
+                },
+                "nav_id": {
                     "type": "string"
                 }
             }
@@ -8399,6 +9572,45 @@
                 }
             }
         },
+        "v1.NodeRestudyReq": {
+            "type": "object",
+            "required": [
+                "kb_id",
+                "node_ids"
+            ],
+            "properties": {
+                "kb_id": {
+                    "type": "string"
+                },
+                "node_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "v1.NodeRestudyResp": {
+            "type": "object"
+        },
+        "v1.NodeStatsResp": {
+            "type": "object",
+            "properties": {
+                "unpublished_count": {
+                    "description": "未发布的文档数",
+                    "type": "integer"
+                },
+                "unreleased_nav_count": {
+                    "description": "未发布目录数量",
+                    "type": "integer"
+                },
+                "unstudied_count": {
+                    "description": "未学习的文档数",
+                    "type": "integer"
+                }
+            }
+        },
         "v1.ResetPasswordReq": {
             "type": "object",
             "required": [
@@ -8412,6 +9624,29 @@
                 "new_password": {
                     "type": "string",
                     "minLength": 8
+                }
+            }
+        },
+        "v1.ShareFileUploadUrlReq": {
+            "type": "object",
+            "required": [
+                "captcha_token",
+                "url"
+            ],
+            "properties": {
+                "captcha_token": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.ShareFileUploadUrlResp": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
                 }
             }
         },
@@ -8442,6 +9677,12 @@
                 "kb_id": {
                     "type": "string"
                 },
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.ShareNodeDetailItem"
+                    }
+                },
                 "meta": {
                     "$ref": "#/definitions/domain.NodeMeta"
                 },
@@ -8460,6 +9701,9 @@
                 "publisher_id": {
                     "type": "string"
                 },
+                "pv": {
+                    "type": "integer"
+                },
                 "status": {
                     "$ref": "#/definitions/domain.NodeStatus"
                 },
@@ -8468,6 +9712,17 @@
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "v1.StatConversationDistributionResp": {
+            "type": "object",
+            "properties": {
+                "app_type": {
+                    "$ref": "#/definitions/domain.AppType"
+                },
+                "count": {
+                    "type": "integer"
                 }
             }
         },
@@ -8556,6 +9811,26 @@
                     "items": {
                         "$ref": "#/definitions/v1.UserListItemResp"
                     }
+                }
+            }
+        },
+        "v1.WechatAppInfoResp": {
+            "type": "object",
+            "properties": {
+                "disclaimer_content": {
+                    "type": "string"
+                },
+                "feedback_enable": {
+                    "type": "boolean"
+                },
+                "feedback_type": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "wechat_app_is_enabled": {
+                    "type": "boolean"
                 }
             }
         }

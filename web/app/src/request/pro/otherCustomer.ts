@@ -78,7 +78,7 @@ export const postShareProV1FileUploadWithProgress = (
     }
 
     // 构建请求 URL
-    const baseUrl = process.env.TARGET || '';
+    const baseUrl = process.env.TARGET || (typeof window !== 'undefined' ? window._BASE_PATH_ : '');
     const url = `${baseUrl}/share/pro/v1/file/upload`;
     
     // 发送请求

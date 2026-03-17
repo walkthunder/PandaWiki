@@ -18,7 +18,7 @@ interface BasicDocProps {
     summary: string;
     emoji?: string;
   }[];
-  baseUrl?: string;
+  basePath?: string;
 }
 
 const StyledBasicDocItem = styled('div')(({ theme }) => ({
@@ -78,9 +78,9 @@ const StyledBasicDocItemSummary = styled('div')(({ theme }) => ({
 const BasicDocItem: React.FC<{
   item: any;
   index: number;
-  baseUrl: string;
+  basePath: string;
   size: any;
-}> = React.memo(({ item, index, baseUrl, size }) => {
+}> = React.memo(({ item, index, basePath, size }) => {
   const cardRef = useCardFadeInAnimation(0.2 + index * 0.1, 0.1);
 
   return (
@@ -88,7 +88,7 @@ const BasicDocItem: React.FC<{
       <StyledBasicDocItem
         ref={cardRef as React.Ref<HTMLDivElement>}
         onClick={() => {
-          window.open(`${baseUrl}/node/${item.id}`, '_blank');
+          window.open(`${basePath}/node/${item.id}`, '_blank');
         }}
       >
         <StyledBasicDocItemTitle className='basic-doc-item-title'>
@@ -106,7 +106,7 @@ const BasicDocItem: React.FC<{
 });
 
 const BasicDoc: React.FC<BasicDocProps> = React.memo(
-  ({ title, items = [], mobile, baseUrl = '' }) => {
+  ({ title, items = [], mobile, basePath = '' }) => {
     const size =
       typeof mobile === 'boolean' ? (mobile ? 12 : 4) : { xs: 12, md: 4 };
 
@@ -122,7 +122,7 @@ const BasicDoc: React.FC<BasicDocProps> = React.memo(
               key={index}
               item={item}
               index={index}
-              baseUrl={baseUrl}
+              basePath={basePath}
               size={size}
             />
           ))}

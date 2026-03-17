@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -167,7 +168,14 @@ func (m *JWTMiddleware) ValidateKBUserPerm(perm consts.UserKBPermission) echo.Mi
 					})
 				}
 
-				if authInfo.Permission != consts.UserKBPermissionFullControl && authInfo.Permission != perm {
+				if perm == consts.UserKBPermissionNotNull {
+					if authInfo.Permission == consts.UserKBPermissionNull {
+						return c.JSON(http.StatusForbidden, domain.PWResponse{
+							Success: false,
+							Message: "Unauthorized ValidateTokenKBPerm",
+						})
+					}
+				} else if authInfo.Permission != consts.UserKBPermissionFullControl && authInfo.Permission != perm {
 					return c.JSON(http.StatusForbidden, domain.PWResponse{
 						Success: false,
 						Message: "Unauthorized ValidateTokenKBPerm",
@@ -194,7 +202,7 @@ func (m *JWTMiddleware) ValidateKBUserPerm(perm consts.UserKBPermission) echo.Mi
 	}
 }
 
-func (m *JWTMiddleware) ValidateLicenseEdition(needEdition consts.LicenseEdition) echo.MiddlewareFunc {
+func (m *JWTMiddleware) ValidateLicenseEdition(needEditions ...consts.LicenseEdition) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			// 直接设置为最高版本的企业版license，确保所有功能可用

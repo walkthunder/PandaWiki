@@ -1,3 +1,4 @@
+import { getBasePath } from './getBasePath';
 export async function getServerHeader(): Promise<Record<string, string>> {
   const { headers, cookies } = await import('next/headers');
   const headersList = await headers();
@@ -34,4 +35,24 @@ export async function getServerSearch(): Promise<string> {
   const headersList = await headers();
   const search = headersList.get('x-current-search') || '';
   return search;
+}
+
+export async function getServerBasePath(): Promise<string> {
+  try {
+    const serverHeaders = await getServerHeader();
+    const baseUrl = process.env.TARGET || '';
+    const response = await fetch(`${baseUrl}/share/v1/app/web/info`, {
+      headers: serverHeaders,
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const kbDetail = data?.data;
+      return getBasePath(kbDetail?.base_url || '');
+    }
+  } catch (error) {
+    console.error('Failed to get basePath:', error);
+  }
+
+  return '';
 }

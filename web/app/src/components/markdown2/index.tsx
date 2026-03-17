@@ -1,7 +1,8 @@
 'use client';
 
-import { useStore } from '@/provider';
+import { useSmartScroll } from '@/hooks';
 import { copyText } from '@/utils';
+import { getImagePath } from '@/utils/getImagePath';
 import { Box, Dialog, useTheme } from '@mui/material';
 import mk from '@vscode/markdown-it-katex';
 import hljs from 'highlight.js';
@@ -15,8 +16,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { useSmartScroll } from '@/hooks';
-import { createImageRenderer } from './imageRenderer';
+import { clearImageBlobCache, createImageRenderer } from './imageRenderer';
 import { incrementalRender } from './incrementalRenderer';
 import { createMermaidRenderer } from './mermaidRenderer';
 import {
@@ -58,7 +58,8 @@ const createMarkdownIt = (): MarkdownIt => {
 
   // 添加 KaTeX 数学公式支持
   try {
-    md.use(mk);
+    // 由于 @vscode/markdown-it-katex 和 markdown-it 类型版本不一致，这里通过 any 断言绕过类型不兼容
+    (md as any).use(mk as any);
   } catch (error) {
     console.warn('markdown-it-katex not available:', error);
   }
@@ -73,32 +74,28 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
   autoScroll = true,
 }) => {
   const theme = useTheme();
-  const { themeMode = 'light' } = useStore();
+  const themeMode = theme.palette.mode;
 
   // 状态管理
   const [showThink, setShowThink] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewImgSrc, setPreviewImgSrc] = useState('');
+  const [previewImgBlobUrl, setPreviewImgBlobUrl] = useState('');
 
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
   const lastContentRef = useRef<string>('');
   const mdRef = useRef<MarkdownIt | null>(null);
   const mermaidSuccessIdRef = useRef<Map<number, string>>(new Map());
-  const imageRenderCacheRef = useRef<Map<number, string>>(new Map()); // 图片渲染缓存
+  const imageRenderCacheRef = useRef<Map<number, string>>(new Map()); // 图片渲染缓存（HTML）
+  const imageBlobCacheRef = useRef<Map<string, string>>(new Map()); // 图片 blob URL 缓存
 
   // 使用智能滚动 hook
   const { scrollToBottom } = useSmartScroll({
     container: '.conversation-container',
-    threshold: 10,
+    threshold: 50, // 距离底部 50px 内认为是在底部附近
     behavior: 'smooth',
     enabled: autoScroll,
   });
-
-  // ==================== 事件处理函数 ====================
-  const handleCodeClick = useCallback((code: string) => {
-    copyText(code);
-  }, []);
 
   const handleThinkToggle = useCallback(() => {
     setShowThink(prev => !prev);
@@ -110,6 +107,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
    */
   const handleImageLoad = useCallback((index: number, html: string) => {
     imageRenderCacheRef.current.set(index, html);
+    // 图片加载完成后，useSmartScroll 的 ResizeObserver 会自动触发滚动
   }, []);
 
   /**
@@ -117,6 +115,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
    */
   const handleImageError = useCallback((index: number, html: string) => {
     imageRenderCacheRef.current.set(index, html);
+    // 图片加载失败后，useSmartScroll 的 ResizeObserver 会自动触发滚动
   }, []);
 
   // 创建图片渲染器
@@ -125,11 +124,8 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
       createImageRenderer({
         onImageLoad: handleImageLoad,
         onImageError: handleImageError,
-        onImageClick: (src: string) => {
-          setPreviewImgSrc(src);
-          setPreviewOpen(true);
-        },
         imageRenderCache: imageRenderCacheRef.current,
+        imageBlobCache: imageBlobCacheRef.current,
       }),
     [handleImageLoad, handleImageError],
   );
@@ -156,14 +152,22 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
       const originalFenceRender = md.renderer.rules.fence;
       // 自定义图片渲染
       let imageCount = 0;
+      let htmlImageCount = 0; // HTML 标签图片计数
       let mermaidCount = 0;
       md.renderer.rules.image = (tokens, idx) => {
         imageCount++;
         const token = tokens[idx];
-        const src = token.attrGet('src') || '';
+        const src = getImagePath(token.attrGet('src') || '');
         const alt = token.attrGet('alt') || token.content;
-        const attrs = token.attrs || [];
-        return renderImage(src, alt, attrs, imageCount - 1);
+        const rawAttrs = token.attrs || [];
+        // 过滤潜在危险属性（如 onload/onerror 等事件处理）
+        const safeAttrs = rawAttrs.filter(([name]) => {
+          const lower = name.toLowerCase();
+          // 屏蔽所有以 on 开头的属性，例如 onload/onerror/onclick 等
+          if (lower.startsWith('on')) return false;
+          return true;
+        });
+        return renderImage(src, alt, safeAttrs, imageCount - 1);
       };
 
       // 自定义代码块渲染
@@ -182,15 +186,6 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
           ? defaultRender(tokens, idx, options, env, renderer)
           : `<pre><code>${code}</code></pre>`;
 
-        // 添加点击复制功能
-        // result = result.replace(
-        //   /<pre[^>]*>/,
-        //   `<pre style="cursor: pointer; position: relative;" onclick="window.handleCodeCopy && window.handleCodeCopy(\`${code.replace(
-        //     /`/g,
-        //     '\\`'
-        //   )}\`)">`
-        // );
-
         return result;
       };
 
@@ -198,7 +193,9 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
       md.renderer.rules.code_inline = (tokens, idx) => {
         const token = tokens[idx];
         const code = token.content;
-        return `<code onclick="window.handleCodeCopy && window.handleCodeCopy('${code}')" style="cursor: pointer;">${code}</code>`;
+        // 对行内代码内容做 HTML 转义，避免 `<svg onload=...>` 等被当成真正标签解析
+        const safeCode = md.utils.escapeHtml(code);
+        return `<code  style="cursor: pointer;">${safeCode}</code>`;
       };
 
       // 自定义标题渲染（h1 -> h2）
@@ -247,6 +244,42 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
           );
         };
 
+        // 解析 HTML img 标签并提取属性
+        const parseImgTag = (
+          html: string,
+        ): {
+          src: string;
+          alt: string;
+          attrs: [string, string][];
+        } | null => {
+          // 匹配 <img> 标签（支持自闭合和普通标签）
+          const imgMatch = html.match(/<img\s+([^>]*?)\/?>/i);
+          if (!imgMatch) return null;
+
+          const attrsString = imgMatch[1];
+          const attrs: [string, string][] = [];
+          let src = '';
+          let alt = '';
+
+          // 解析属性：匹配 name="value" 或 name='value' 或 name=value
+          const attrRegex =
+            /([^\s=]+)(?:=["']([^"']*)["']|=(?:["'])?([^\s>]+)(?:["'])?)?/g;
+          let attrMatch;
+          while ((attrMatch = attrRegex.exec(attrsString)) !== null) {
+            const name = attrMatch[1].toLowerCase();
+            const value = attrMatch[2] || attrMatch[3] || '';
+            // 过滤所有事件处理属性（onload/onerror/onclick 等）
+            if (name.startsWith('on')) {
+              continue;
+            }
+            attrs.push([name, value]);
+            if (name === 'src') src = getImagePath(value);
+            if (name === 'alt') alt = value;
+          }
+
+          return { src, alt, attrs };
+        };
+
         md.renderer.rules.html_block = (
           tokens,
           idx,
@@ -285,6 +318,21 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
           if (content.includes('<error>')) return '<span class="chat-error">';
           if (content.includes('</error>')) return '</span>';
 
+          // 处理 img 标签
+          if (content.includes('<img')) {
+            const imgData = parseImgTag(content);
+            if (imgData && imgData.src) {
+              const imageIndex = imageCount + htmlImageCount;
+              htmlImageCount++;
+              return renderImage(
+                imgData.src,
+                imgData.alt,
+                imgData.attrs,
+                imageIndex,
+              );
+            }
+          }
+
           // 🔒 安全检查：不在白名单的标签，转义输出
           if (!isAllowedTag(content)) {
             return md.utils.escapeHtml(content);
@@ -308,6 +356,21 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
           if (content.includes('<error>')) return '<span class="chat-error">';
           if (content.includes('</error>')) return '</span>';
 
+          // 处理 img 标签
+          if (content.includes('<img')) {
+            const imgData = parseImgTag(content);
+            if (imgData && imgData.src) {
+              const imageIndex = imageCount + htmlImageCount;
+              htmlImageCount++;
+              return renderImage(
+                imgData.src,
+                imgData.alt,
+                imgData.attrs,
+                imageIndex,
+              );
+            }
+          }
+
           // 🔒 安全检查：不在白名单的标签，转义输出
           if (!isAllowedTag(content)) {
             return md.utils.escapeHtml(content);
@@ -321,7 +384,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
 
       setupCustomHtmlHandlers();
     },
-    [renderImage, renderMermaid, renderThinking, showThink, theme],
+    [renderImage, renderMermaid, renderThinking, theme],
   );
 
   // ==================== Effects ====================
@@ -331,15 +394,6 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
       mdRef.current = createMarkdownIt();
     }
   }, []);
-
-  // 设置全局函数
-  useEffect(() => {
-    (window as any).handleCodeCopy = handleCodeClick;
-
-    return () => {
-      delete (window as any).handleCodeCopy;
-    };
-  }, [handleCodeClick]);
 
   // 主要的内容渲染 Effect
   useEffect(() => {
@@ -368,6 +422,55 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
     }
   }, [content, customizeRenderer, scrollToBottom]);
 
+  // 添加代码块点击复制和图片点击预览功能（事件代理）
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+
+      // 检查是否点击了图片
+      const imgElement = target.closest(
+        'img.markdown-image',
+      ) as HTMLImageElement;
+      if (imgElement) {
+        const originalSrc = imgElement.getAttribute('data-original-src');
+        if (originalSrc) {
+          // 尝试获取缓存的 blob URL，如果不存在则使用原始 src
+          const blobUrl = imageBlobCacheRef.current.get(originalSrc);
+          setPreviewImgBlobUrl(blobUrl || originalSrc);
+          setPreviewOpen(true);
+        }
+        return;
+      }
+
+      // 检查是否点击了代码块
+      const preElement = target.closest('pre.hljs');
+      if (preElement) {
+        const codeElement = preElement.querySelector('code');
+        if (codeElement) {
+          const code = codeElement.textContent || '';
+          copyText(code.replace(/\n$/, ''));
+        }
+        return;
+      }
+
+      // 检查是否点击了行内代码
+      if (target.tagName === 'CODE' && !target.closest('pre')) {
+        const code = target.textContent || '';
+        copyText(code);
+      }
+    };
+
+    container.addEventListener('click', handleClick);
+
+    return () => {
+      clearImageBlobCache(imageBlobCacheRef.current);
+      container.removeEventListener('click', handleClick);
+    };
+  }, []);
+
   // ==================== 组件样式 ====================
   const componentStyles = {
     fontSize: '14px',
@@ -388,6 +491,9 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
     '.image-container': {
       position: 'relative',
       display: 'inline-block',
+    },
+    '.markdown-image': {
+      cursor: 'pointer',
     },
     '.image-error': {
       display: 'flex',
@@ -445,11 +551,12 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
         open={previewOpen}
         onClose={() => {
           setPreviewOpen(false);
-          setPreviewImgSrc('');
+          setPreviewImgBlobUrl('');
         }}
       >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={previewImgSrc}
+          src={previewImgBlobUrl}
           alt='preview'
           style={{ width: '100%', height: '100%' }}
         />

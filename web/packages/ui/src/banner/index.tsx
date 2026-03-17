@@ -23,11 +23,17 @@ const StyledBanner = styled('div')(({ theme }) => ({
 }));
 
 const StyledTitle = styled('h1')(({ theme }) => ({
-  fontSize: 36,
+  fontSize: 60,
   fontWeight: 700,
   wordBreak: 'break-all',
   color: theme.palette.primary.main,
   marginBottom: theme.spacing(3),
+  [theme.breakpoints.down('md')]: {
+    fontSize: 50,
+  },
+  [theme.breakpoints.down('sm')]: {
+    fontSize: 40,
+  },
 }));
 
 const StyledSubTitle = styled('h2')(({ theme }) => ({
@@ -131,7 +137,7 @@ interface BannerProps {
   }[];
   onSearch?: (value: string, type?: 'search' | 'chat') => void;
   onSearchSuggestions?: (query: string) => Promise<SearchSuggestion[]>;
-  baseUrl?: string;
+  basePath?: string;
 }
 
 const Banner = React.memo(
@@ -143,7 +149,7 @@ const Banner = React.memo(
     btns = [],
     onSearch,
     onSearchSuggestions,
-    baseUrl = '',
+    basePath = '',
   }: BannerProps) => {
     const [searchText, setSearchText] = useState('');
     const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
@@ -328,16 +334,15 @@ const Banner = React.memo(
             : {}),
         }}
       >
-        <StyledTopicBox sx={{ alignItems: 'flex-start', gap: 0, py: '200px' }}>
-          <StyledTitle
-            ref={titleRef}
-            sx={{
-              fontSize: `${title.fontSize || 60}px`,
-              // color: title.color || '#5F58FE',
-            }}
-          >
-            {title.text}
-          </StyledTitle>
+        <StyledTopicBox
+          sx={{
+            alignItems: 'flex-start',
+            gap: 0,
+            py: { xs: 8, md: '200px' },
+            pt: { xs: 16 },
+          }}
+        >
+          <StyledTitle ref={titleRef}>{title.text}</StyledTitle>
           {/* {subtitle.text && ( */}
           <StyledSubTitle
             ref={subtitleRef}
@@ -349,7 +354,7 @@ const Banner = React.memo(
           </StyledSubTitle>
           {/* )} */}
 
-          <StyledSearchBox>
+          <StyledSearchBox className='banner-search-box'>
             <Box sx={{ position: 'relative' }}>
               <style>{blinkAnimation}</style>
               {!isFocused && !searchText && typedText && (

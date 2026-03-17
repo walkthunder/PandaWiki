@@ -110,6 +110,18 @@ type ModelParam struct {
 	Temperature        *float32 `json:"temperature"`
 }
 
+func (p ModelParam) Map() map[string]any {
+	return map[string]any{
+		"context_window":       p.ContextWindow,
+		"max_tokens":           p.MaxTokens,
+		"r1_enabled":           p.R1Enabled,
+		"support_computer_use": p.SupportComputerUse,
+		"support_images":       p.SupportImages,
+		"support_prompt_cache": p.SupportPromptCache,
+		"temperature":          p.Temperature,
+	}
+}
+
 // Value implements the driver.Valuer interface for GORM
 func (p ModelParam) Value() (driver.Value, error) {
 	return json.Marshal(p)
@@ -164,4 +176,14 @@ type ProviderModelListItem struct {
 
 type ActivateModelReq struct {
 	ModelID string `json:"model_id" validate:"required"`
+}
+
+type SwitchModeReq struct {
+	Mode           string `json:"mode" validate:"required,oneof=manual auto"`
+	AutoModeAPIKey string `json:"auto_mode_api_key"` // 百智云 API Key
+	ChatModel      string `json:"chat_model"`        // 自定义对话模型名称
+}
+
+type SwitchModeResp struct {
+	Message string `json:"message"`
 }

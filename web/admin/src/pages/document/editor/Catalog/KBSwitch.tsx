@@ -1,8 +1,9 @@
 import { useAppSelector } from '@/store';
-import { Ellipsis, Icon } from '@ctzhian/ui';
+import { Ellipsis } from '@ctzhian/ui';
 import { Stack } from '@mui/material';
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { IconZuzhi } from '@panda-wiki/icons';
 
 const KBSwitch = () => {
   // const dispatch = useAppDispatch();
@@ -46,7 +47,7 @@ const KBSwitch = () => {
           navigate('/');
         }}
       >
-        <Icon type='icon-zuzhi' sx={{ color: 'text.primary' }} />
+        <IconZuzhi type='icon-zuzhi' sx={{ color: 'text.primary' }} />
       </Stack>
       <Ellipsis sx={{ flex: 1, width: 0, overflow: 'hidden' }}>
         {currentKb?.name}

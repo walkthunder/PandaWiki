@@ -13,17 +13,25 @@ interface FeedbackProps {
     type: string,
     content?: string,
   ) => void;
-  data: ConversationItem | null;
+  data: ConversationItem | { message_id: string } | null;
+  tags?: string[];
 }
 
-const Feedback = ({ open, onClose, onSubmit, data }: FeedbackProps) => {
+const Feedback = ({
+  open,
+  onClose,
+  onSubmit,
+  data,
+  tags: propsTags,
+}: FeedbackProps) => {
   const { themeMode, kbDetail } = useStore();
   const [type, setType] = useState<string>('');
   const [content, setContent] = useState('');
 
   const tags: string[] =
+    propsTags ??
     // @ts-ignore
-    kbDetail?.settings?.ai_feedback_settings?.ai_feedback_type || [];
+    (kbDetail?.settings?.ai_feedback_settings?.ai_feedback_type || []);
 
   const handleCancel = () => {
     setContent('');

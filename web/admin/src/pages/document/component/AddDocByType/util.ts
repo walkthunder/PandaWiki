@@ -8,16 +8,19 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { ListDataItem } from '.';
 
+export type FormData = {
+  app_id?: string;
+  app_secret?: string;
+  user_access_token?: string;
+  unionid?: string;
+  url?: string;
+};
+
 /**
  * 验证表单数据
  */
 export const validateFormData = (
-  formData: {
-    url?: string;
-    app_id?: string;
-    app_secret?: string;
-    user_access_token?: string;
-  },
+  formData: FormData,
   type: ConstsCrawlerSource,
 ): { isValid: boolean; errorMessage?: string } => {
   if (
@@ -45,6 +48,18 @@ export const validateFormData = (
     }
   }
 
+  if (type === ConstsCrawlerSource.CrawlerSourceDingtalk) {
+    if (!formData.app_id?.trim()) {
+      return { isValid: false, errorMessage: '请输入 App ID' };
+    }
+    if (!formData.app_secret?.trim()) {
+      return { isValid: false, errorMessage: '请输入 App Secret' };
+    }
+    if (!formData.unionid?.trim()) {
+      return { isValid: false, errorMessage: '请输入 Union ID' };
+    }
+  }
+
   return { isValid: true };
 };
 
@@ -56,7 +71,7 @@ export const validateFormData = (
  */
 export const pollCrawlerResults = async (
   taskId: string,
-  maxAttempts = 60,
+  maxAttempts = 60 * 15,
   interval = 2000,
 ): Promise<{ status: ConstsCrawlerStatus; content?: string }> => {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -88,45 +103,6 @@ export const pollCrawlerResults = async (
   throw new Error('轮询超时');
 };
 
-/**
- * 递归处理 V1CrawlerParseResp 数据，将树形结构平铺为 ListDataItem 数组
- *
- * @param response V1CrawlerParseResp 响应数据
- * @param parentId 父节点 ID（用于建立父子关系），默认为 null
- * @param extraFields 额外字段，会合并到每个生成的 ListDataItem 中
- * @returns ListDataItem[] 平铺后的数据数组
- *
- * @example
- * ```typescript
- * // 解析 RSS/Sitemap/Notion 等数据
- * const resp = await postApiV1CrawlerParse({
- *   crawler_source: ConstsCrawlerSource.CrawlerSourceRSS,
- *   key: 'https://example.com/rss',
- *   kb_id,
- * });
- *
- * // 将树形数据平铺为列表
- * const flattenedData = flattenCrawlerParseResponse(resp, parent_id);
- * setData(prev => [...prev, ...flattenedData]);
- * ```
- *
- * @example
- * ```typescript
- * // 处理飞书数据，传递 feishu_setting
- * const resp = await postApiV1CrawlerParse({
- *   crawler_source: ConstsCrawlerSource.CrawlerSourceFeishu,
- *   feishu_setting: { app_id, app_secret, user_access_token },
- *   kb_id,
- * });
- *
- * // 平铺数据，并传递额外字段
- * const items = flattenCrawlerParseResponse(resp, parent_id, {
- *   feishu_setting: { app_id, app_secret, user_access_token },
- *   folderReq: false,
- * });
- * setData(items);
- * ```
- */
 export const flattenCrawlerParseResponse = (
   response: V1CrawlerParseResp,
   parentId: string | null = null,

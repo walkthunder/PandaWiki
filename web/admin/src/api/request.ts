@@ -23,7 +23,7 @@ type Response<T> = BasicResponse<T> | ErrorResponse;
 const request = <T>(options: AxiosRequestConfig): Promise<T> => {
   const token = localStorage.getItem('panda_wiki_token') || '';
   const config = {
-    baseURL: '/',
+    baseURL: window.__BASENAME__ || '/',
     timeout: 0,
     withCredentials: true,
     headers: {
@@ -48,7 +48,7 @@ const request = <T>(options: AxiosRequestConfig): Promise<T> => {
     },
     (error: AxiosError) => {
       if (error.response?.status === 401) {
-        window.location.href = '/login';
+        window.location.href = window.__BASENAME__ + '/login';
         localStorage.removeItem('panda_wiki_token');
       }
       message.error(error.response?.statusText || '网络异常');

@@ -1,6 +1,10 @@
 'use client';
 import Emoji from '@/components/emoji';
-import { postShareProV1FileUploadWithProgress } from '@/request/pro/otherCustomer';
+import { useBasePath } from '@/hooks/useBasePath';
+import {
+  postShareV1CommonFileUpload,
+  postShareV1CommonFileUploadUrl,
+} from '@/request';
 import { V1NodeDetailResp } from '@/request/types';
 import {
   Editor,
@@ -13,6 +17,7 @@ import {
 import { message } from '@ctzhian/ui';
 import { Box, Stack, TextField } from '@mui/material';
 import { IconAShijian2, IconZiti } from '@panda-wiki/icons';
+import IconPageview1 from '@panda-wiki/icons/IconPageview1';
 import dayjs from 'dayjs';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -32,7 +37,7 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
   const contentType = searchParams.get('contentType') || 'html';
   const { nodeDetail, setNodeDetail, onSave } = useWrapContext();
   const { id } = useParams();
-
+  const baseUrl = useBasePath();
   const markdownEditorRef = useRef<MarkdownEditorRef>(null);
   const [characterCount, setCharacterCount] = useState(0);
   const [headings, setHeadings] = useState<TocList>([]);
@@ -61,18 +66,52 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
   const handleUpload = async (
     file: File,
     onProgress?: (progress: { progress: number }) => void,
+    _abortSignal?: AbortSignal,
+  ) => {
+    let token = '';
+    try {
+      const Cap = (await import('@cap.js/widget')).default;
+      const cap = new Cap({
+        apiEndpoint: `${baseUrl}/share/v1/captcha/`,
+      });
+      const solution = await cap.solve();
+      token = solution.token;
+      onProgress?.({ progress: 0 });
+      const { key } = await postShareV1CommonFileUpload({
+        file,
+        captcha_token: token,
+      });
+      onProgress?.({ progress: 1 });
+      return Promise.resolve('/static-file/' + key);
+    } catch (error) {
+      message.error('验证失败');
+      return Promise.reject(error);
+    }
+  };
+
+  const handleUploadByImgUrl = async (
+    url: string,
     abortSignal?: AbortSignal,
   ) => {
-    const { key } = await postShareProV1FileUploadWithProgress(
-      { file },
-      {
-        onprogress: ({ progress }) => {
-          onProgress?.({ progress: progress / 100 });
+    let token = '';
+    try {
+      const Cap = (await import('@cap.js/widget')).default;
+      const cap = new Cap({
+        apiEndpoint: `${baseUrl}/share/v1/captcha/`,
+      });
+      const solution = await cap.solve();
+      token = solution.token;
+      const { key } = await postShareV1CommonFileUploadUrl(
+        { url, captcha_token: token },
+        {
+          signal: abortSignal,
         },
-        abortSignal,
-      },
-    );
-    return Promise.resolve('/static-file/' + key);
+      );
+      return Promise.resolve('/static-file/' + key);
+    } catch (error) {
+      message.error('验证失败');
+      return Promise.reject(error);
+    }
   };
 
   const handleTocUpdate = (toc: TocList) => {
@@ -94,6 +133,7 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
     immediatelyRender: false,
     editable: !isMarkdown,
     contentType: isMarkdown ? 'markdown' : 'html',
+    baseUrl: baseUrl,
     content: defaultDetail?.content || '',
     exclude: ['invisibleCharacters', 'youtube', 'mention'],
     onCreate: ({ editor: tiptapEditor }) => {
@@ -103,6 +143,7 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
     },
     onError: handleError,
     onUpload: handleUpload,
+    onUploadImgUrl: handleUploadByImgUrl,
     onUpdate: handleUpdate,
     onTocUpdate: handleTocUpdate,
   });
@@ -120,6 +161,23 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
     }
   }, [editorRef.editor]);
 
+  const checkRequiredFields = useCallback(
+    (content?: string) => {
+      if (!nodeDetail?.name?.trim()) {
+        message.error('请先输入文档名称');
+        return false;
+      }
+      const contentToCheck =
+        content !== undefined ? content : nodeDetail?.content;
+      if (!contentToCheck?.trim()) {
+        message.error('请先输入文档内容');
+        return false;
+      }
+      return true;
+    },
+    [nodeDetail],
+  );
+
   const handleGlobalSave = useCallback(
     (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
@@ -129,28 +187,14 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
           updateDetail({
             content: value,
           });
-          setTimeout(() => {
-            if (checkRequiredFields()) {
-              setConfirmModalOpen(true);
-            }
-          }, 10);
+          if (checkRequiredFields(value)) {
+            setConfirmModalOpen(true);
+          }
         }
       }
     },
-    [editorRef],
+    [editorRef, checkRequiredFields],
   );
-
-  const checkRequiredFields = useCallback(() => {
-    if (!nodeDetail?.name?.trim()) {
-      message.error('请先输入文档名称');
-      return false;
-    }
-    if (!nodeDetail?.content?.trim()) {
-      message.error('请先输入文档内容');
-      return false;
-    }
-    return true;
-  }, [nodeDetail]);
 
   useEffect(() => {
     document.addEventListener('keydown', handleGlobalSave);
@@ -179,18 +223,21 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
         }}
       >
         <Header
-          edit={isEditing}
           detail={nodeDetail!}
-          updateDetail={updateDetail}
           handleSave={async () => {
-            if (checkRequiredFields()) {
+            let content = nodeDetail?.content || '';
+            if (!isMarkdown) {
+              content = editorRef.getContent();
+              updateDetail({
+                content: content,
+              });
+            }
+            if (checkRequiredFields(content)) {
               setConfirmModalOpen(true);
             }
           }}
         />
-        {!isMarkdown && (
-          <Toolbar editorRef={editorRef} handleAiGenerate={handleAiGenerate} />
-        )}
+        {!isMarkdown && <Toolbar editorRef={editorRef} />}
       </Box>
       <Box
         sx={{
@@ -267,10 +314,10 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
                 gap={0.5}
                 sx={{
                   fontSize: 12,
-                  color: 'text.auxiliary',
+                  color: 'text.tertiary',
                   cursor: 'text',
                   ':hover': {
-                    color: 'text.auxiliary',
+                    color: 'text.tertiary',
                   },
                 }}
               >
@@ -286,10 +333,19 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
               direction={'row'}
               alignItems={'center'}
               gap={0.5}
-              sx={{ fontSize: 12, color: 'text.auxiliary' }}
+              sx={{ fontSize: 12, color: 'text.tertiary' }}
             >
               <IconZiti />
               {characterCount} 字
+            </Stack>
+            <Stack
+              direction={'row'}
+              alignItems={'center'}
+              gap={0.5}
+              sx={{ fontSize: 12, color: 'text.tertiary' }}
+            >
+              <IconPageview1 sx={{ fontSize: 12 }} />
+              浏览量 {nodeDetail?.pv}
             </Stack>
           </Stack>
           {editorRef.editor && (
@@ -299,6 +355,8 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
                   ref={markdownEditorRef}
                   editor={editorRef.editor}
                   value={nodeDetail?.content || defaultDetail?.content || ''}
+                  onUpload={handleUpload}
+                  placeholder='请输入文档内容'
                   onAceChange={value => {
                     updateDetail({
                       content: value,
@@ -351,12 +409,17 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
         open={confirmModalOpen}
         onCancel={() => setConfirmModalOpen(false)}
         onOk={async (reason: string, token: string) => {
-          const value = editorRef.getContent();
-          updateDetail({
-            content: value,
-          });
-          await onSave(value, reason, token, isMarkdown ? 'md' : 'html');
-          setConfirmModalOpen(false);
+          if (editorRef) {
+            let value = nodeDetail?.content || '';
+            if (!isMarkdown) {
+              value = editorRef.getContent();
+              updateDetail({
+                content: value,
+              });
+            }
+            await onSave(value, reason, token, isMarkdown ? 'md' : 'html');
+            setConfirmModalOpen(false);
+          }
         }}
       />
     </>

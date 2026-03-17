@@ -19,7 +19,7 @@ const LoaderWrapper = styled('div')({
   width: '100%',
 });
 
-const Loader = () => (
+export const Loader = () => (
   <LoaderWrapper>
     <LinearProgress color='primary' />
   </LoaderWrapper>
@@ -42,7 +42,7 @@ const router = [
       {
         path: '',
         element: createElement(
-          LazyLoadable(lazy(() => import('./pages/document'))),
+          LazyLoadable(lazy(() => import('./pages/document/layout'))),
         ),
       },
       {

@@ -29,6 +29,8 @@ import { ColumnType } from '@ctzhian/ui/dist/Table';
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useAppSelector } from '@/store';
+import { BUSINESS_VERSION_PERMISSION } from '@/constant/version';
+import { VersionCanUse } from '@/components/VersionMask';
 import { SettingCardItem, FormItem } from './Common';
 
 interface CardAuthProps {
@@ -114,7 +116,7 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
       }),
       value.enabled === '2' &&
       source_type !== EXTEND_CONSTS_SOURCE_TYPE.SourceTypePassword
-        ? isPro
+        ? isBusiness
           ? postApiProV1AuthSet({
               kb_id,
               source_type: value.source_type as ConstsSourceType,
@@ -157,25 +159,18 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
     });
   });
 
-  const isPro = useMemo(() => {
-    return license.edition === 1 || license.edition === 2;
-  }, [license]);
-
-  const isEnterprise = useMemo(() => {
-    return license.edition === 2;
+  const isBusiness = useMemo(() => {
+    return BUSINESS_VERSION_PERMISSION.includes(license.edition!);
   }, [license]);
 
   useEffect(() => {
-    const source_type = isPro
+    const source_type = isBusiness
       ? kb.access_settings?.source_type ||
         EXTEND_CONSTS_SOURCE_TYPE.SourceTypePassword
-      : kb.access_settings?.source_type ===
-          EXTEND_CONSTS_SOURCE_TYPE.SourceTypeGitHub
-        ? EXTEND_CONSTS_SOURCE_TYPE.SourceTypeGitHub
-        : EXTEND_CONSTS_SOURCE_TYPE.SourceTypePassword;
+      : EXTEND_CONSTS_SOURCE_TYPE.SourceTypePassword;
     setValue('source_type', source_type);
     sourceTypeRef.current = source_type;
-  }, [kb, isPro]);
+  }, [kb, isBusiness]);
 
   useEffect(() => {
     if (kb.access_settings?.simple_auth) {
@@ -191,7 +186,7 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
   }, [kb]);
 
   const getAuth = () => {
-    if (isPro) {
+    if (isBusiness) {
       getApiProV1AuthGet({
         kb_id,
         source_type: source_type as ConstsSourceType,
@@ -236,7 +231,7 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
   useEffect(() => {
     if (!kb_id || enabled !== '2') return;
     getAuth();
-  }, [kb_id, isPro, source_type, enabled]);
+  }, [kb_id, isBusiness, source_type, enabled]);
 
   const columns: ColumnType<GithubComChaitinPandaWikiProApiAuthV1AuthItem>[] = [
     {
@@ -267,31 +262,6 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
         );
       },
     },
-
-    // {
-    //   title: '',
-    //   dataIndex: 'action',
-    //   width: 60,
-    //   render: (text: string, record) => {
-    //     return (
-    //       <IconButton
-    //         size='small'
-    //         sx={{ p: '2px' }}
-    //         onClick={() => {
-    //           onDeleteUser(record.id!);
-    //         }}
-    //       >
-    //         <Icon
-    //           type='icon-icon_tool_close'
-    //           sx={{
-    //             cursor: 'pointer',
-    //             color: 'error.main',
-    //           }}
-    //         />
-    //       </IconButton>
-    //     );
-    //   },
-    // },
   ];
 
   const githubForm = () => {
@@ -875,8 +845,18 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
                       field.onChange(e.target.value);
                       setIsEdit(true);
                     }}
+                    MenuProps={{
+                      sx: {
+                        '.Mui-disabled': {
+                          opacity: '1 !important',
+                          color: 'text.disabled',
+                        },
+                      },
+                    }}
                     fullWidth
-                    sx={{ height: 52 }}
+                    sx={{
+                      height: 52,
+                    }}
                   >
                     <MenuItem
                       value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypePassword}
@@ -885,44 +865,52 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
                     </MenuItem>
                     <MenuItem
                       value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeDingTalk}
-                      disabled={!isPro}
+                      disabled={!isBusiness}
                     >
-                      钉钉登录 {isPro ? '' : tips}
+                      钉钉登录{' '}
+                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
                     </MenuItem>
                     <MenuItem
                       value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeFeishu}
-                      disabled={!isPro}
+                      disabled={!isBusiness}
                     >
-                      飞书登录 {isPro ? '' : tips}
+                      飞书登录{' '}
+                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
                     </MenuItem>
                     <MenuItem
                       value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeWeCom}
-                      disabled={!isPro}
+                      disabled={!isBusiness}
                     >
-                      企业微信登录 {isPro ? '' : tips}
+                      企业微信登录{' '}
+                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
                     </MenuItem>
                     <MenuItem
                       value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeOAuth}
-                      disabled={!isPro}
+                      disabled={!isBusiness}
                     >
-                      OAuth 登录 {isPro ? '' : tips}
+                      OAuth 登录{' '}
+                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
                     </MenuItem>
                     <MenuItem
                       value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeCAS}
-                      disabled={!isPro}
+                      disabled={!isBusiness}
                     >
-                      CAS 登录 {isPro ? '' : tips}
+                      CAS 登录{' '}
+                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
                     </MenuItem>
                     <MenuItem
                       value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeLDAP}
-                      disabled={!isPro}
+                      disabled={!isBusiness}
                     >
-                      LDAP 登录 {isPro ? '' : tips}
+                      LDAP 登录{' '}
+                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
                     </MenuItem>
                     <MenuItem
                       value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeGitHub}
+                      disabled={!isBusiness}
                     >
-                      GitHub 登录
+                      GitHub 登录{' '}
+                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
                     </MenuItem>
                   </Select>
                 )}

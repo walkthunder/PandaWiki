@@ -1,8 +1,9 @@
 import { V1NodeDetailResp } from '@/request';
 import { Button, CircularProgress, Stack, TextField } from '@mui/material';
-import { Icon, message, Modal } from '@ctzhian/ui';
+import { Modal } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
 import { useWrapContext } from '..';
+import { IconDJzhinengzhaiyao } from '@panda-wiki/icons';
 
 interface SummaryProps {
   open: boolean;
@@ -88,7 +89,7 @@ const Summary = ({ open, onClose, updateDetail }: SummaryProps) => {
             loading ? (
               <CircularProgress size={16} />
             ) : (
-              <Icon type='icon-DJzhinengzhaiyao' sx={{ fontSize: 16 }} />
+              <IconDJzhinengzhaiyao sx={{ fontSize: 16 }} />
             )
           }
         >

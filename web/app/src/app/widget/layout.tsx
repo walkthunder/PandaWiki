@@ -1,8 +1,7 @@
 import StoreProvider from '@/provider';
-import { darkThemeWidget, lightThemeWidget } from '@/theme';
 import { getShareV1AppWidgetInfo } from '@/request/ShareApp';
+import { darkThemeWidget, lightThemeWidget } from '@/theme';
 import { ThemeProvider } from '@ctzhian/ui';
-
 import React from 'react';
 
 const Layout = async ({
@@ -11,17 +10,17 @@ const Layout = async ({
   children: React.ReactNode;
 }>) => {
   const widgetDetail: any = await getShareV1AppWidgetInfo();
+  const themeMode = widgetDetail?.settings?.widget_bot_settings?.theme_mode;
 
-  const themeMode =
-    widgetDetail?.settings?.widget_bot_settings?.theme_mode || 'light';
+  let selectedTheme = lightThemeWidget;
+
+  if (themeMode === 'dark') {
+    selectedTheme = darkThemeWidget;
+  }
 
   return (
-    <ThemeProvider
-      theme={themeMode === 'dark' ? darkThemeWidget : lightThemeWidget}
-    >
-      <StoreProvider widget={widgetDetail} themeMode={themeMode || 'light'}>
-        {children}
-      </StoreProvider>
+    <ThemeProvider theme={selectedTheme}>
+      <StoreProvider widget={widgetDetail}>{children}</StoreProvider>
     </ThemeProvider>
   );
 };

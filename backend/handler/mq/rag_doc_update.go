@@ -3,6 +3,7 @@ package mq
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/chaitin/panda-wiki/consts"
 	"github.com/chaitin/panda-wiki/domain"
@@ -53,8 +54,9 @@ func (h *RagDocUpdateHandler) HandleRagDocUpdate(ctx context.Context, msg types.
 
 	if err := h.nodeRepo.Update(ctx, nodeId, map[string]interface{}{
 		"rag_info": domain.RagInfo{
-			Status:  consts.NodeRagInfoStatus(event.Status),
-			Message: event.Message,
+			Status:   consts.NodeRagInfoStatus(event.Status),
+			Message:  event.Message,
+			SyncedAt: time.Now(),
 		},
 	}); err != nil {
 		return err

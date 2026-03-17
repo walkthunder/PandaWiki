@@ -17,6 +17,7 @@ declare module '@mui/material/styles' {
     dark?: PaletteOptions['primary'] & Partial<PaletteColorChannel>;
     disabled?: PaletteOptions['primary'] & Partial<PaletteColorChannel>;
     text?: Partial<TypeText>;
+    table?: Partial<TypeTable>;
   }
 }
 
@@ -41,5 +42,16 @@ declare module '@mui/material/styles' {
     paper2?: string;
     paper3?: string;
     footer?: string;
+  }
+}
+
+declare module '@mui/material/styles' {
+  interface TypeTable {
+    head: {
+      background: string;
+    };
+    cell: {
+      border: string;
+    };
   }
 }

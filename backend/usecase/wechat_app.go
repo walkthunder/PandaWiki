@@ -13,18 +13,20 @@ import (
 type WechatAppUsecase struct {
 	logger      *log.Logger
 	AppUsecase  *AppUsecase
-	authRepo    *pg.AuthRepo
 	chatUsecase *ChatUsecase
+	appRepo     *pg.AppRepository
+	authRepo    *pg.AuthRepo
 	weRepo      *pg.WechatRepository
 }
 
-func NewWechatAppUsecase(logger *log.Logger, AppUsecase *AppUsecase, chatUsecase *ChatUsecase, weRepo *pg.WechatRepository, authRepo *pg.AuthRepo) *WechatAppUsecase {
+func NewWechatAppUsecase(logger *log.Logger, AppUsecase *AppUsecase, chatUsecase *ChatUsecase, weRepo *pg.WechatRepository, authRepo *pg.AuthRepo, appRepo *pg.AppRepository) *WechatAppUsecase {
 	return &WechatAppUsecase{
 		logger:      logger.WithModule("usecase.wechatAppUsecase"),
 		AppUsecase:  AppUsecase,
 		chatUsecase: chatUsecase,
 		weRepo:      weRepo,
 		authRepo:    authRepo,
+		appRepo:     appRepo,
 	}
 }
 
@@ -37,7 +39,7 @@ func (u *WechatAppUsecase) VerifyUrlWechatAPP(ctx context.Context, signature, ti
 	return body, nil
 }
 
-func (u *WechatAppUsecase) Wechat(ctx context.Context, msg *wechat.ReceivedMessage, wc *wechat.WechatConfig, KbId string) error {
+func (u *WechatAppUsecase) Wechat(ctx context.Context, msg *wechat.ReceivedMessage, wc *wechat.WechatConfig, KbId string, weChatAppAdvancedSetting *domain.WeChatAppAdvancedSetting) error {
 	getQA := u.getQAFunc(KbId, domain.AppTypeWechatBot)
 
 	// 调用接口，获取到用户的详细消息
@@ -49,8 +51,10 @@ func (u *WechatAppUsecase) Wechat(ctx context.Context, msg *wechat.ReceivedMessa
 	u.logger.Info("get userinfo success", log.Any("userinfo", userinfo))
 	wc.WeRepo = u.weRepo
 
+	useTextResponse := domain.GetBaseEditionLimitation(ctx).AllowAdvancedBot && (weChatAppAdvancedSetting != nil && weChatAppAdvancedSetting.TextResponseEnable)
+
 	// 发送消息给用户
-	err = wc.Wechat(*msg, getQA, userinfo)
+	err = wc.Wechat(*msg, getQA, userinfo, useTextResponse, weChatAppAdvancedSetting)
 
 	if err != nil {
 		u.logger.Error("wc wechat failed", log.Error(err))
@@ -60,15 +64,15 @@ func (u *WechatAppUsecase) Wechat(ctx context.Context, msg *wechat.ReceivedMessa
 }
 
 func (u *WechatAppUsecase) NewWechatConfig(ctx context.Context, appInfo *domain.AppDetailResp, kbID string) (*wechat.WechatConfig, error) {
-	return wechat.NewWechatConfig(
+	return wechat.NewWechatAppConfig(
 		ctx,
+		u.logger,
+		kbID,
 		appInfo.Settings.WeChatAppCorpID,
 		appInfo.Settings.WeChatAppToken,
 		appInfo.Settings.WeChatAppEncodingAESKey,
-		kbID,
 		appInfo.Settings.WeChatAppSecret,
 		appInfo.Settings.WeChatAppAgentID,
-		u.logger,
 	)
 }
 
@@ -79,6 +83,12 @@ func (u *WechatAppUsecase) getQAFunc(kbID string, appType domain.AppType) bot.Ge
 			u.logger.Error("get auth failed", log.Error(err))
 			return nil, err
 		}
+		wechatApp, err := u.appRepo.GetOrCreateAppByKBIDAndType(ctx, kbID, domain.AppTypeWechatBot)
+		if err != nil {
+			u.logger.Error("failed to get wechat app", log.Error(err), log.String("kb_id", kbID))
+			return nil, err
+		}
+
 		info.UserInfo.AuthUserID = auth.ID
 
 		eventCh, err := u.chatUsecase.Chat(ctx, &domain.ChatRequest{
@@ -88,6 +98,7 @@ func (u *WechatAppUsecase) getQAFunc(kbID string, appType domain.AppType) bot.Ge
 			RemoteIP:       "",
 			ConversationID: ConversationID,
 			Info:           info,
+			Prompt:         wechatApp.Settings.WeChatAppAdvancedSetting.Prompt,
 		})
 		if err != nil {
 			return nil, err

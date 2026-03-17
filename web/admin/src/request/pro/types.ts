@@ -20,6 +20,8 @@ export enum DomainCommentStatus {
 export enum ConstsUserKBPermission {
   /** 无权限 */
   UserKBPermissionNull = "",
+  /** 有权限 */
+  UserKBPermissionNotNull = "not null",
   /** 完全控制 */
   UserKBPermissionFullControl = "full_control",
   /** 文档管理 */
@@ -46,16 +48,19 @@ export enum ConstsSourceType {
   SourceTypeDiscordBot = "discord_bot",
   SourceTypeWechatOfficialAccount = "wechat_official_account",
   SourceTypeOpenAIAPI = "openai_api",
+  SourceTypeMcpServer = "mcp_server",
 }
 
 /** @format int32 */
 export enum ConstsLicenseEdition {
   /** 开源版 */
   LicenseEditionFree = 0,
-  /** 联创版 */
-  LicenseEditionContributor = 1,
+  /** 专业版 */
+  LicenseEditionProfession = 1,
   /** 企业版 */
   LicenseEditionEnterprise = 2,
+  /** 商业版 */
+  LicenseEditionBusiness = 3,
 }
 
 export enum ConstsContributeType {
@@ -72,11 +77,6 @@ export enum ConstsContributeStatus {
 export interface DomainCommentModerateListReq {
   ids: string[];
   status: DomainCommentStatus;
-}
-
-export interface DomainCreatePromptReq {
-  content?: string;
-  kb_id: string;
 }
 
 export interface DomainDocumentFeedbackInfo {
@@ -163,12 +163,30 @@ export interface DomainPWResponse {
 
 export interface DomainPrompt {
   content?: string;
+  enable_preset?: boolean;
+  /** 允许AI自动匹配用户提问的语言进行回复 */
+  enable_preset_auto_language?: boolean;
+  /** 允许AI结合通用知识进行补充回答 */
+  enable_preset_general_info?: boolean;
+  /** 在回答中显示引用来源 */
+  enable_preset_reference?: boolean;
+  summary_content?: string;
 }
 
 export interface DomainResponse {
   data?: unknown;
   message?: string;
   success?: boolean;
+}
+
+export interface DomainUpdatePromptReq {
+  content?: string;
+  enable_preset?: boolean;
+  enable_preset_auto_language?: boolean;
+  enable_preset_general_info?: boolean;
+  enable_preset_reference?: boolean;
+  kb_id: string;
+  summary_content?: string;
 }
 
 export interface GithubComChaitinPandaWikiProApiAuthV1AuthGetResp {
@@ -333,6 +351,7 @@ export interface GithubComChaitinPandaWikiProApiAuthV1AuthSetReq {
 export interface GithubComChaitinPandaWikiProApiContributeV1ContributeAuditReq {
   id: string;
   kb_id: string;
+  nav_id: string;
   parent_id?: string;
   position?: number;
   status: "approved" | "rejected";
@@ -455,6 +474,11 @@ export type GithubComChaitinPandaWikiProApiShareV1AuthLDAPResp = Record<
   any
 >;
 
+export type GithubComChaitinPandaWikiProApiShareV1AuthLogoutResp = Record<
+  string,
+  any
+>;
+
 export interface GithubComChaitinPandaWikiProApiShareV1AuthOAuthReq {
   kb_id?: string;
   redirect_url?: string;
@@ -465,6 +489,7 @@ export interface GithubComChaitinPandaWikiProApiShareV1AuthOAuthResp {
 }
 
 export interface GithubComChaitinPandaWikiProApiShareV1AuthWecomReq {
+  is_app?: boolean;
   kb_id?: string;
   redirect_url?: string;
 }
@@ -583,7 +608,8 @@ export interface GetApiProV1AuthGetParams {
     | "wechat_service_bot"
     | "discord_bot"
     | "wechat_official_account"
-    | "openai_api";
+    | "openai_api"
+    | "mcp_server";
 }
 
 export interface DeleteApiProV1AuthGroupDeleteParams {
@@ -668,8 +694,6 @@ export interface GetApiProV1TokenListParams {
 }
 
 export interface PostApiV1LicensePayload {
-  /** license edition */
-  license_edition: "contributor" | "enterprise";
   /** license type */
   license_type: "file" | "code";
   /**

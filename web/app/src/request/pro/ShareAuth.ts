@@ -24,6 +24,7 @@ import {
   GithubComChaitinPandaWikiProApiShareV1AuthInfoResp,
   GithubComChaitinPandaWikiProApiShareV1AuthLDAPReq,
   GithubComChaitinPandaWikiProApiShareV1AuthLDAPResp,
+  GithubComChaitinPandaWikiProApiShareV1AuthLogoutResp,
   GithubComChaitinPandaWikiProApiShareV1AuthOAuthReq,
   GithubComChaitinPandaWikiProApiShareV1AuthOAuthResp,
   GithubComChaitinPandaWikiProApiShareV1AuthWecomReq,
@@ -201,6 +202,32 @@ export const postShareProV1AuthLdap = (
     path: `/share/pro/v1/auth/ldap`,
     method: "POST",
     body: param,
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
+
+/**
+ * @description 用户登出
+ *
+ * @tags ShareAuth
+ * @name PostShareProV1AuthLogout
+ * @summary 用户登出
+ * @request POST:/share/pro/v1/auth/logout
+ * @response `200` `(DomainPWResponse & {
+    data?: GithubComChaitinPandaWikiProApiShareV1AuthLogoutResp,
+
+})` OK
+ */
+
+export const postShareProV1AuthLogout = (params: RequestParams = {}) =>
+  httpRequest<
+    DomainPWResponse & {
+      data?: GithubComChaitinPandaWikiProApiShareV1AuthLogoutResp;
+    }
+  >({
+    path: `/share/pro/v1/auth/logout`,
+    method: "POST",
     type: ContentType.Json,
     format: "json",
     ...params,

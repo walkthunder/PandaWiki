@@ -6,18 +6,12 @@ import (
 )
 
 type CrawlerParseReq struct {
-	Key           string               `json:"key"`
-	KbID          string               `json:"kb_id" validate:"required"`
-	CrawlerSource consts.CrawlerSource `json:"crawler_source" validate:"required"`
-	Filename      string               `json:"filename"`
-	FeishuSetting FeishuSetting        `json:"feishu_setting"`
-}
-
-type FeishuSetting struct {
-	UserAccessToken string `json:"user_access_token"`
-	AppID           string `json:"app_id"`
-	AppSecret       string `json:"app_secret"`
-	SpaceId         string `json:"space_id"`
+	Key             string                 `json:"key"`
+	KbID            string                 `json:"kb_id" validate:"required"`
+	CrawlerSource   consts.CrawlerSource   `json:"crawler_source" validate:"required"`
+	Filename        string                 `json:"filename"`
+	FeishuSetting   anydoc.FeishuSetting   `json:"feishu_setting"`
+	DingtalkSetting anydoc.DingtalkSetting `json:"dingtalk_setting"`
 }
 
 type CrawlerParseResp struct {

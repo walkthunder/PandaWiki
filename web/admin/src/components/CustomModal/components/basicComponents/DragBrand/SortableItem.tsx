@@ -1,10 +1,7 @@
-import { FooterSetting } from '@/api/type';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { FC } from 'react';
-import { Control, FieldErrors } from 'react-hook-form';
 import Item, { ItemProps } from './Item';
-import { BrandGroup } from '.';
 
 type SortableItemProps = Omit<
   ItemProps,

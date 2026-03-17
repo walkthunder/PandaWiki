@@ -1,9 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SettingCardItem } from '../Common';
-import { Tooltip } from '@mui/material';
-import InfoIcon from '@mui/icons-material/Info';
 import { Modal, message } from '@ctzhian/ui';
-import { Stack, Button } from '@mui/material';
 import { Box } from '@mui/material';
 import { postApiProV1AuthGroupSync } from '@/request/pro/AuthOrg';
 import {
@@ -19,6 +16,7 @@ import {
   deleteApiProV1AuthGroupDelete,
 } from '@/request/pro/AuthGroup';
 import GroupTree from './GroupTree';
+import { BUSINESS_VERSION_PERMISSION } from '@/constant/version';
 
 interface UserGroupProps {
   enabled: string;
@@ -45,10 +43,6 @@ const UserGroup = ({
     GithubComChaitinPandaWikiProApiAuthV1AuthGroupTreeItem[]
   >([]);
 
-  const isEnterprise = useMemo(() => {
-    return license.edition === 2;
-  }, [license]);
-
   const onDeleteUserGroup = (id: number) => {
     Modal.confirm({
       title: '删除用户组',
@@ -74,10 +68,15 @@ const UserGroup = ({
     });
   };
   useEffect(() => {
-    if (!kb_id || enabled !== '2' || !isEnterprise) return;
+    if (
+      !kb_id ||
+      enabled !== '2' ||
+      !BUSINESS_VERSION_PERMISSION.includes(license.edition!)
+    )
+      return;
     getUserGroup();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kb_id, enabled, isEnterprise]);
+  }, [kb_id, enabled, license.edition!]);
 
   const handleMove = async ({
     id,
@@ -123,32 +122,7 @@ const UserGroup = ({
   };
 
   return (
-    <SettingCardItem
-      title='用户组'
-      more={
-        !isEnterprise && (
-          <Tooltip title='企业版可用' placement='top' arrow>
-            <InfoIcon sx={{ color: 'text.secondary', fontSize: 14, ml: 1 }} />
-          </Tooltip>
-        )
-      }
-      // extra={
-      //   isEnterprise &&
-      //   [
-      //     ConstsSourceType.SourceTypeWeCom,
-      //     ConstsSourceType.SourceTypeDingTalk,
-      //   ].includes(sourceType as ConstsSourceType) && (
-      //     <Button
-      //       color='primary'
-      //       size='small'
-      //       onClick={handleSync}
-      //       loading={syncLoading}
-      //     >
-      //       同步组织架构和成员
-      //     </Button>
-      //   )
-      // }
-    >
+    <SettingCardItem title='用户组' permission={BUSINESS_VERSION_PERMISSION}>
       <Box
         sx={{
           border: '1px dashed',
@@ -188,6 +162,7 @@ const UserGroup = ({
           data={userGroupTree.filter(it => it.sync_id)}
           sync
           onSync={handleSync}
+          sourceType={sourceType}
           onClickMembers={item => {
             setUserGroupModalData({
               id: item.id,

@@ -1,8 +1,8 @@
-import { Icon } from '@ctzhian/ui';
 import { Upload as UploadIcon } from '@mui/icons-material';
 import { Box, Button, Stack, Typography, useTheme } from '@mui/material';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FileRejection, useDropzone } from 'react-dropzone';
+import { IconShangchuan } from '@panda-wiki/icons';
 
 // 文件扩展名到 MIME 类型的映射
 const FILE_EXTENSION_TO_MIME: Record<string, string> = {
@@ -110,8 +110,7 @@ const Upload = ({
           onClick={() => fileInputRef.current?.click()}
         >
           <input {...getInputProps()} />
-          <Icon
-            type='icon-shangchuan'
+          <IconShangchuan
             sx={{ fontSize: 40, mb: 1, color: 'text.secondary' }}
           />
           <Typography

@@ -3,7 +3,7 @@ import {
   DomainKnowledgeBaseDetail,
 } from '@/request/types';
 import { useAppSelector } from '@/store';
-import InfoIcon from '@mui/icons-material/Info';
+import { PROFESSION_VERSION_PERMISSION } from '@/constant/version';
 import {
   Box,
   Chip,
@@ -12,7 +12,6 @@ import {
   RadioGroup,
   styled,
   TextField,
-  Tooltip,
 } from '@mui/material';
 
 import { getApiV1AppDetail, putApiV1App } from '@/request/App';
@@ -37,7 +36,7 @@ const DocumentComments = ({
   data: DomainAppDetailResp;
   refresh: () => void;
 }) => {
-  const { license, kb_id } = useAppSelector(state => state.config);
+  const { kb_id } = useAppSelector(state => state.config);
   const [isEdit, setIsEdit] = useState(false);
   const { control, handleSubmit, setValue } = useForm({
     defaultValues: {
@@ -56,8 +55,6 @@ const DocumentComments = ({
       +data?.settings?.web_app_comment_settings?.moderation_enable,
     );
   }, [data]);
-
-  const isPro = license.edition === 1 || license.edition === 2;
 
   const onSubmit = handleSubmit(formData => {
     putApiV1App(
@@ -108,7 +105,7 @@ const DocumentComments = ({
           )}
         />
       </FormItem>
-      <FormItem label='评论审核' tooltip={!isPro && '联创版和企业版可用'}>
+      <FormItem label='评论审核' permission={PROFESSION_VERSION_PERMISSION}>
         <Controller
           control={control}
           name='moderation_enable'
@@ -116,7 +113,6 @@ const DocumentComments = ({
             <RadioGroup
               row
               {...field}
-              value={isPro ? field.value : undefined}
               onChange={e => {
                 setIsEdit(true);
                 field.onChange(+e.target.value as 1 | 0);
@@ -124,12 +120,12 @@ const DocumentComments = ({
             >
               <FormControlLabel
                 value={1}
-                control={<Radio size='small' disabled={!isPro} />}
+                control={<Radio size='small' />}
                 label={<StyledRadioLabel>启用</StyledRadioLabel>}
               />
               <FormControlLabel
                 value={0}
-                control={<Radio size='small' disabled={!isPro} />}
+                control={<Radio size='small' />}
                 label={<StyledRadioLabel>禁用</StyledRadioLabel>}
               />
             </RadioGroup>
@@ -150,7 +146,7 @@ const AIQuestion = ({
   refresh: () => void;
 }) => {
   const [isEdit, setIsEdit] = useState(false);
-  const { kb_id, license } = useAppSelector(state => state.config);
+  const { kb_id } = useAppSelector(state => state.config);
   const { control, handleSubmit, setValue } = useForm({
     defaultValues: {
       is_enabled: true,
@@ -159,7 +155,6 @@ const AIQuestion = ({
     },
   });
   const [inputValue, setInputValue] = useState('');
-  const isEnterprise = license.edition === 2;
 
   const onSubmit = handleSubmit(formData => {
     putApiV1App(
@@ -273,7 +268,7 @@ const AIQuestion = ({
           )}
         />{' '}
       </FormItem>
-      <FormItem label='免责声明' tooltip={!isEnterprise && '企业版可用'}>
+      <FormItem label='免责声明' permission={PROFESSION_VERSION_PERMISSION}>
         <Controller
           control={control}
           name='disclaimer'
@@ -282,7 +277,6 @@ const AIQuestion = ({
               {...field}
               fullWidth
               value={field.value || ''}
-              disabled={!isEnterprise}
               placeholder='请输入免责声明'
               onChange={e => {
                 setIsEdit(true);
@@ -304,7 +298,7 @@ const DocumentContribution = ({
   refresh: () => void;
 }) => {
   const [isEdit, setIsEdit] = useState(false);
-  const { license, kb_id } = useAppSelector(state => state.config);
+  const { kb_id } = useAppSelector(state => state.config);
   const { control, handleSubmit, setValue } = useForm({
     defaultValues: {
       is_enable: false,
@@ -330,7 +324,6 @@ const DocumentContribution = ({
     });
   });
 
-  const isPro = license.edition === 1 || license.edition === 2;
   useEffect(() => {
     setValue(
       'is_enable',
@@ -340,21 +333,8 @@ const DocumentContribution = ({
   }, [data]);
 
   return (
-    <SettingCardItem
-      title={
-        <>
-          文档贡献
-          {!isPro && (
-            <Tooltip title='联创版和企业版可用' placement='top' arrow>
-              <InfoIcon sx={{ color: 'text.secondary', fontSize: 14 }} />
-            </Tooltip>
-          )}
-        </>
-      }
-      isEdit={isEdit}
-      onSubmit={onSubmit}
-    >
-      <FormItem label='文档贡献'>
+    <SettingCardItem title='文档贡献' isEdit={isEdit} onSubmit={onSubmit}>
+      <FormItem label='文档贡献' permission={PROFESSION_VERSION_PERMISSION}>
         <Controller
           control={control}
           name='is_enable'
@@ -362,7 +342,7 @@ const DocumentContribution = ({
             <RadioGroup
               row
               {...field}
-              value={isPro ? field.value : undefined}
+              value={field.value}
               onChange={e => {
                 setIsEdit(true);
                 field.onChange(e.target.value === 'true');
@@ -370,12 +350,12 @@ const DocumentContribution = ({
             >
               <FormControlLabel
                 value={true}
-                control={<Radio size='small' disabled={!isPro} />}
+                control={<Radio size='small' />}
                 label={<StyledRadioLabel>启用</StyledRadioLabel>}
               />
               <FormControlLabel
                 value={false}
-                control={<Radio size='small' disabled={!isPro} />}
+                control={<Radio size='small' />}
                 label={<StyledRadioLabel>禁用</StyledRadioLabel>}
               />
             </RadioGroup>

@@ -126,6 +126,12 @@ export const TYPE_CONFIG: Record<
     usage:
       'https://wiki.webinfra.cloud/node/01976929-0e76-77a9-aed9-842e60933464#%E9%80%9A%E8%BF%87%E9%A3%9E%E4%B9%A6%E6%96%87%E6%A1%A3%E5%AF%BC%E5%85%A5',
   },
+  [ConstsCrawlerSource.CrawlerSourceDingtalk]: {
+    label: '通过钉钉文档导入',
+    okText: '拉取知识库',
+    usage:
+      'https://pandawiki.docs.baizhi.cloud/node/01976929-0e76-77a9-aed9-842e60933464#%E9%80%9A%E8%BF%87%E9%92%89%E9%92%89%E6%96%87%E6%A1%A3%E5%AF%BC%E5%85%A5',
+  },
   [ConstsCrawlerSource.CrawlerSourceConfluence]: {
     label: '通过 Confluence 导入',
     accept: '.zip',

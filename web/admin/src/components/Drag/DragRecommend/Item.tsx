@@ -1,7 +1,9 @@
 import { DomainRecommendNodeListResp } from '@/request/types';
 import { useAppSelector } from '@/store';
-import { Ellipsis, Icon } from '@ctzhian/ui';
+import { Ellipsis } from '@ctzhian/ui';
+import { IconWenjianjia, IconWenjian, IconShanchu2 } from '@panda-wiki/icons';
 import { Box, IconButton, Stack } from '@mui/material';
+import { IconDrag } from '@panda-wiki/icons';
 import { CSSProperties, forwardRef, HTMLAttributes } from 'react';
 
 export type ItemProps = HTMLAttributes<HTMLDivElement> & {
@@ -62,10 +64,15 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
             }}
           >
             <Stack direction={'row'} alignItems={'center'} gap={1}>
-              <Icon
-                type={item.type === 1 ? 'icon-wenjianjia' : 'icon-wenjian'}
-                sx={{ fontSize: 14, color: '#2f80f7', flexShrink: 0 }}
-              />
+              {item.type === 1 ? (
+                <IconWenjianjia
+                  sx={{ fontSize: 14, color: '#2f80f7', flexShrink: 0 }}
+                />
+              ) : (
+                <IconWenjian
+                  sx={{ fontSize: 14, color: '#2f80f7', flexShrink: 0 }}
+                />
+              )}
               <Ellipsis sx={{ flex: 1, width: 0, lineHeight: '32px' }}>
                 {item.name}
               </Ellipsis>
@@ -95,12 +102,15 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                   .slice(0, 4)
                   .map(it => (
                     <Stack direction={'row'} alignItems={'center'} gap={1}>
-                      <Icon
-                        type={
-                          it.type === 1 ? 'icon-wenjianjia' : 'icon-wenjian'
-                        }
-                        sx={{ fontSize: 14, color: '#2f80f7', flexShrink: 0 }}
-                      />
+                      {it.type === 1 ? (
+                        <IconWenjianjia
+                          sx={{ fontSize: 14, color: '#2f80f7', flexShrink: 0 }}
+                        />
+                      ) : (
+                        <IconWenjian
+                          sx={{ fontSize: 14, color: '#2f80f7', flexShrink: 0 }}
+                        />
+                      )}
                       <Ellipsis sx={{ flex: 1, width: 0 }}>{it.name}</Ellipsis>
                     </Stack>
                   ))}
@@ -119,7 +129,7 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                 ':hover': { color: 'error.main' },
               }}
             >
-              <Icon type='icon-icon_tool_close' />
+              <IconShanchu2 sx={{ fontSize: '12px' }} />
             </IconButton>
             <IconButton
               size='small'
@@ -130,7 +140,7 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
               }}
               {...dragHandleProps}
             >
-              <Icon type='icon-drag' />
+              <IconDrag sx={{ fontSize: '18px' }} />
             </IconButton>
           </Stack>
         </Stack>

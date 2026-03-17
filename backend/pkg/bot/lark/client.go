@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -246,12 +247,12 @@ func (c *LarkClient) sendQACard(ctx context.Context, receiveIdType string, recei
 		return
 	}
 
-	answer := ""
-	seq := 1
-	for chunk := range answerCh {
-		seq += 1
-		answer += chunk
-		// update card content streaming
+	var buf strings.Builder
+	seq := 0
+	imageRegex := regexp.MustCompile(`!\[[^\]]*\]\([^)]+\)`)
+	sendUpdate := func() error {
+		seq++
+		answer := imageRegex.ReplaceAllString(buf.String(), "")
 		updateReq := larkcardkit.NewContentCardElementReqBuilder().
 			CardId(*resp.Data.CardId).
 			ElementId(`markdown_1`).
@@ -264,10 +265,23 @@ func (c *LarkClient) sendQACard(ctx context.Context, receiveIdType string, recei
 		updateResp, err := c.client.Cardkit.V1.CardElement.Content(ctx, updateReq)
 		if err != nil {
 			c.logger.Error("failed to update card", log.Error(err))
-			return
+			return err
 		}
 		if !updateResp.Success() {
 			c.logger.Error("failed to update card", log.String("request_id", updateResp.RequestId()), log.Any("code_error", updateResp.CodeError))
+			return fmt.Errorf("update card failed: %v", updateResp.CodeError)
+		}
+		return nil
+	}
+
+	for chunk := range answerCh {
+		buf.WriteString(chunk)
+		// drain all currently available chunks
+		for len(answerCh) > 0 {
+			buf.WriteString(<-answerCh)
+		}
+		if err := sendUpdate(); err != nil {
+			c.logger.Error("lark client failed to send QA update", log.Error(err), log.Int("sequence", seq))
 			return
 		}
 	}

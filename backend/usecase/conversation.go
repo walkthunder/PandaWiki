@@ -272,9 +272,10 @@ func (u *ConversationUsecase) GetShareConversationDetail(ctx context.Context, kb
 	var shareMessages []*domain.ShareConversationMessage
 	for _, message := range messages {
 		shareMessages = append(shareMessages, &domain.ShareConversationMessage{
-			Role:      message.Role,
-			Content:   message.Content,
-			CreatedAt: message.CreatedAt,
+			Role:       message.Role,
+			Content:    message.Content,
+			ImagePaths: message.ImagePaths,
+			CreatedAt:  message.CreatedAt,
 		})
 	}
 	shareConversationDetail := domain.ShareConversationDetailResp{

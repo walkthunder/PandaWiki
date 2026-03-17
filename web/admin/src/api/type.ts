@@ -203,7 +203,7 @@ export interface ITreeItem {
   isEditting?: boolean;
   canHaveChildren?: boolean;
   updated_at?: string;
-  status?: 1 | 2;
+  status?: 0 | 1 | 2;
   permissions?: DomainNodePermissions;
   collapsed?: boolean;
 }
@@ -323,7 +323,6 @@ export type WelcomeSetting = {
 export type SEOSetting = {
   keyword: string;
   desc: string;
-  auto_sitemap: boolean;
 };
 
 export type CustomCodeSetting = {
@@ -476,6 +475,7 @@ export interface DomainModelParam {
   support_computer_use?: boolean;
   support_images?: boolean;
   support_prompt_cache?: boolean;
+  temperature?: number | null;
 }
 
 export type ModelListItem = {
@@ -587,7 +587,9 @@ export type ChatConversationItem = {
 
 export type ChatConversationPair = {
   user: string;
+  image_paths: string[];
   assistant: string;
+  thinking_content: string;
   created_at: string;
   info: {
     feedback_content: string;

@@ -1,10 +1,6 @@
 'use client';
+import { EditorToolbar, UseTiptapReturn } from '@ctzhian/tiptap';
 import { Box } from '@mui/material';
-import {
-  AiGenerate2Icon,
-  EditorToolbar,
-  UseTiptapReturn,
-} from '@ctzhian/tiptap';
 
 interface ToolbarProps {
   editorRef: UseTiptapReturn;
@@ -24,19 +20,7 @@ const Toolbar = ({ editorRef, handleAiGenerate }: ToolbarProps) => {
         mx: 1,
       }}
     >
-      {editorRef.editor && (
-        <EditorToolbar
-          editor={editorRef.editor}
-          menuInToolbarMore={[
-            {
-              id: 'ai',
-              label: '文本润色',
-              icon: <AiGenerate2Icon sx={{ fontSize: '1rem' }} />,
-              onClick: handleAiGenerate,
-            },
-          ]}
-        />
-      )}
+      {editorRef.editor && <EditorToolbar editor={editorRef.editor} />}
     </Box>
   );
 };

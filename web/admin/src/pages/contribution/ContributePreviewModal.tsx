@@ -36,6 +36,7 @@ export default function ContributePreviewModal(
     content: '',
     editable: false,
     immediatelyRender: true,
+    baseUrl: window.__BASENAME__ || '',
   });
 
   useEffect(() => {
@@ -83,7 +84,7 @@ export default function ContributePreviewModal(
               ? '新增'
               : '修改'}
           </Box>
-          <Box sx={{ fontSize: 14, color: 'text.auxiliary', fontWeight: 400 }}>
+          <Box sx={{ fontSize: 14, color: 'text.tertiary', fontWeight: 400 }}>
             {dayjs(row?.created_at).fromNow()}
           </Box>
         </Stack>
@@ -166,6 +167,7 @@ export default function ContributePreviewModal(
               <EditorDiff
                 oldHtml={data?.original_node?.content || ''}
                 newHtml={data?.content || ''}
+                baseUrl={window.__BASENAME__ || ''}
               />
             )}
         </Stack>

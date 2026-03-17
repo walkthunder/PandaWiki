@@ -1,26 +1,32 @@
 'use client';
-import React, { useState } from 'react';
-import {
-  Box,
-  TextField,
-  IconButton,
-  InputAdornment,
-  Typography,
-  Stack,
-  CircularProgress,
-  alpha,
-  Skeleton,
-  styled,
-} from '@mui/material';
 import Logo from '@/assets/images/logo.png';
 import noDocImage from '@/assets/images/no-doc.png';
-import Image from 'next/image';
-import { IconJinsousuo, IconFasong, IconMianbaoxie } from '@panda-wiki/icons';
+import { useBasePath } from '@/hooks';
+import { useStore } from '@/provider';
 import { postShareV1ChatSearch } from '@/request/ShareChatSearch';
 import { DomainNodeContentChunkSSE } from '@/request/types';
+import { getImagePath } from '@/utils/getImagePath';
 import { message } from '@ctzhian/ui';
-import { IconWenjian } from '@panda-wiki/icons';
-import { useStore } from '@/provider';
+import {
+  alpha,
+  Box,
+  CircularProgress,
+  IconButton,
+  InputAdornment,
+  Skeleton,
+  Stack,
+  styled,
+  TextField,
+  Typography,
+} from '@mui/material';
+import {
+  IconFasong,
+  IconJinsousuo,
+  IconMianbaoxie,
+  IconWenjian,
+} from '@panda-wiki/icons';
+import Image from 'next/image';
+import React, { useState } from 'react';
 
 const StyledSearchResultItem = styled(Stack)(({ theme }) => ({
   position: 'relative',
@@ -75,6 +81,7 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
   placeholder,
 }) => {
   const { kbDetail } = useStore();
+  const basePath = useBasePath();
   // 模糊搜索相关状态
   const [fuzzySuggestions, setFuzzySuggestions] = useState<string[]>([]);
   const [showFuzzySuggestions, setShowFuzzySuggestions] = useState(false);
@@ -131,16 +138,15 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
     setFuzzySuggestions([]);
 
     let token = '';
-    const Cap = (await import('@cap.js/widget')).default;
+    const Cap = (await import(`@cap.js/widget`)).default;
     const cap = new Cap({
-      apiEndpoint: '/share/v1/captcha/',
+      apiEndpoint: `${basePath}/share/v1/captcha/`,
     });
     try {
       const solution = await cap.solve();
       token = solution.token;
     } catch (error) {
       message.error('验证失败');
-      console.log(error, 'error---------');
       setIsSearching(false);
       return;
     }
@@ -156,7 +162,7 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
 
   // 处理搜索结果点击
   const handleSearchResultClick = (result: DomainNodeContentChunkSSE) => {
-    window.open(`/node/${result.node_id}`, '_blank');
+    window.open(`${basePath}/node/${result.node_id}`, '_blank');
   };
 
   // 处理键盘事件
@@ -205,7 +211,7 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
         sx={{ mb: 3, mt: 1 }}
       >
         <Image
-          src={kbDetail?.settings?.icon || Logo.src}
+          src={getImagePath(kbDetail?.settings?.icon || Logo.src, basePath)}
           alt='logo'
           width={46}
           height={46}

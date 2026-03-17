@@ -2,6 +2,7 @@ import {
   ConstsCopySetting,
   ConstsWatermarkSetting,
   DomainDisclaimerSettings,
+  DomainConversationSetting,
   DomainWebAppLandingConfig,
 } from '@/request/types';
 
@@ -57,7 +58,9 @@ export interface ThemeAndStyleSetting {
 
 export interface KBDetail {
   name: string;
+  base_url?: string;
   settings: {
+    conversation_setting: DomainConversationSetting;
     title: string;
     btns: NavBtn[];
     icon: string;
@@ -67,7 +70,6 @@ export interface KBDetail {
     recommend_node_ids: string[];
     desc: string;
     keyword: string;
-    auto_sitemap: boolean;
     head_code: string;
     body_code: string;
     theme_mode?: 'light' | 'dark';
@@ -109,10 +111,21 @@ export type WidgetInfo = {
     search_placeholder: string;
     recommend_questions: string[];
     widget_bot_settings: {
-      btn_logo: string;
-      btn_text: string;
-      is_open: boolean;
-      theme_mode: 'light' | 'dark';
+      btn_logo?: string;
+      btn_text?: string;
+      btn_style?: string;
+      btn_id?: string;
+      btn_position?: string;
+      modal_position?: string;
+      is_open?: boolean;
+      recommend_node_ids?: string[];
+      recommend_questions?: string[];
+      theme_mode?: string;
+      search_mode?: string;
+      placeholder?: string;
+      disclaimer?: string;
+      copyright_hide_enabled?: boolean;
+      copyright_info?: string;
     };
   };
 };

@@ -1,6 +1,6 @@
 import { useAppSelector } from '@/store';
 import { Box, Stack, useTheme } from '@mui/material';
-import { Icon } from '@ctzhian/ui';
+import { IconXiala } from '@panda-wiki/icons';
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import KBSelect from '../KB/KBSelect';
@@ -76,10 +76,7 @@ const Bread = () => {
               ...(idx === breads.length - 1 && { fontWeight: 'bold' }),
             }}
           >
-            <Icon
-              type='icon-xiala'
-              sx={{ fontSize: 20, transform: 'rotate(-90deg)' }}
-            />
+            <IconXiala sx={{ fontSize: 20, transform: 'rotate(-90deg)' }} />
             {it.to === 'custom' ? (
               <Box
                 sx={{ cursor: 'pointer', ':hover': { color: 'primary.main' } }}

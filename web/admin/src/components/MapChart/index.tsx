@@ -1,6 +1,6 @@
 import { TrendData } from '@/api';
 import { Box, useTheme } from '@mui/material';
-import type { ECharts, EChartsOption } from 'echarts';
+import type { ECharts } from 'echarts';
 import { useEffect, useRef, useState } from 'react';
 import { loadScript, loadScriptsInOrder } from '@/utils/loadScript';
 
@@ -20,17 +20,47 @@ const MapChart = ({ map, data: chartData, tooltipText }: Props) => {
 
   useEffect(() => {
     let isUnmounted = false;
+
+    const toAbsUrl = (pathname: string) =>
+      new URL(pathname, window.location.origin).toString();
+
+    const withBasenameCandidates = (pathname: string) => {
+      const base = window.__BASENAME__ || '';
+      const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base;
+      return [
+        toAbsUrl(`${normalizedBase}${pathname}`),
+        toAbsUrl(pathname), // fallback: 资源挂在站点根路径
+      ];
+    };
+
+    const loadScriptWithFallback = async (urls: string[]) => {
+      let lastErr: unknown;
+      for (const url of urls) {
+        try {
+          await loadScript(url);
+          return;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      throw lastErr;
+    };
+
     const load = async () => {
       try {
-        const [echartsUrl, chinaUrl, geoUrl] = await Promise.all([
-          import('/echarts/echarts.5.4.1.min.js?url').then(
-            m => m.default as string,
-          ),
-          import('/echarts/china.js?url').then(m => m.default as string),
-          import('/geo/geo.js?url').then(m => m.default as string),
-        ]);
-        await loadScript(echartsUrl);
-        await loadScriptsInOrder([chinaUrl, geoUrl]);
+        await loadScriptWithFallback(
+          withBasenameCandidates('/echarts/echarts.5.4.1.min.js'),
+        );
+
+        // 依赖 echarts 全局变量，必须顺序加载
+        const chinaCandidates = withBasenameCandidates('/echarts/china.js');
+        const geoCandidates = withBasenameCandidates('/geo/geo.js');
+        await loadScriptsInOrder([chinaCandidates[0], geoCandidates[0]]).catch(
+          async () => {
+            // 如果 basename 版本 404，则回退到根路径版本
+            await loadScriptsInOrder([chinaCandidates[1], geoCandidates[1]]);
+          },
+        );
 
         if (!isUnmounted) setResourceLoaded(true);
       } catch (e) {
@@ -65,7 +95,7 @@ const MapChart = ({ map, data: chartData, tooltipText }: Props) => {
         left: 0,
       },
       tooltip: {
-        formatter: (params: any) => {
+        formatter: (params: { name: string; value: number | string }) => {
           return `${params.name}<br />${tooltipText}: <span style='font-weight: 700'>${params.value || 0}</span>`;
         },
       },
@@ -111,7 +141,14 @@ const MapChart = ({ map, data: chartData, tooltipText }: Props) => {
     return () => {
       window.removeEventListener('resize', resize);
     };
-  }, [map, data]);
+  }, [
+    map,
+    data,
+    max,
+    theme.palette.divider,
+    theme.palette.primary.main,
+    tooltipText,
+  ]);
 
   // if (!loading) return <div style={{ width: '100%', height: 292 }} />
   return (

@@ -14,6 +14,8 @@ import dayjs from 'dayjs';
 import { ColumnType } from '@ctzhian/ui/dist/Table';
 import { useEffect, useMemo, useState } from 'react';
 import { useAppSelector } from '@/store';
+import { VersionCanUse } from '@/components/VersionMask';
+import { PROFESSION_VERSION_PERMISSION } from '@/constant/version';
 
 interface AddRoleProps {
   open: boolean;
@@ -23,17 +25,14 @@ interface AddRoleProps {
 }
 
 const AddRole = ({ open, onCancel, onOk, selectedIds }: AddRoleProps) => {
-  const { kb_id, license } = useAppSelector(state => state.config);
+  const { kb_id } = useAppSelector(state => state.config);
+  const { license } = useAppSelector(state => state.config);
   const [list, setList] = useState<V1UserListItemResp[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string>('');
   const [perm, setPerm] = useState<V1KBUserInviteReq['perm']>(
     ConstsUserKBPermission.UserKBPermissionFullControl,
   );
-
-  const isEnterprise = useMemo(() => {
-    return license.edition === 2;
-  }, [license]);
 
   const columns: ColumnType<V1UserListItemResp>[] = [
     {
@@ -118,6 +117,10 @@ const AddRole = ({ open, onCancel, onOk, selectedIds }: AddRoleProps) => {
       );
     }
   }, [open]);
+
+  const isPro = useMemo(() => {
+    return PROFESSION_VERSION_PERMISSION.includes(license.edition!);
+  }, [license.edition]);
 
   return (
     <Modal
@@ -209,22 +212,33 @@ const AddRole = ({ open, onCancel, onOk, selectedIds }: AddRoleProps) => {
           fullWidth
           sx={{ height: 52 }}
           value={perm}
+          MenuProps={{
+            sx: {
+              '.Mui-disabled': {
+                opacity: '1 !important',
+                color: 'text.disabled',
+              },
+            },
+          }}
           onChange={e => setPerm(e.target.value as V1KBUserInviteReq['perm'])}
         >
           <MenuItem value={ConstsUserKBPermission.UserKBPermissionFullControl}>
             完全控制
           </MenuItem>
+
           <MenuItem
-            disabled={!isEnterprise}
             value={ConstsUserKBPermission.UserKBPermissionDocManage}
+            disabled={!isPro}
           >
-            文档管理 {isEnterprise ? '' : '(企业版可用)'}
+            文档管理{' '}
+            <VersionCanUse permission={PROFESSION_VERSION_PERMISSION} />
           </MenuItem>
           <MenuItem
-            disabled={!isEnterprise}
             value={ConstsUserKBPermission.UserKBPermissionDataOperate}
+            disabled={!isPro}
           >
-            数据运营 {isEnterprise ? '' : '(企业版可用)'}
+            数据运营{' '}
+            <VersionCanUse permission={PROFESSION_VERSION_PERMISSION} />
           </MenuItem>
         </Select>
       </FormItem>

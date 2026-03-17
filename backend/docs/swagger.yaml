@@ -9,6 +9,30 @@ definitions:
       value:
         $ref: '#/definitions/anydoc.Value'
     type: object
+  anydoc.DingtalkSetting:
+    properties:
+      app_id:
+        type: string
+      app_secret:
+        type: string
+      phone:
+        type: string
+      space_id:
+        type: string
+      unionid:
+        type: string
+    type: object
+  anydoc.FeishuSetting:
+    properties:
+      app_id:
+        type: string
+      app_secret:
+        type: string
+      space_id:
+        type: string
+      user_access_token:
+        type: string
+    type: object
   anydoc.Value:
     properties:
       file:
@@ -65,6 +89,7 @@ definitions:
     - sitemap
     - notion
     - feishu
+    - dingtalk
     - file
     - epub
     - yuque
@@ -79,6 +104,7 @@ definitions:
     - CrawlerSourceSitemap
     - CrawlerSourceNotion
     - CrawlerSourceFeishu
+    - CrawlerSourceDingtalk
     - CrawlerSourceFile
     - CrawlerSourceEpub
     - CrawlerSourceYuque
@@ -117,20 +143,32 @@ definitions:
     - 0
     - 1
     - 2
+    - 3
     format: int32
     type: integer
     x-enum-comments:
-      LicenseEditionContributor: 联创版
+      LicenseEditionBusiness: 商业版
       LicenseEditionEnterprise: 企业版
       LicenseEditionFree: 开源版
+      LicenseEditionProfession: 专业版
     x-enum-descriptions:
     - 开源版
-    - 联创版
+    - 专业版
     - 企业版
+    - 商业版
     x-enum-varnames:
     - LicenseEditionFree
-    - LicenseEditionContributor
+    - LicenseEditionProfession
     - LicenseEditionEnterprise
+    - LicenseEditionBusiness
+  consts.ModelSettingMode:
+    enum:
+    - manual
+    - auto
+    type: string
+    x-enum-varnames:
+    - ModelSettingModeManual
+    - ModelSettingModeAuto
   consts.NodeAccessPerm:
     enum:
     - open
@@ -169,42 +207,30 @@ definitions:
     - NodePermNameAnswerable
   consts.NodeRagInfoStatus:
     enum:
-    - BASIC_PENDING
-    - BASIC_RUNNING
-    - BASIC_FAILED
-    - BASIC_SUCCEEDED
-    - ENHANCE_PENDING
-    - ENHANCE_RUNNING
-    - ENHANCE_FAILED
-    - ENHANCE_SUCCEEDED
+    - PENDING
+    - RUNNING
+    - FAILED
+    - SUCCEEDED
+    - REINDEX
     type: string
     x-enum-comments:
-      NodeRagStatusBasicFailed: 基础处理失败
-      NodeRagStatusBasicPending: 等待基础处理
-      NodeRagStatusBasicRunning: 正在进行基础处理（文本分割、向量化等）
-      NodeRagStatusBasicSucceeded: 基础处理成功
-      NodeRagStatusEnhanceFailed: 增强处理失败
-      NodeRagStatusEnhancePending: 基础处理完成，等待增强处理
-      NodeRagStatusEnhanceRunning: 正在进行增强处理（关键词提取等）
-      NodeRagStatusEnhanceSucceeded: 增强处理成功
+      NodeRagStatusFailed: 处理失败
+      NodeRagStatusPending: 等待处理
+      NodeRagStatusReindexing: 重新索引中
+      NodeRagStatusRunning: 正在进行处理（文本分割、向量化等）
+      NodeRagStatusSucceeded: 处理成功
     x-enum-descriptions:
-    - 等待基础处理
-    - 正在进行基础处理（文本分割、向量化等）
-    - 基础处理失败
-    - 基础处理成功
-    - 基础处理完成，等待增强处理
-    - 正在进行增强处理（关键词提取等）
-    - 增强处理失败
-    - 增强处理成功
+    - 等待处理
+    - 正在进行处理（文本分割、向量化等）
+    - 处理失败
+    - 处理成功
+    - 重新索引中
     x-enum-varnames:
-    - NodeRagStatusBasicPending
-    - NodeRagStatusBasicRunning
-    - NodeRagStatusBasicFailed
-    - NodeRagStatusBasicSucceeded
-    - NodeRagStatusEnhancePending
-    - NodeRagStatusEnhanceRunning
-    - NodeRagStatusEnhanceFailed
-    - NodeRagStatusEnhanceSucceeded
+    - NodeRagStatusPending
+    - NodeRagStatusRunning
+    - NodeRagStatusFailed
+    - NodeRagStatusSucceeded
+    - NodeRagStatusReindexing
   consts.RedeemCaptchaReq:
     properties:
       solutions:
@@ -233,6 +259,7 @@ definitions:
     - discord_bot
     - wechat_official_account
     - openai_api
+    - mcp_server
     type: string
     x-enum-varnames:
     - SourceTypeDingTalk
@@ -252,6 +279,7 @@ definitions:
     - SourceTypeDiscordBot
     - SourceTypeWechatOfficialAccount
     - SourceTypeOpenAIAPI
+    - SourceTypeMcpServer
   consts.StatDay:
     enum:
     - 1
@@ -267,6 +295,7 @@ definitions:
   consts.UserKBPermission:
     enum:
     - ""
+    - not null
     - full_control
     - doc_manage
     - data_operate
@@ -275,14 +304,17 @@ definitions:
       UserKBPermissionDataOperate: 数据运营
       UserKBPermissionDocManage: 文档管理
       UserKBPermissionFullControl: 完全控制
+      UserKBPermissionNotNull: 有权限
       UserKBPermissionNull: 无权限
     x-enum-descriptions:
     - 无权限
+    - 有权限
     - 完全控制
     - 文档管理
     - 数据运营
     x-enum-varnames:
     - UserKBPermissionNull
+    - UserKBPermissionNotNull
     - UserKBPermissionFullControl
     - UserKBPermissionDocManage
     - UserKBPermissionDataOperate
@@ -391,6 +423,8 @@ definitions:
     type: object
   domain.AppInfoResp:
     properties:
+      base_url:
+        type: string
       name:
         type: string
       recommend_nodes:
@@ -406,8 +440,6 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.AIFeedbackSettings'
         description: AI feedback
-      auto_sitemap:
-        type: boolean
       body_code:
         type: string
       btns:
@@ -419,6 +451,8 @@ definitions:
         description: catalog settings
       contribute_settings:
         $ref: '#/definitions/domain.ContributeSettings'
+      conversation_setting:
+        $ref: '#/definitions/domain.ConversationSetting'
       copy_setting:
         allOf:
         - $ref: '#/definitions/consts.CopySetting'
@@ -474,6 +508,10 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.LarkBotSettings'
         description: LarkBot
+      mcp_server_settings:
+        allOf:
+        - $ref: '#/definitions/domain.MCPServerSettings'
+        description: MCP Server Settings
       openai_api_bot_settings:
         allOf:
         - $ref: '#/definitions/domain.OpenAIAPIBotSettings'
@@ -488,6 +526,8 @@ definitions:
         type: array
       search_placeholder:
         type: string
+      stats_setting:
+        $ref: '#/definitions/domain.StatsSetting'
       theme_and_style:
         $ref: '#/definitions/domain.ThemeAndStyle'
       theme_mode:
@@ -520,6 +560,8 @@ definitions:
         type: array
       web_app_landing_theme:
         $ref: '#/definitions/domain.WebAppLandingTheme'
+      wechat_app_advanced_setting:
+        $ref: '#/definitions/domain.WeChatAppAdvancedSetting'
       wechat_app_agent_id:
         type: string
       wechat_app_corpid:
@@ -559,6 +601,8 @@ definitions:
       wechat_service_is_enabled:
         description: WechatServiceBot
         type: boolean
+      wechat_service_logo:
+        type: string
       wechat_service_secret:
         type: string
       wechat_service_token:
@@ -581,8 +625,6 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.AIFeedbackSettings'
         description: AI feedback
-      auto_sitemap:
-        type: boolean
       body_code:
         type: string
       btns:
@@ -594,6 +636,8 @@ definitions:
         description: catalog settings
       contribute_settings:
         $ref: '#/definitions/domain.ContributeSettings'
+      conversation_setting:
+        $ref: '#/definitions/domain.ConversationSetting'
       copy_setting:
         $ref: '#/definitions/consts.CopySetting'
       desc:
@@ -644,6 +688,10 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.LarkBotSettings'
         description: LarkBot
+      mcp_server_settings:
+        allOf:
+        - $ref: '#/definitions/domain.MCPServerSettings'
+        description: MCP Server Settings
       openai_api_bot_settings:
         allOf:
         - $ref: '#/definitions/domain.OpenAIAPIBotSettings'
@@ -658,6 +706,8 @@ definitions:
         type: array
       search_placeholder:
         type: string
+      stats_setting:
+        $ref: '#/definitions/domain.StatsSetting'
       theme_and_style:
         $ref: '#/definitions/domain.ThemeAndStyle'
       theme_mode:
@@ -685,6 +735,8 @@ definitions:
         type: array
       web_app_landing_theme:
         $ref: '#/definitions/domain.WebAppLandingTheme'
+      wechat_app_advanced_setting:
+        $ref: '#/definitions/domain.WeChatAppAdvancedSetting'
       wechat_app_agent_id:
         type: string
       wechat_app_corpid:
@@ -724,6 +776,8 @@ definitions:
       wechat_service_is_enabled:
         description: WechatServiceBot
         type: boolean
+      wechat_service_logo:
+        type: string
       wechat_service_secret:
         type: string
       wechat_service_token:
@@ -751,6 +805,7 @@ definitions:
     - 9
     - 10
     - 11
+    - 12
     format: int32
     type: integer
     x-enum-varnames:
@@ -765,6 +820,7 @@ definitions:
     - AppTypeOpenAIAPI
     - AppTypeWecomAIBot
     - AppTypeLarkBot
+    - AppTypeMcpServer
   domain.AuthUserInfo:
     properties:
       avatar_url:
@@ -929,13 +985,17 @@ definitions:
         type: string
       conversation_id:
         type: string
+      image_paths:
+        items:
+          type: string
+        maxItems: 3
+        type: array
       message:
         type: string
       nonce:
         type: string
     required:
     - app_type
-    - message
     type: object
   domain.ChatSearchReq:
     properties:
@@ -1087,15 +1147,6 @@ definitions:
       subject:
         type: string
     type: object
-  domain.ConversationDistribution:
-    properties:
-      app_id:
-        type: string
-      app_type:
-        $ref: '#/definitions/domain.AppType'
-      count:
-        type: integer
-    type: object
   domain.ConversationInfo:
     properties:
       user_info:
@@ -1140,6 +1191,10 @@ definitions:
         type: string
       id:
         type: string
+      image_paths:
+        items:
+          type: string
+        type: array
       info:
         allOf:
         - $ref: '#/definitions/domain.FeedBackInfo'
@@ -1204,6 +1259,13 @@ definitions:
       node_id:
         type: string
       url:
+        type: string
+    type: object
+  domain.ConversationSetting:
+    properties:
+      copyright_hide_enabled:
+        type: boolean
+      copyright_info:
         type: string
     type: object
   domain.CreateKBReleaseReq:
@@ -1291,6 +1353,8 @@ definitions:
         type: string
       name:
         type: string
+      nav_id:
+        type: string
       parent_id:
         type: string
       position:
@@ -1306,6 +1370,7 @@ definitions:
     required:
     - kb_id
     - name
+    - nav_id
     - type
     type: object
   domain.DirDocConfig:
@@ -1545,6 +1610,8 @@ definitions:
         type: string
       message:
         type: string
+      publisher_account:
+        type: string
       tag:
         type: string
     type: object
@@ -1602,6 +1669,24 @@ definitions:
       url:
         type: string
     type: object
+  domain.MCPServerSettings:
+    properties:
+      docs_tool_settings:
+        $ref: '#/definitions/domain.MCPToolSettings'
+      is_enabled:
+        type: boolean
+      sample_auth:
+        $ref: '#/definitions/domain.SimpleAuth'
+    type: object
+  domain.MCPToolSettings:
+    properties:
+      desc:
+        type: string
+      name:
+        type: string
+    type: object
+  domain.MessageContent:
+    type: object
   domain.MessageFrom:
     enum:
     - 1
@@ -1627,6 +1712,22 @@ definitions:
         type: string
       type:
         type: string
+    type: object
+  domain.ModelModeSetting:
+    properties:
+      auto_mode_api_key:
+        description: 百智云 API Key
+        type: string
+      chat_model:
+        description: 自定义对话模型名称
+        type: string
+      is_manual_embedding_updated:
+        description: 手动模式下嵌入模型是否更新
+        type: boolean
+      mode:
+        allOf:
+        - $ref: '#/definitions/consts.ModelSettingMode'
+        description: '模式: manual 或 auto'
     type: object
   domain.ModelType:
     enum:
@@ -1727,12 +1828,16 @@ definitions:
         type: string
       name:
         type: string
+      nav_id:
+        type: string
       parent_id:
         type: string
       permissions:
         $ref: '#/definitions/domain.NodePermissions'
       position:
         type: number
+      publisher_id:
+        type: string
       rag_info:
         $ref: '#/definitions/domain.RagInfo'
       status:
@@ -1770,11 +1875,21 @@ definitions:
     type: object
   domain.NodeStatus:
     enum:
+    - 0
     - 1
     - 2
     format: int32
     type: integer
+    x-enum-comments:
+      NodeStatusDraft: 更新未发布
+      NodeStatusReleased: 已发布
+      NodeStatusUnreleased: 未发布
+    x-enum-descriptions:
+    - 未发布
+    - 更新未发布
+    - 已发布
     x-enum-varnames:
+    - NodeStatusUnreleased
     - NodeStatusDraft
     - NodeStatusReleased
   domain.NodeSummaryReq:
@@ -1847,6 +1962,8 @@ definitions:
         type: array
       stream:
         type: boolean
+      stream_options:
+        $ref: '#/definitions/domain.OpenAIStreamOptions'
       temperature:
         type: number
       tool_choice:
@@ -1928,7 +2045,7 @@ definitions:
   domain.OpenAIMessage:
     properties:
       content:
-        type: string
+        $ref: '#/definitions/domain.MessageContent'
       name:
         type: string
       role:
@@ -1948,6 +2065,11 @@ definitions:
         type: string
     required:
     - type
+    type: object
+  domain.OpenAIStreamOptions:
+    properties:
+      include_usage:
+        type: boolean
     type: object
   domain.OpenAITool:
     properties:
@@ -2033,6 +2155,8 @@ definitions:
         type: string
       status:
         $ref: '#/definitions/consts.NodeRagInfoStatus'
+      synced_at:
+        type: string
     type: object
   domain.RecommendNodeListResp:
     properties:
@@ -2119,8 +2243,37 @@ definitions:
         type: string
       created_at:
         type: string
+      image_paths:
+        items:
+          type: string
+        type: array
       role:
         $ref: '#/definitions/schema.RoleType'
+    type: object
+  domain.ShareNodeDetailItem:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/domain.ShareNodeDetailItem'
+        type: array
+      emoji:
+        type: string
+      id:
+        type: string
+      meta:
+        $ref: '#/definitions/domain.NodeMeta'
+      name:
+        type: string
+      parent_id:
+        type: string
+      permissions:
+        $ref: '#/definitions/domain.NodePermissions'
+      position:
+        type: number
+      type:
+        $ref: '#/definitions/domain.NodeType'
+      updated_at:
+        type: string
     type: object
   domain.SimpleAuth:
     properties:
@@ -2178,6 +2331,32 @@ definitions:
     - StatPageSceneNodeDetail
     - StatPageSceneChat
     - StatPageSceneLogin
+  domain.StatsSetting:
+    properties:
+      pv_enable:
+        type: boolean
+    type: object
+  domain.SwitchModeReq:
+    properties:
+      auto_mode_api_key:
+        description: 百智云 API Key
+        type: string
+      chat_model:
+        description: 自定义对话模型名称
+        type: string
+      mode:
+        enum:
+        - manual
+        - auto
+        type: string
+    required:
+    - mode
+    type: object
+  domain.SwitchModeResp:
+    properties:
+      message:
+        type: string
+    type: object
   domain.TextConfig:
     properties:
       title:
@@ -2289,6 +2468,8 @@ definitions:
         type: string
       name:
         type: string
+      nav_id:
+        type: string
       position:
         type: number
       summary:
@@ -2296,6 +2477,15 @@ definitions:
     required:
     - id
     - kb_id
+    type: object
+  domain.UploadByUrlReq:
+    properties:
+      kb_id:
+        type: string
+      url:
+        type: string
+    required:
+    - url
     type: object
   domain.UserInfo:
     properties:
@@ -2314,6 +2504,21 @@ definitions:
         type: string
       user_id:
         type: string
+    type: object
+  domain.WeChatAppAdvancedSetting:
+    properties:
+      disclaimer_content:
+        type: string
+      feedback_enable:
+        type: boolean
+      feedback_type:
+        items:
+          type: string
+        type: array
+      prompt:
+        type: string
+      text_response_enable:
+        type: boolean
     type: object
   domain.WebAppCommentSettings:
     properties:
@@ -2443,12 +2648,28 @@ definitions:
     type: object
   domain.WidgetBotSettings:
     properties:
+      btn_id:
+        type: string
       btn_logo:
+        type: string
+      btn_position:
+        type: string
+      btn_style:
         type: string
       btn_text:
         type: string
+      copyright_hide_enabled:
+        type: boolean
+      copyright_info:
+        type: string
+      disclaimer:
+        type: string
       is_open:
         type: boolean
+      modal_position:
+        type: string
+      placeholder:
+        type: string
       recommend_node_ids:
         items:
           type: string
@@ -2457,6 +2678,8 @@ definitions:
         items:
           type: string
         type: array
+      search_mode:
+        type: string
       theme_mode:
         type: string
     type: object
@@ -2474,6 +2697,23 @@ definitions:
         type: string
       source_type:
         $ref: '#/definitions/consts.SourceType'
+    type: object
+  github_com_chaitin_panda-wiki_api_node_v1.NodeListGroupNavResp:
+    properties:
+      count:
+        type: integer
+      is_released:
+        type: boolean
+      list:
+        items:
+          $ref: '#/definitions/domain.NodeListItemResp'
+        type: array
+      nav_id:
+        type: string
+      nav_name:
+        type: string
+      position:
+        type: number
     type: object
   github_com_chaitin_panda-wiki_api_share_v1.AuthGetResp:
     properties:
@@ -2733,8 +2973,10 @@ definitions:
     properties:
       crawler_source:
         $ref: '#/definitions/consts.CrawlerSource'
+      dingtalk_setting:
+        $ref: '#/definitions/anydoc.DingtalkSetting'
       feishu_setting:
-        $ref: '#/definitions/v1.FeishuSetting'
+        $ref: '#/definitions/anydoc.FeishuSetting'
       filename:
         type: string
       kb_id:
@@ -2818,17 +3060,6 @@ definitions:
       id:
         type: string
     type: object
-  v1.FeishuSetting:
-    properties:
-      app_id:
-        type: string
-      app_secret:
-        type: string
-      space_id:
-        type: string
-      user_access_token:
-        type: string
-    type: object
   v1.FileUploadResp:
     properties:
       key:
@@ -2907,6 +3138,58 @@ definitions:
       token:
         type: string
     type: object
+  v1.NavAddReq:
+    properties:
+      kb_id:
+        type: string
+      name:
+        type: string
+      position:
+        type: number
+    required:
+    - kb_id
+    - name
+    type: object
+  v1.NavListResp:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      position:
+        type: number
+      updated_at:
+        type: string
+    type: object
+  v1.NavMoveReq:
+    properties:
+      id:
+        type: string
+      kb_id:
+        type: string
+      next_id:
+        type: string
+      prev_id:
+        type: string
+    required:
+    - id
+    - kb_id
+    type: object
+  v1.NavUpdateReq:
+    properties:
+      id:
+        type: string
+      kb_id:
+        type: string
+      name:
+        type: string
+    required:
+    - id
+    - kb_id
+    - name
+    type: object
   v1.NodeDetailResp:
     properties:
       content:
@@ -2929,6 +3212,8 @@ definitions:
         $ref: '#/definitions/domain.NodeMeta'
       name:
         type: string
+      nav_id:
+        type: string
       parent_id:
         type: string
       permissions:
@@ -2937,12 +3222,30 @@ definitions:
         type: string
       publisher_id:
         type: string
+      pv:
+        type: integer
       status:
         $ref: '#/definitions/domain.NodeStatus'
       type:
         $ref: '#/definitions/domain.NodeType'
       updated_at:
         type: string
+    type: object
+  v1.NodeMoveNavReq:
+    properties:
+      ids:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      kb_id:
+        type: string
+      nav_id:
+        type: string
+    required:
+    - ids
+    - kb_id
+    - nav_id
     type: object
   v1.NodePermissionEditReq:
     properties:
@@ -2997,6 +3300,33 @@ definitions:
           $ref: '#/definitions/domain.NodeGroupDetail'
         type: array
     type: object
+  v1.NodeRestudyReq:
+    properties:
+      kb_id:
+        type: string
+      node_ids:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - kb_id
+    - node_ids
+    type: object
+  v1.NodeRestudyResp:
+    type: object
+  v1.NodeStatsResp:
+    properties:
+      unpublished_count:
+        description: 未发布的文档数
+        type: integer
+      unreleased_nav_count:
+        description: 未发布目录数量
+        type: integer
+      unstudied_count:
+        description: 未学习的文档数
+        type: integer
+    type: object
   v1.ResetPasswordReq:
     properties:
       id:
@@ -3007,6 +3337,21 @@ definitions:
     required:
     - id
     - new_password
+    type: object
+  v1.ShareFileUploadUrlReq:
+    properties:
+      captcha_token:
+        type: string
+      url:
+        type: string
+    required:
+    - captcha_token
+    - url
+    type: object
+  v1.ShareFileUploadUrlResp:
+    properties:
+      key:
+        type: string
     type: object
   v1.ShareNodeDetailResp:
     properties:
@@ -3026,6 +3371,10 @@ definitions:
         type: string
       kb_id:
         type: string
+      list:
+        items:
+          $ref: '#/definitions/domain.ShareNodeDetailItem'
+        type: array
       meta:
         $ref: '#/definitions/domain.NodeMeta'
       name:
@@ -3038,12 +3387,21 @@ definitions:
         type: string
       publisher_id:
         type: string
+      pv:
+        type: integer
       status:
         $ref: '#/definitions/domain.NodeStatus'
       type:
         $ref: '#/definitions/domain.NodeType'
       updated_at:
         type: string
+    type: object
+  v1.StatConversationDistributionResp:
+    properties:
+      app_type:
+        $ref: '#/definitions/domain.AppType'
+      count:
+        type: integer
     type: object
   v1.StatCountResp:
     properties:
@@ -3101,6 +3459,19 @@ definitions:
         items:
           $ref: '#/definitions/v1.UserListItemResp'
         type: array
+    type: object
+  v1.WechatAppInfoResp:
+    properties:
+      disclaimer_content:
+        type: string
+      feedback_enable:
+        type: boolean
+      feedback_type:
+        items:
+          type: string
+        type: array
+      wechat_app_is_enabled:
+        type: boolean
     type: object
 info:
   contact: {}
@@ -3248,6 +3619,7 @@ paths:
         - discord_bot
         - wechat_official_account
         - openai_api
+        - mcp_server
         in: query
         name: source_type
         required: true
@@ -3270,6 +3642,7 @@ paths:
         - SourceTypeDiscordBot
         - SourceTypeWechatOfficialAccount
         - SourceTypeOpenAIAPI
+        - SourceTypeMcpServer
       produces:
       - application/json
       responses:
@@ -3718,6 +4091,33 @@ paths:
       summary: Upload Anydoc File
       tags:
       - file
+  /api/v1/file/upload/url:
+    post:
+      consumes:
+      - application/json
+      description: Upload File By Url
+      parameters:
+      - description: Request Body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UploadByUrlReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.ObjectUploadResp'
+              type: object
+      summary: Upload File By Url
+      tags:
+      - file
   /api/v1/knowledge_base:
     post:
       consumes:
@@ -4141,6 +4541,27 @@ paths:
       summary: get model list
       tags:
       - model
+  /api/v1/model/mode-setting:
+    get:
+      consumes:
+      - application/json
+      description: get current model mode setting including mode, API key and chat
+        model
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.ModelModeSetting'
+              type: object
+      summary: get model mode setting
+      tags:
+      - model
   /api/v1/model/provider/supported:
     post:
       consumes:
@@ -4168,6 +4589,160 @@ paths:
       summary: get provider supported model list
       tags:
       - model
+  /api/v1/model/switch-mode:
+    post:
+      consumes:
+      - application/json
+      description: switch model mode between manual and auto
+      parameters:
+      - description: switch mode request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.SwitchModeReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.SwitchModeResp'
+              type: object
+      summary: switch mode
+      tags:
+      - model
+  /api/v1/nav/add:
+    post:
+      consumes:
+      - application/json
+      description: Add Nav
+      parameters:
+      - description: Params
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1.NavAddReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PWResponse'
+      security:
+      - bearerAuth: []
+      summary: 添加分栏
+      tags:
+      - Nav
+  /api/v1/nav/delete:
+    delete:
+      consumes:
+      - application/json
+      description: DeleteNav Nav
+      parameters:
+      - in: query
+        name: id
+        required: true
+        type: string
+      - in: query
+        name: kb_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PWResponse'
+      security:
+      - bearerAuth: []
+      summary: 删除栏目
+      tags:
+      - Nav
+  /api/v1/nav/list:
+    get:
+      consumes:
+      - application/json
+      description: Get Nav List
+      parameters:
+      - in: query
+        name: kb_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.PWResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/v1.NavListResp'
+                  type: array
+              type: object
+      security:
+      - bearerAuth: []
+      summary: 获取分栏列表
+      tags:
+      - Nav
+  /api/v1/nav/move:
+    post:
+      consumes:
+      - application/json
+      description: Move Nav
+      parameters:
+      - description: Params
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1.NavMoveReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PWResponse'
+      security:
+      - bearerAuth: []
+      summary: 移动栏目
+      tags:
+      - Nav
+  /api/v1/nav/update:
+    patch:
+      consumes:
+      - application/json
+      description: Update Nav
+      parameters:
+      - description: Params
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1.NavUpdateReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PWResponse'
+      security:
+      - bearerAuth: []
+      summary: 更新栏目信息
+      tags:
+      - Nav
   /api/v1/node:
     post:
       consumes:
@@ -4322,6 +4897,9 @@ paths:
         required: true
         type: string
       - in: query
+        name: nav_id
+        type: string
+      - in: query
         name: search
         type: string
       produces:
@@ -4341,6 +4919,44 @@ paths:
       security:
       - bearerAuth: []
       summary: Get Node List
+      tags:
+      - node
+  /api/v1/node/list/group/nav:
+    get:
+      consumes:
+      - application/json
+      description: Get unpublished or unstudied document list grouped by nav
+      parameters:
+      - in: query
+        name: kb_id
+        required: true
+        type: string
+      - in: query
+        name: search
+        type: string
+      - enum:
+        - unpublished
+        - unstudied
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.PWResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_chaitin_panda-wiki_api_node_v1.NodeListGroupNavResp'
+                  type: array
+              type: object
+      security:
+      - bearerAuth: []
+      summary: Get Node List Grouped by Nav
       tags:
       - node
   /api/v1/node/move:
@@ -4365,6 +4981,30 @@ paths:
       security:
       - bearerAuth: []
       summary: Move Node
+      tags:
+      - node
+  /api/v1/node/move/nav:
+    post:
+      consumes:
+      - application/json
+      description: Move node (and all its descendants if folder) to a different nav
+      parameters:
+      - description: Move Node Nav
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1.NodeMoveNavReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Response'
+      security:
+      - bearerAuth: []
+      summary: Move Node to Nav
       tags:
       - node
   /api/v1/node/permission:
@@ -4465,6 +5105,63 @@ paths:
       summary: Recommend Nodes
       tags:
       - node
+  /api/v1/node/restudy:
+    post:
+      consumes:
+      - application/json
+      description: 文档重新学习
+      operationId: v1-NodeRestudy
+      parameters:
+      - description: para
+        in: body
+        name: param
+        required: true
+        schema:
+          $ref: '#/definitions/v1.NodeRestudyReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/v1.NodeRestudyResp'
+              type: object
+      security:
+      - bearerAuth: []
+      summary: 文档重新学习
+      tags:
+      - Node
+  /api/v1/node/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get Node Statistics
+      parameters:
+      - in: query
+        name: kb_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.PWResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/v1.NodeStatsResp'
+              type: object
+      security:
+      - bearerAuth: []
+      summary: Get Node Statistics
+      tags:
+      - node
   /api/v1/node/summary:
     post:
       consumes:
@@ -4563,7 +5260,7 @@ paths:
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/domain.ConversationDistribution'
+                    $ref: '#/definitions/v1.StatConversationDistributionResp'
                   type: array
               type: object
       security:
@@ -4938,6 +5635,32 @@ paths:
       summary: GetAppInfo
       tags:
       - share_app
+  /share/v1/app/wechat/info:
+    get:
+      consumes:
+      - application/json
+      description: WechatAppInfo
+      parameters:
+      - description: kb id
+        in: header
+        name: X-KB-ID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/v1.WechatAppInfoResp'
+              type: object
+      summary: WechatAppInfo
+      tags:
+      - share_chat
   /share/v1/app/wechat/service/answer:
     get:
       consumes:
@@ -5249,7 +5972,34 @@ paths:
             $ref: '#/definitions/domain.Response'
       summary: ChatWidget
       tags:
-      - share_chat
+      - Widget
+  /share/v1/chat/widget/search:
+    post:
+      consumes:
+      - application/json
+      description: WidgetSearch
+      parameters:
+      - description: Comment
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.ChatSearchReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.ChatSearchResp'
+              type: object
+      summary: WidgetSearch
+      tags:
+      - Widget
   /share/v1/comment:
     post:
       consumes:
@@ -5340,6 +6090,34 @@ paths:
       summary: 文件上传
       tags:
       - ShareFile
+  /share/v1/common/file/upload/url:
+    post:
+      consumes:
+      - application/json
+      description: 前台用户上传文件,目前只支持图片文件上传
+      operationId: share-FileUploadByUrl
+      parameters:
+      - description: body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1.ShareFileUploadUrlReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/v1.ShareFileUploadUrlResp'
+              type: object
+      summary: 文件上传
+      tags:
+      - ShareFile
   /share/v1/conversation/detail:
     get:
       consumes:
@@ -5371,6 +6149,26 @@ paths:
       summary: GetConversationDetail
       tags:
       - share_conversation
+  /share/v1/nav/list:
+    get:
+      consumes:
+      - application/json
+      description: ShareNavList
+      parameters:
+      - in: query
+        name: kb_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Response'
+      summary: 前台获取栏目列表
+      tags:
+      - share_nav
   /share/v1/node/detail:
     get:
       consumes:
@@ -5411,7 +6209,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: GetNodeList
+      description: ShareNodeList
       parameters:
       - description: kb id
         in: header
@@ -5425,7 +6223,7 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/domain.Response'
-      summary: GetNodeList
+      summary: ShareNodeList
       tags:
       - share_node
   /share/v1/openapi/github/callback:

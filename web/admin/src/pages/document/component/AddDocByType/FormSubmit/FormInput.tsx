@@ -1,12 +1,6 @@
 import { ConstsCrawlerSource } from '@/request';
 import { Stack, TextField } from '@mui/material';
-
-type FormData = {
-  url?: string;
-  app_id?: string;
-  app_secret?: string;
-  user_access_token?: string;
-};
+import { FormData } from '../util';
 
 interface FormInputProps {
   type: ConstsCrawlerSource;
@@ -62,7 +56,6 @@ const FormFieldRenderer = ({
 );
 
 const FormInput = ({ type, formData, onChange }: FormInputProps) => {
-  // 表单配置
   const formFieldsConfig: Partial<Record<ConstsCrawlerSource, FieldConfig[]>> =
     {
       [ConstsCrawlerSource.CrawlerSourceUrl]: [
@@ -111,6 +104,23 @@ const FormInput = ({ type, formData, onChange }: FormInputProps) => {
           label: 'User Access Token',
           placeholder: '',
           fieldName: 'user_access_token',
+        },
+      ],
+      [ConstsCrawlerSource.CrawlerSourceDingtalk]: [
+        {
+          label: 'App ID',
+          placeholder: 'App ID',
+          fieldName: 'app_id',
+        },
+        {
+          label: 'App Secret',
+          placeholder: 'App Secret',
+          fieldName: 'app_secret',
+        },
+        {
+          label: 'Union ID',
+          placeholder: 'Union ID',
+          fieldName: 'unionid',
         },
       ],
     };

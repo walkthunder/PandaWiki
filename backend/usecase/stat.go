@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
-	"strconv"
 
+	"github.com/jinzhu/copier"
 	"github.com/samber/lo"
 
 	v1 "github.com/chaitin/panda-wiki/api/stat/v1"
@@ -67,12 +68,12 @@ func (u *StatUseCase) ValidateStatDay(statDay consts.StatDay, edition consts.Lic
 	case consts.StatDay1:
 		return nil
 	case consts.StatDay7:
-		if edition < consts.LicenseEditionContributor {
+		if edition == consts.LicenseEditionFree {
 			return domain.ErrPermissionDenied
 		}
 		return nil
 	case consts.StatDay30, consts.StatDay90:
-		if edition < consts.LicenseEditionEnterprise {
+		if !slices.Contains([]consts.LicenseEdition{consts.LicenseEditionBusiness, consts.LicenseEditionEnterprise}, edition) {
 			return domain.ErrPermissionDenied
 		}
 		return nil
@@ -116,7 +117,7 @@ func (u *StatUseCase) GetHotPages(ctx context.Context, kbID string, day consts.S
 		}
 
 		for pageKey, count := range hotPagesMap {
-			hotPageMapHour[pageKey] = +count
+			hotPageMapHour[pageKey] += count
 		}
 
 		finalPage := make([]*domain.HotPage, 0)
@@ -324,7 +325,7 @@ func (u *StatUseCase) GetGeoCount(ctx context.Context, kbID string, day consts.S
 
 }
 
-func (u *StatUseCase) GetConversationDistribution(ctx context.Context, kbID string, day consts.StatDay) ([]domain.ConversationDistribution, error) {
+func (u *StatUseCase) GetConversationDistribution(ctx context.Context, kbID string, day consts.StatDay) ([]v1.StatConversationDistributionResp, error) {
 	appMap, err := u.appRepo.GetAppList(ctx, kbID)
 	if err != nil {
 		return nil, err
@@ -335,57 +336,46 @@ func (u *StatUseCase) GetConversationDistribution(ctx context.Context, kbID stri
 		return nil, err
 	}
 
+	mergedDistributions := make(map[domain.AppType]*domain.ConversationDistribution)
+	for _, dist := range distributions {
+		if app, ok := appMap[dist.AppID]; ok {
+			mergedDistributions[app.Type] = &domain.ConversationDistribution{
+				AppType: app.Type,
+				Count:   dist.Count,
+			}
+		}
+	}
+
 	if day > consts.StatDay1 {
 		m, err := u.conversationRepo.GetConversationDistributionByHour(ctx, kbID, int64(day)*24)
 		if err != nil {
 			return nil, err
 		}
 
-		// 使用map合并避免重复遍历
-		mergedDistributions := make(map[string]*domain.ConversationDistribution)
-		for _, dist := range distributions {
-			key := fmt.Sprintf("%d|%s", dist.AppType, dist.AppID)
-			mergedDistributions[key] = &domain.ConversationDistribution{
-				AppType: dist.AppType,
-				AppID:   dist.AppID,
-				Count:   dist.Count,
-			}
-		}
-
-		for k, v := range m {
-			t, err := strconv.Atoi(k)
-			if err != nil {
-				continue
-			}
-
-			// 假设AppID为空，因为从map中只能获取AppType
-			key := fmt.Sprintf("%d|", t)
-			if existDist, ok := mergedDistributions[key]; ok {
+		for appType, v := range m {
+			if existDist, ok := mergedDistributions[appType]; ok {
 				existDist.Count += v
 			} else {
-				mergedDistributions[key] = &domain.ConversationDistribution{
-					AppType: domain.AppType(t),
-					AppID:   "",
+				mergedDistributions[appType] = &domain.ConversationDistribution{
+					AppType: appType,
 					Count:   v,
 				}
 			}
 		}
-
-		// 转换回slice
-		distributions = make([]domain.ConversationDistribution, 0, len(mergedDistributions))
-		for _, dist := range mergedDistributions {
-			distributions = append(distributions, *dist)
-		}
 	}
 
-	// 更新AppType
-	for i := range distributions {
-		if app, ok := appMap[distributions[i].AppID]; ok {
-			distributions[i].AppType = app.Type
-		}
+	// 转换回slice
+	distributions = make([]domain.ConversationDistribution, 0, len(mergedDistributions))
+	for _, dist := range mergedDistributions {
+		distributions = append(distributions, *dist)
 	}
 
-	return distributions, nil
+	var resp []v1.StatConversationDistributionResp
+	if err := copier.Copy(&resp, distributions); err != nil {
+		return nil, fmt.Errorf("copy distributions to resp failed: %w", err)
+	}
+
+	return resp, nil
 }
 
 // AggregateHourlyStats 聚合上一小时的统计数据到stat_page_hours表
@@ -470,4 +460,29 @@ func (u *StatUseCase) AggregateHourlyStats(ctx context.Context) error {
 // CleanupOldHourlyStats 清理90天前的小时统计数据
 func (u *StatUseCase) CleanupOldHourlyStats(ctx context.Context) error {
 	return u.repo.CleanupOldHourlyStats(ctx)
+}
+
+// MigrateYesterdayPVToNodeStats 将昨天的PV数据从stat_page迁移到node_stats
+func (u *StatUseCase) MigrateYesterdayPVToNodeStats(ctx context.Context) error {
+	// 获取昨天的PV数据，按node_id分组
+	pvMap, err := u.repo.GetYesterdayPVByNode(ctx)
+	if err != nil {
+		u.logger.Error("failed to get yesterday PV data", log.Error(err))
+		return err
+	}
+
+	// 遍历并插入/更新到node_stats表
+	for nodeID, pvCount := range pvMap {
+		if err := u.repo.UpsertNodeStats(ctx, nodeID, pvCount); err != nil {
+			u.logger.Error("failed to upsert node stats",
+				log.Error(err),
+				log.String("node_id", nodeID),
+				log.Int64("pv_count", pvCount))
+			return err
+		}
+	}
+
+	u.logger.Info("successfully migrated yesterday PV data to node_stats",
+		log.Int("node_count", len(pvMap)))
+	return nil
 }

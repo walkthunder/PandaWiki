@@ -1,5 +1,5 @@
 import { FooterSetting } from '@/api/type';
-import { useAppDispatch, useAppSelector } from '@/store';
+import { IconShanchu2, IconDrag, IconTianjia } from '@panda-wiki/icons';
 import {
   closestCenter,
   DndContext,
@@ -18,22 +18,15 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Box, Button, IconButton, Stack, TextField } from '@mui/material';
-import { Icon } from '@ctzhian/ui';
+import { Box, IconButton, Stack, TextField } from '@mui/material';
 import {
   CSSProperties,
   forwardRef,
   HTMLAttributes,
   useCallback,
-  useEffect,
   useState,
 } from 'react';
-import {
-  Control,
-  Controller,
-  FieldErrors,
-  useFieldArray,
-} from 'react-hook-form';
+import { Control, Controller, FieldErrors } from 'react-hook-form';
 import { BrandGroup } from '.';
 
 export type ItemProps = Omit<HTMLAttributes<HTMLDivElement>, 'onChange'> & {
@@ -107,7 +100,7 @@ const LinkItem = forwardRef<HTMLDivElement, LinkItemProps>(
               }}
               {...dragHandleProps}
             >
-              <Icon type='icon-drag' />
+              <IconDrag sx={{ fontSize: '18px' }} />
             </IconButton>
             <Box
               sx={{
@@ -122,7 +115,7 @@ const LinkItem = forwardRef<HTMLDivElement, LinkItemProps>(
               size='small'
               onClick={onRemove}
               sx={{
-                color: 'text.auxiliary',
+                color: 'text.tertiary',
                 ':hover': { color: 'error.main' },
                 flexShrink: 0,
                 width: '28px',
@@ -130,7 +123,7 @@ const LinkItem = forwardRef<HTMLDivElement, LinkItemProps>(
                 ml: 'auto',
               }}
             >
-              <Icon type='icon-shanchu2' sx={{ fontSize: '12px' }} />
+              <IconShanchu2 sx={{ fontSize: '12px' }} />
             </IconButton>
           </Stack>
           <Controller
@@ -380,7 +373,7 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                   }}
                   {...dragHandleProps}
                 >
-                  <Icon type='icon-drag' />
+                  <IconDrag sx={{ fontSize: '18px' }} />
                 </IconButton>
                 <Box
                   sx={{
@@ -395,7 +388,7 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                   size='small'
                   onClick={handleRemove}
                   sx={{
-                    color: 'text.auxiliary',
+                    color: 'text.tertiary',
                     ':hover': { color: 'error.main' },
                     flexShrink: 0,
                     width: '28px',
@@ -403,7 +396,7 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                     ml: 'auto',
                   }}
                 >
-                  <Icon type='icon-shanchu2' sx={{ fontSize: '12px' }} />
+                  <IconShanchu2 sx={{ fontSize: '12px' }} />
                 </IconButton>
               </Stack>
               <Controller
@@ -452,7 +445,7 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
             </Stack>
             {/* 链接拖拽区域 */}
 
-            {item.links.length > 0 && (
+            {item.links && item.links.length > 0 && (
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
@@ -520,8 +513,7 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
               }}
               onClick={handleAddLink}
             >
-              <Icon
-                type='icon-tianjia'
+              <IconTianjia
                 sx={{ fontSize: '10px !important', color: '#5F58FE' }}
               />
               <Box

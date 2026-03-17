@@ -85,7 +85,7 @@ export class HttpClient<SecurityDataType = unknown> {
     this.instance = axios.create({
       withCredentials: true,
       ...axiosConfig,
-      baseURL: axiosConfig.baseURL || "",
+      baseURL: axiosConfig.baseURL || window.__BASENAME__ || "",
     });
     this.secure = secure;
     this.format = format;
@@ -105,7 +105,7 @@ export class HttpClient<SecurityDataType = unknown> {
       },
       (error) => {
         if (error.response?.status === 401) {
-          window.location.href = "/login";
+          window.location.href = window.__BASENAME__ + "/login";
           localStorage.removeItem("panda_wiki_token");
         }
         if (error.code !== "ERR_CANCELED") {

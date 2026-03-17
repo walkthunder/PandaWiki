@@ -15,8 +15,11 @@ import {
   DomainCreateModelReq,
   DomainGetProviderModelListReq,
   DomainGetProviderModelListResp,
+  DomainModelModeSetting,
   DomainPWResponse,
   DomainResponse,
+  DomainSwitchModeReq,
+  DomainSwitchModeResp,
   DomainUpdateModelReq,
   GithubComChaitinPandaWikiDomainCheckModelReq,
   GithubComChaitinPandaWikiDomainCheckModelResp,
@@ -125,6 +128,32 @@ export const getApiV1ModelList = (params: RequestParams = {}) =>
   });
 
 /**
+ * @description get current model mode setting including mode, API key and chat model
+ *
+ * @tags model
+ * @name GetApiV1ModelModeSetting
+ * @summary get model mode setting
+ * @request GET:/api/v1/model/mode-setting
+ * @response `200` `(DomainResponse & {
+    data?: DomainModelModeSetting,
+
+})` OK
+ */
+
+export const getApiV1ModelModeSetting = (params: RequestParams = {}) =>
+  httpRequest<
+    DomainResponse & {
+      data?: DomainModelModeSetting;
+    }
+  >({
+    path: `/api/v1/model/mode-setting`,
+    method: "GET",
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
+
+/**
  * @description get provider supported model list
  *
  * @tags model
@@ -152,4 +181,34 @@ export const postApiV1ModelProviderSupported = (
     type: ContentType.Json,
     format: "json",
     ...requestParams,
+  });
+
+/**
+ * @description switch model mode between manual and auto
+ *
+ * @tags model
+ * @name PostApiV1ModelSwitchMode
+ * @summary switch mode
+ * @request POST:/api/v1/model/switch-mode
+ * @response `200` `(DomainResponse & {
+    data?: DomainSwitchModeResp,
+
+})` OK
+ */
+
+export const postApiV1ModelSwitchMode = (
+  request: DomainSwitchModeReq,
+  params: RequestParams = {},
+) =>
+  httpRequest<
+    DomainResponse & {
+      data?: DomainSwitchModeResp;
+    }
+  >({
+    path: `/api/v1/model/switch-mode`,
+    method: "POST",
+    body: request,
+    type: ContentType.Json,
+    format: "json",
+    ...params,
   });

@@ -1,8 +1,8 @@
 import { CheckCircle } from '@mui/icons-material';
 import { Box, Stack, Typography, useTheme, SxProps } from '@mui/material';
-import { Icon } from '@ctzhian/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { IconShangchuan } from '@panda-wiki/icons';
 
 interface FileTextProps {
   file?: File;
@@ -97,10 +97,7 @@ const FileText = ({
           {dropFiles.length > 0 ? (
             <CheckCircle sx={{ color: 'success.main', fontSize: 20 }} />
           ) : (
-            <Icon
-              type='icon-shangchuan'
-              sx={{ fontSize: 20, color: 'text.disabled' }}
-            />
+            <IconShangchuan sx={{ fontSize: 20, color: 'text.disabled' }} />
           )}
           <Typography
             variant='body1'

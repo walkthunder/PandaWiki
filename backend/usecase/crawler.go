@@ -67,6 +67,12 @@ func (u *CrawlerUsecase) ParseUrl(ctx context.Context, req *v1.CrawlerParseReq) 
 			return nil, err
 		}
 
+	case consts.CrawlerSourceDingtalk:
+		docs, err = u.anydocClient.DingtalkListDocs(ctx, id, req.DingtalkSetting)
+		if err != nil {
+			return nil, err
+		}
+
 	case consts.CrawlerSourceUrl, consts.CrawlerSourceFile:
 		docs, err = u.anydocClient.GetUrlList(ctx, req.Key, id)
 		if err != nil {

@@ -2,7 +2,7 @@
 
 import { addOpacityToColor } from '@/utils';
 import { IconButton, useTheme } from '@mui/material';
-import { Icon } from '@ctzhian/ui';
+import { IconXiajiantou } from '@panda-wiki/icons';
 import React, { useCallback, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
@@ -64,8 +64,7 @@ const ThinkingComponent: React.FC<ThinkingComponentProps> = ({
             },
           }}
         >
-          <Icon
-            type='icon-xiajiantou'
+          <IconXiajiantou
             sx={{
               fontSize: 18,
               flexShrink: 0,

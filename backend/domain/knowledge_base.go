@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/chaitin/panda-wiki/consts"
@@ -47,7 +48,7 @@ type EnterpriseAuth struct {
 	Enabled bool `json:"enabled"`
 }
 
-func (s AccessSettings) GetAuthType() consts.AuthType {
+func (s *AccessSettings) GetAuthType() consts.AuthType {
 	if s.EnterpriseAuth.Enabled {
 		return consts.AuthTypeEnterprise
 	}
@@ -65,8 +66,31 @@ func (s *AccessSettings) Scan(value any) error {
 	return json.Unmarshal(bytes, s)
 }
 
-func (s AccessSettings) Value() (driver.Value, error) {
+func (s *AccessSettings) Value() (driver.Value, error) {
 	return json.Marshal(s)
+}
+
+func (s *AccessSettings) GetBaseUrl() string {
+	if strings.TrimSpace(s.BaseURL) != "" {
+		return s.BaseURL
+	}
+	if len(s.Hosts) > 0 {
+		if len(s.SSLPorts) > 0 {
+			if s.SSLPorts[0] == 443 {
+				return fmt.Sprintf("https://%s", s.Hosts[0])
+			} else {
+				return fmt.Sprintf("https://%s:%d", s.Hosts[0], s.SSLPorts[0])
+			}
+		}
+		if len(s.Ports) > 0 {
+			if s.Ports[0] == 80 {
+				return fmt.Sprintf("http://%s", s.Hosts[0])
+			} else {
+				return fmt.Sprintf("http://%s:%d", s.Hosts[0], s.Ports[0])
+			}
+		}
+	}
+	return ""
 }
 
 type CreateKnowledgeBaseReq struct {
@@ -112,11 +136,12 @@ type KnowledgeBaseDetail struct {
 
 // table: kb_releases
 type KBRelease struct {
-	ID        string    `json:"id" gorm:"primaryKey"`
-	KBID      string    `json:"kb_id" gorm:"index"`
-	Tag       string    `json:"tag"`
-	Message   string    `json:"message"`
-	CreatedAt time.Time `json:"created_at"`
+	ID          string    `json:"id" gorm:"primaryKey"`
+	KBID        string    `json:"kb_id" gorm:"index"`
+	Tag         string    `json:"tag"`
+	Message     string    `json:"message"`
+	PublisherId string    `json:"publisher_id"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 // table: kb_release_node_releases
@@ -126,6 +151,7 @@ type KBReleaseNodeRelease struct {
 	ReleaseID     string    `json:"release_id" gorm:"index"`
 	NodeID        string    `json:"node_id"`
 	NodeReleaseID string    `json:"node_release_id" gorm:"index"`
+	NavID         string    `json:"nav_id"`
 	CreatedAt     time.Time `json:"created_at"`
 }
 
@@ -141,11 +167,12 @@ type CreateKBReleaseReq struct {
 }
 
 type KBReleaseListItemResp struct {
-	ID        string    `json:"id"`
-	KBID      string    `json:"kb_id"`
-	Message   string    `json:"message"`
-	Tag       string    `json:"tag"`
-	CreatedAt time.Time `json:"created_at"`
+	ID               string    `json:"id"`
+	KBID             string    `json:"kb_id"`
+	PublisherAccount string    `json:"publisher_account"`
+	Message          string    `json:"message"`
+	Tag              string    `json:"tag"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 type GetKBReleaseListReq struct {

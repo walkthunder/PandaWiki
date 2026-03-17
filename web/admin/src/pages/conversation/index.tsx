@@ -7,7 +7,7 @@ import { useURLSearchParams } from '@/hooks';
 import { getApiV1Conversation } from '@/request/Conversation';
 import { DomainConversationListItem } from '@/request/types';
 import { useAppSelector } from '@/store';
-import { Ellipsis, Icon, Table } from '@ctzhian/ui';
+import { Ellipsis, Table } from '@ctzhian/ui';
 import { ColumnType } from '@ctzhian/ui/dist/Table';
 import { Box, Stack } from '@mui/material';
 import dayjs from 'dayjs';
@@ -34,15 +34,12 @@ const Conversation = () => {
       title: '问题',
       render: (text: string, record) => {
         const isGroupChat = record.info?.user_info?.from === 1;
+        const AppIcon =
+          AppType[record.app_type as keyof typeof AppType]?.icon || '';
         return (
           <>
             <Stack direction={'row'} alignItems={'center'} gap={1}>
-              <Icon
-                sx={{ fontSize: 12 }}
-                type={
-                  AppType[record.app_type as keyof typeof AppType]?.icon || ''
-                }
-              />
+              <AppIcon sx={{ fontSize: 12 }}></AppIcon>
               <Ellipsis
                 className='primary-color'
                 sx={{ cursor: 'pointer', flex: 1, width: 0 }}
@@ -52,7 +49,7 @@ const Conversation = () => {
                   setOpen(true);
                 }}
               >
-                {text}
+                {text || '图片问答'}
               </Ellipsis>
             </Stack>
             <Box sx={{ color: 'text.tertiary', fontSize: 12 }}>
@@ -144,7 +141,6 @@ const Conversation = () => {
   }, [conversion_id]);
 
   useEffect(() => {
-    console.log(page, pageSize, subject, remoteIp, kb_id);
     if (kb_id) getData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, subject, remoteIp, kb_id]);

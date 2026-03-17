@@ -1,7 +1,9 @@
 import Card from '@/components/Card';
+import { ConstsLicenseEdition } from '@/request/types';
 import InfoIcon from '@mui/icons-material/Info';
 import { Button, Stack, styled, SxProps, Tooltip } from '@mui/material';
 import { createContext, useContext } from 'react';
+import VersionMask from '@/components/VersionMask';
 
 const StyledForm = styled('form')<{ gap?: number | string }>(
   ({ theme, gap = 2 }) => ({
@@ -40,6 +42,7 @@ const StyledFormLabel = styled('span')<{ required?: boolean }>(
 
 export const StyledFormItem = styled('div')<{ vertical?: boolean }>(
   ({ theme, vertical }) => ({
+    position: 'relative',
     display: 'flex',
     alignItems: vertical ? 'flex-start' : 'center',
     flexDirection: vertical ? 'column' : 'row',
@@ -82,6 +85,7 @@ export const FormItem = ({
   extra,
   sx,
   labelSx,
+  permission,
 }: {
   label?: string | React.ReactNode;
   children?: React.ReactNode;
@@ -92,31 +96,37 @@ export const FormItem = ({
   extra?: React.ReactNode;
   sx?: SxProps;
   labelSx?: SxProps;
+  permission?: number[];
 }) => {
   const { vertical: verticalContext, labelWidth: labelWidthContext } =
     useContext(FormContext);
-  return (
-    <StyledFormItem vertical={vertical || verticalContext} sx={sx}>
-      <StyledFormLabelWrapper
-        vertical={vertical || verticalContext}
-        labelWidth={labelWidth || labelWidthContext}
-        sx={labelSx}
-      >
-        <Stack direction='row' alignItems='center' flex={1}>
-          <StyledFormLabel required={required}>{label}</StyledFormLabel>
-          {tooltip && typeof tooltip === 'string' ? (
-            <Tooltip title={tooltip} placement='top' arrow>
-              <InfoIcon sx={{ color: 'text.secondary', fontSize: 14, ml: 1 }} />
-            </Tooltip>
-          ) : (
-            tooltip
-          )}
-        </Stack>
 
-        {extra}
-      </StyledFormLabelWrapper>
-      {children}
-    </StyledFormItem>
+  return (
+    <VersionMask permission={permission}>
+      <StyledFormItem vertical={vertical || verticalContext} sx={sx}>
+        <StyledFormLabelWrapper
+          vertical={vertical || verticalContext}
+          labelWidth={labelWidth || labelWidthContext}
+          sx={labelSx}
+        >
+          <Stack direction='row' alignItems='center' flex={1}>
+            <StyledFormLabel required={required}>{label}</StyledFormLabel>
+            {tooltip && typeof tooltip === 'string' ? (
+              <Tooltip title={tooltip} placement='top' arrow>
+                <InfoIcon
+                  sx={{ color: 'text.secondary', fontSize: 14, ml: 1 }}
+                />
+              </Tooltip>
+            ) : (
+              tooltip
+            )}
+          </Stack>
+
+          {extra}
+        </StyledFormLabelWrapper>
+        {children}
+      </StyledFormItem>
+    </VersionMask>
   );
 };
 
@@ -142,6 +152,7 @@ export const SettingCard = ({
 };
 
 const StyledSettingCardItem = styled('div')(({ theme }) => ({
+  position: 'relative',
   '&:not(:last-child)': {
     borderBottom: `1px solid ${theme.palette.divider}`,
     paddingBottom: theme.spacing(4),
@@ -204,6 +215,12 @@ export const SettingCardItem = ({
   extra,
   more,
   sx,
+  permission = [
+    ConstsLicenseEdition.LicenseEditionFree,
+    ConstsLicenseEdition.LicenseEditionProfession,
+    ConstsLicenseEdition.LicenseEditionBusiness,
+    ConstsLicenseEdition.LicenseEditionEnterprise,
+  ],
 }: {
   children?: React.ReactNode;
   title?: React.ReactNode;
@@ -212,6 +229,7 @@ export const SettingCardItem = ({
   extra?: React.ReactNode;
   more?: SettingCardItemMore;
   sx?: SxProps;
+  permission?: number[];
 }) => {
   const renderMore = (more: SettingCardItemMore) => {
     if (more && typeof more === 'object' && 'type' in more) {
@@ -237,20 +255,23 @@ export const SettingCardItem = ({
       return more;
     }
   };
+
   return (
-    <StyledSettingCardItem sx={sx}>
-      <StyledSettingCardItemTitleWrapper>
-        <StyledSettingCardItemTitle>
-          {title} {renderMore(more)}
-        </StyledSettingCardItemTitle>
-        {isEdit && (
-          <Button variant='contained' size='small' onClick={onSubmit}>
-            保存
-          </Button>
-        )}
-        {extra}
-      </StyledSettingCardItemTitleWrapper>
-      <StyledSettingCardItemContent>{children}</StyledSettingCardItemContent>
-    </StyledSettingCardItem>
+    <VersionMask permission={permission}>
+      <StyledSettingCardItem sx={sx}>
+        <StyledSettingCardItemTitleWrapper>
+          <StyledSettingCardItemTitle>
+            {title} {renderMore(more)}
+          </StyledSettingCardItemTitle>
+          {isEdit && (
+            <Button variant='contained' size='small' onClick={onSubmit}>
+              保存
+            </Button>
+          )}
+          {extra}
+        </StyledSettingCardItemTitleWrapper>
+        <StyledSettingCardItemContent>{children}</StyledSettingCardItemContent>
+      </StyledSettingCardItem>
+    </VersionMask>
   );
 };

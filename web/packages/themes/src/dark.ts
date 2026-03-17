@@ -48,6 +48,14 @@ const darkPalette: PaletteOptions = {
     paper3: '#202531',
     footer: '#242425',
   },
+  table: {
+    head: {
+      background: '#292929',
+    },
+    cell: {
+      border: '#434343',
+    },
+  },
   text: {
     primary: '#FFFFFF',
     secondary: 'rgba(255, 255, 255, 0.7)',

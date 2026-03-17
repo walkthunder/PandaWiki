@@ -8,6 +8,7 @@ import DocAddByCustomText from './DocAddByCustomText';
 interface InputContentProps {
   exportFile?: boolean;
   refresh?: () => void;
+  disabled?: boolean;
   context?: React.ReactElement<{ onClick?: any; 'aria-describedby'?: any }>;
   createLocal?: (node: {
     id: string;
@@ -23,6 +24,7 @@ interface InputContentProps {
 const AddDocBtn = ({
   exportFile = true,
   refresh,
+  disabled = false,
   context,
   createLocal,
   scrollTo,
@@ -140,6 +142,14 @@ const AddDocBtn = ({
             },
           },
           {
+            key: ConstsCrawlerSource.CrawlerSourceDingtalk,
+            label: '通过钉钉文档导入',
+            onClick: () => {
+              setUploadOpen(true);
+              setKey(ConstsCrawlerSource.CrawlerSourceDingtalk);
+            },
+          },
+          {
             key: ConstsCrawlerSource.CrawlerSourceConfluence,
             label: '通过 Confluence 导入',
             onClick: () => {
@@ -160,7 +170,13 @@ const AddDocBtn = ({
     <Box>
       <TreeMenu
         menu={menuItems}
-        context={context || <Button variant='contained'>创建文档</Button>}
+        context={
+          context || (
+            <Button variant='contained' disabled={disabled}>
+              创建文档
+            </Button>
+          )
+        }
       />
       {key && (
         <AddDocByType
@@ -169,13 +185,11 @@ const AddDocBtn = ({
           refresh={refresh}
           onCancel={close}
           parentId={null}
-          // 导入类操作：刷新后由上层保持展开状态，并由上层决定滚动位置
         />
       )}
       <DocAddByCustomText
         type={docFileKey}
         open={customDocOpen}
-        // 本地创建：不刷新，创建后本地追加并滚动
         refresh={refresh}
         onCreated={node => {
           createLocal?.(node);

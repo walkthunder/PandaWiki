@@ -30,7 +30,7 @@ interface DragSocialInfoProps {
 }
 
 const DragSocialInfo: FC<DragSocialInfoProps> = ({
-  data,
+  data = [],
   onChange,
   setIsEdit,
   control,
@@ -43,12 +43,12 @@ const DragSocialInfo: FC<DragSocialInfoProps> = ({
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
-      if (active.id !== over?.id) {
+      if (active.id !== over?.id && data) {
         const oldIndex = data.findIndex(
           (_, index) => `social-${index}` === active?.id,
         );
         const newIndex = data.findIndex(
-          (_, index) => `social-${index}` === over!?.id,
+          (_, index) => `social-${index}` === over?.id,
         );
         const newData = arrayMove(data, oldIndex, newIndex);
         onChange(newData);
@@ -62,7 +62,7 @@ const DragSocialInfo: FC<DragSocialInfoProps> = ({
     setActiveId(null);
   }, []);
 
-  if (data.length === 0) return null;
+  if (!data || data.length === 0) return null;
 
   return (
     <>
@@ -93,7 +93,7 @@ const DragSocialInfo: FC<DragSocialInfoProps> = ({
             </Stack>
           </SortableContext>
           <DragOverlay adjustScale style={{ transformOrigin: '0 0' }}>
-            {activeId ? (
+            {activeId && data ? (
               <Item
                 isDragging
                 item={data.find((_, index) => `social-${index}` === activeId)!}

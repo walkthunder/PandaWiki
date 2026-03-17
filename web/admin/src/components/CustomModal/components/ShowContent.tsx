@@ -103,7 +103,7 @@ const SortableItem = memo(
           mobile={renderMode === 'mobile'}
           docWidth={renderMode === 'pc' ? 'full' : 'normal'}
           {...(cachedProps || {})}
-          baseUrl={baseUrl}
+          basePath={baseUrl}
         />
         {isHighlighted && (
           <Stack

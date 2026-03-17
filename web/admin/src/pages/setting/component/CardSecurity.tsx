@@ -8,6 +8,7 @@ import {
 } from '@/request/types';
 import { useAppSelector } from '@/store';
 import { message } from '@ctzhian/ui';
+import { BUSINESS_VERSION_PERMISSION } from '@/constant/version';
 import {
   Autocomplete,
   Box,
@@ -17,7 +18,7 @@ import {
   TextField,
   styled,
 } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { FormItem, SettingCardItem } from './Common';
 
@@ -32,15 +33,9 @@ const WatermarkForm = ({
   data?: DomainAppDetailResp;
   refresh: () => void;
 }) => {
-  const { license, kb_id } = useAppSelector(state => state.config);
+  const { kb_id } = useAppSelector(state => state.config);
   const [watermarkIsEdit, setWatermarkIsEdit] = useState(false);
-  const {
-    control,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm({
+  const { control, handleSubmit, setValue, watch } = useForm({
     defaultValues: {
       watermark_setting: data?.settings?.watermark_setting ?? null,
       watermark_content: data?.settings?.watermark_content ?? '',
@@ -48,9 +43,6 @@ const WatermarkForm = ({
   });
 
   const watermarkSetting = watch('watermark_setting');
-  const isEnterprise = useMemo(() => {
-    return license.edition === 2;
-  }, [license]);
 
   const handleSaveWatermark = handleSubmit(values => {
     if (!data?.id || values.watermark_setting === null) return;
@@ -82,8 +74,9 @@ const WatermarkForm = ({
       title='水印'
       isEdit={watermarkIsEdit}
       onSubmit={handleSaveWatermark}
+      permission={BUSINESS_VERSION_PERMISSION}
     >
-      <FormItem label='水印开关' tooltip={!isEnterprise && '企业版可用'}>
+      <FormItem label='水印开关'>
         <Controller
           control={control}
           name='watermark_setting'
@@ -98,18 +91,18 @@ const WatermarkForm = ({
             >
               <FormControlLabel
                 value={ConstsWatermarkSetting.WatermarkVisible}
-                control={<Radio size='small' disabled={!isEnterprise} />}
+                control={<Radio size='small' />}
                 label={<StyledRadioLabel>显性水印</StyledRadioLabel>}
               />
               <FormControlLabel
                 value={ConstsWatermarkSetting.WatermarkHidden}
-                control={<Radio size='small' disabled={!isEnterprise} />}
+                control={<Radio size='small' />}
                 label={<StyledRadioLabel>隐形水印</StyledRadioLabel>}
               />
 
               <FormControlLabel
                 value={ConstsWatermarkSetting.WatermarkDisabled}
-                control={<Radio size='small' disabled={!isEnterprise} />}
+                control={<Radio size='small' />}
                 label={<StyledRadioLabel>禁用</StyledRadioLabel>}
               />
             </RadioGroup>
@@ -128,7 +121,6 @@ const WatermarkForm = ({
                 placeholder='请输入水印内容, 支持多行输入'
                 multiline
                 minRows={2}
-                disabled={!isEnterprise}
                 onChange={e => {
                   setWatermarkIsEdit(true);
                   field.onChange(e.target.value);
@@ -146,9 +138,6 @@ const KeywordsForm = ({ kb }: { kb: DomainKnowledgeBaseDetail }) => {
   const { license } = useAppSelector(state => state.config);
   const [questionInputValue, setQuestionInputValue] = useState('');
   const [isEdit, setIsEdit] = useState(false);
-  const isEnterprise = useMemo(() => {
-    return license.edition === 2;
-  }, [license]);
 
   const { control, handleSubmit, setValue } = useForm({
     defaultValues: {
@@ -169,17 +158,18 @@ const KeywordsForm = ({ kb }: { kb: DomainKnowledgeBaseDetail }) => {
   });
 
   useEffect(() => {
-    if (!kb.id || !isEnterprise) return;
+    if (!kb.id || !BUSINESS_VERSION_PERMISSION.includes(license.edition!))
+      return;
     getApiProV1Block({ kb_id: kb.id! }).then(res => {
       setValue('block_words', res.words || []);
     });
-  }, [kb, isEnterprise]);
+  }, [kb, license.edition]);
 
   return (
     <SettingCardItem title='内容合规' isEdit={isEdit} onSubmit={onSubmit}>
       <FormItem
         vertical
-        tooltip={!isEnterprise && '企业版可用'}
+        permission={BUSINESS_VERSION_PERMISSION}
         label='屏蔽 AI 问答中的关键字'
       >
         <Controller
@@ -193,7 +183,6 @@ const KeywordsForm = ({ kb }: { kb: DomainKnowledgeBaseDetail }) => {
               inputValue={questionInputValue}
               options={[]}
               fullWidth
-              disabled={!isEnterprise}
               onInputChange={(_, value) => {
                 setQuestionInputValue(value);
               }}
@@ -234,22 +223,13 @@ const CopyForm = ({
   data?: DomainAppDetailResp;
   refresh: () => void;
 }) => {
-  const { license, kb_id } = useAppSelector(state => state.config);
+  const { kb_id } = useAppSelector(state => state.config);
   const [isEdit, setIsEdit] = useState(false);
-  const {
-    control,
-    handleSubmit,
-    setValue,
-    formState: { errors },
-  } = useForm({
+  const { control, handleSubmit, setValue } = useForm({
     defaultValues: {
       copy_setting: data?.settings?.copy_setting ?? null,
     },
   });
-
-  const isEnterprise = useMemo(() => {
-    return license.edition === 2;
-  }, [license]);
 
   const handleSaveWatermark = handleSubmit(values => {
     if (!data?.id || values.copy_setting === null) return;
@@ -280,7 +260,7 @@ const CopyForm = ({
       isEdit={isEdit}
       onSubmit={handleSaveWatermark}
     >
-      <FormItem label='限制复制' tooltip={!isEnterprise && '企业版可用'}>
+      <FormItem label='限制复制' permission={BUSINESS_VERSION_PERMISSION}>
         <Controller
           control={control}
           name='copy_setting'
@@ -295,18 +275,18 @@ const CopyForm = ({
             >
               <FormControlLabel
                 value={ConstsCopySetting.CopySettingNone}
-                control={<Radio size='small' disabled={!isEnterprise} />}
+                control={<Radio size='small' />}
                 label={<StyledRadioLabel>不做限制</StyledRadioLabel>}
               />
               <FormControlLabel
                 value={ConstsCopySetting.CopySettingAppend}
-                control={<Radio size='small' disabled={!isEnterprise} />}
+                control={<Radio size='small' />}
                 label={<StyledRadioLabel>增加内容尾巴</StyledRadioLabel>}
               />
 
               <FormControlLabel
                 value={ConstsCopySetting.CopySettingDisabled}
-                control={<Radio size='small' disabled={!isEnterprise} />}
+                control={<Radio size='small' />}
                 label={<StyledRadioLabel>禁止复制内容</StyledRadioLabel>}
               />
             </RadioGroup>

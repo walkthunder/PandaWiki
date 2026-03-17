@@ -7,7 +7,7 @@ import {
 import RAG_SOURCES from '@/constant/rag';
 import { treeSx } from '@/constant/styles';
 import { postApiV1Node, putApiV1NodeDetail } from '@/request/Node';
-import { ConstsNodeAccessPerm, ConstsNodeRagInfoStatus } from '@/request/types';
+import { ConstsNodeAccessPerm } from '@/request/types';
 import { useAppSelector } from '@/store';
 import { AppContext, updateTree } from '@/utils/drag';
 import { handleMultiSelect, updateAllParentStatus } from '@/utils/tree';
@@ -95,7 +95,7 @@ const TreeItem = React.forwardRef<
   HTMLDivElement,
   TreeItemComponentProps<ITreeItem>
 >((props, ref) => {
-  const { kb_id: id } = useAppSelector(state => state.config);
+  const { kb_id: id, nav_id } = useAppSelector(state => state.config);
   const { item, collapsed } = props;
   const context = useContext(AppContext);
 
@@ -111,6 +111,7 @@ const TreeItem = React.forwardRef<
     menu,
     relativeSelect = true,
     updateData,
+    refresh,
     disabled,
     scrollToItem,
   } = context;
@@ -351,6 +352,10 @@ const TreeItem = React.forwardRef<
                         putApiV1NodeDetail({
                           id: item.id,
                           kb_id: id,
+                          nav_id:
+                            (item as { nav_id?: string }).nav_id ||
+                            nav_id ||
+                            '',
                           name: value,
                           emoji,
                         }).then(() => {
@@ -365,6 +370,7 @@ const TreeItem = React.forwardRef<
                             updated_at: dayjs().toString(),
                           });
                           updateData?.(temp);
+                          refresh?.();
                         });
                       } else {
                         if (value === '') {
@@ -375,6 +381,7 @@ const TreeItem = React.forwardRef<
                           name: value,
                           content: '',
                           kb_id: id,
+                          nav_id: nav_id || '',
                           parent_id: item.parentId,
                           type: item.type,
                           emoji,
@@ -395,6 +402,7 @@ const TreeItem = React.forwardRef<
                           }
                           updateTree(temp, item.id, newItem);
                           updateData?.(temp);
+                          refresh?.();
                           // 滚动到保存后的项
                           setTimeout(() => {
                             scrollToItem?.(res.id);
@@ -418,6 +426,7 @@ const TreeItem = React.forwardRef<
                           ...item,
                           isEditting: false,
                         });
+                        updateData?.(temp);
                       }
                     }}
                   >
@@ -450,6 +459,10 @@ const TreeItem = React.forwardRef<
                           await putApiV1NodeDetail({
                             id: item.id,
                             kb_id: id,
+                            nav_id:
+                              (item as { nav_id?: string }).nav_id ||
+                              nav_id ||
+                              '',
                             emoji: value,
                           });
                           message.success('更新成功');
@@ -461,6 +474,7 @@ const TreeItem = React.forwardRef<
                             emoji: value,
                           });
                           updateData?.(temp);
+                          refresh?.();
                         } catch (error) {
                           message.error('更新失败');
                         }
@@ -522,23 +536,27 @@ const TreeItem = React.forwardRef<
                       gap={1}
                       sx={{ flexShrink: 0, fontSize: 12 }}
                     >
-                      {item.type === 2 &&
-                        item.rag_status &&
-                        ![
-                          ConstsNodeRagInfoStatus.NodeRagStatusBasicSucceeded,
-                          ConstsNodeRagInfoStatus.NodeRagStatusEnhanceSucceeded,
-                        ].includes(item.rag_status) && (
-                          <Tooltip title={item.rag_message}>
-                            <StyledTag
-                              color={RAG_SOURCES[item.rag_status].color as any}
-                            >
-                              {RAG_SOURCES[item.rag_status].name}
-                            </StyledTag>
-                          </Tooltip>
-                        )}
+                      {item.status === 0 && (
+                        <StyledTag color='error'>未发布</StyledTag>
+                      )}
                       {item.status === 1 && (
                         <StyledTag color='error'>更新未发布</StyledTag>
                       )}
+                      {item.type === 2 &&
+                        item.rag_status &&
+                        item.status !== 0 && (
+                          <Tooltip title={item.rag_message}>
+                            <StyledTag
+                              color={
+                                RAG_SOURCES[item.rag_status]?.color ||
+                                ('warning' as any)
+                              }
+                            >
+                              {RAG_SOURCES[item.rag_status]?.name || '处理失败'}
+                            </StyledTag>
+                          </Tooltip>
+                        )}
+
                       {item.type === 2 && (
                         <>
                           {permissions?.answerable &&

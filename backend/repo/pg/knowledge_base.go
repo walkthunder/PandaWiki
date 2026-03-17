@@ -130,6 +130,22 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 				"disable_certificates": true,
 				"disable_redirects":    true,
 			}
+			// SSL port: collect certificate tags for tls_connection_policies
+			certTags := make([]string, 0)
+			for _, kb := range hostKBMap {
+				if len(kb.AccessSettings.PublicKey) > 0 && len(kb.AccessSettings.PrivateKey) > 0 {
+					certTags = append(certTags, kb.ID)
+				}
+			}
+			if len(certTags) > 0 {
+				server["tls_connection_policies"] = []map[string]any{
+					{
+						"certificate_selection": map[string]any{
+							"any_tag": certTags,
+						},
+					},
+				}
+			}
 		}
 		routes := make([]map[string]any, 0)
 		var defaultRoute map[string]any
@@ -171,7 +187,7 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 							{
 								"match": []map[string]any{
 									{
-										"path": []string{"/share/v1/chat/completions", "/share/v1/app/wechat/app", "/share/v1/app/wechat/service", "/sitemap.xml", "/share/v1/app/wechat/official_account", "/share/v1/app/wechat/service/answer"},
+										"path": []string{"/share/v1/chat/completions", "/share/v1/app/wechat/app", "/share/v1/app/wechat/service", "/sitemap.xml", "/share/v1/app/wechat/official_account", "/share/v1/app/wechat/service/answer", "/mcp"},
 									},
 								},
 								"handle": []map[string]any{
@@ -199,15 +215,43 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 								},
 								"handle": []map[string]any{
 									{
-										"handler": "reverse_proxy",
-										"upstreams": []map[string]any{
-											{"dial": staticFile},
-										},
-										"flush_interval": -1,
-										"transport": map[string]any{
-											"protocol":      "http",
-											"read_timeout":  "10m",
-											"write_timeout": "10m",
+										"handler": "subroute",
+										"routes": []map[string]any{
+											{
+												"match": []map[string]any{
+													{
+														"not": []map[string]any{
+															{"path_regexp": map[string]string{"pattern": `(?i)\.pdf($|\?)`}},
+														},
+													},
+												},
+												"handle": []map[string]any{
+													{
+														"handler": "headers",
+														"response": map[string]any{
+															"set": map[string][]string{
+																"Content-Disposition": {"attachment"},
+															},
+														},
+													},
+												},
+											},
+											{
+												"handle": []map[string]any{
+													{
+														"handler": "reverse_proxy",
+														"upstreams": []map[string]any{
+															{"dial": staticFile},
+														},
+														"flush_interval": -1,
+														"transport": map[string]any{
+															"protocol":      "http",
+															"read_timeout":  "10m",
+															"write_timeout": "10m",
+														},
+													},
+												},
+											},
 										},
 									},
 								},
@@ -605,6 +649,28 @@ func (r *KnowledgeBaseRepository) CreateKBRelease(ctx context.Context, release *
 		if len(nodeReleases) == 0 {
 			return nil
 		}
+
+		// build node_id -> nav_id map from current nodes
+		type nodeNavID struct {
+			ID    string `gorm:"column:id"`
+			NavID string `gorm:"column:nav_id"`
+		}
+		var nodeNavIDs []nodeNavID
+		nodeIDs := make([]string, len(nodeReleases))
+		for i, nr := range nodeReleases {
+			nodeIDs[i] = nr.NodeID
+		}
+		if err := tx.Model(&domain.Node{}).
+			Where("id IN ?", nodeIDs).
+			Select("id, nav_id").
+			Find(&nodeNavIDs).Error; err != nil {
+			return err
+		}
+		navIDMap := make(map[string]string, len(nodeNavIDs))
+		for _, n := range nodeNavIDs {
+			navIDMap[n.ID] = n.NavID
+		}
+
 		kbReleaseNodeReleases := make([]*domain.KBReleaseNodeRelease, len(nodeReleases))
 		for i, nodeRelease := range nodeReleases {
 			kbReleaseNodeReleases[i] = &domain.KBReleaseNodeRelease{
@@ -613,12 +679,40 @@ func (r *KnowledgeBaseRepository) CreateKBRelease(ctx context.Context, release *
 				ReleaseID:     release.ID,
 				NodeID:        nodeRelease.NodeID,
 				NodeReleaseID: nodeRelease.ID,
+				NavID:         navIDMap[nodeRelease.NodeID],
 				CreatedAt:     time.Now(),
 			}
 		}
-		if err := tx.CreateInBatches(&kbReleaseNodeReleases, 100).Error; err != nil {
+		if err := tx.CreateInBatches(&kbReleaseNodeReleases, 2000).Error; err != nil {
 			return err
 		}
+
+		// snapshot current navs into nav_releases
+		var navs []*domain.Nav
+		if err := tx.Where("kb_id = ?", release.KBID).
+			Order("position ASC").
+			Find(&navs).Error; err != nil {
+			return err
+		}
+		if len(navs) > 0 {
+			navReleases := make([]*domain.NavRelease, len(navs))
+			now := time.Now()
+			for i, nav := range navs {
+				navReleases[i] = &domain.NavRelease{
+					ID:        uuid.New().String(),
+					NavID:     nav.ID,
+					ReleaseID: release.ID,
+					KbID:      release.KBID,
+					Name:      nav.Name,
+					Position:  nav.Position,
+					CreatedAt: now,
+				}
+			}
+			if err := tx.CreateInBatches(&navReleases, 2000).Error; err != nil {
+				return err
+			}
+		}
+
 		return nil
 	}); err != nil {
 		return err
@@ -626,16 +720,20 @@ func (r *KnowledgeBaseRepository) CreateKBRelease(ctx context.Context, release *
 	return nil
 }
 
-func (r *KnowledgeBaseRepository) GetKBReleaseList(ctx context.Context, kbID string) (int64, []domain.KBReleaseListItemResp, error) {
+func (r *KnowledgeBaseRepository) GetKBReleaseList(ctx context.Context, kbID string, offset, limit int) (int64, []domain.KBReleaseListItemResp, error) {
 	var total int64
 	if err := r.db.Model(&domain.KBRelease{}).Where("kb_id = ?", kbID).Count(&total).Error; err != nil {
 		return 0, nil, err
 	}
 
 	var releases []domain.KBReleaseListItemResp
-	if err := r.db.Model(&domain.KBRelease{}).
+	if err := r.db.WithContext(ctx).Model(&domain.KBRelease{}).
+		Select("publish.account as publisher_account, kb_releases.*").
+		Joins("left join users publish on kb_releases.publisher_id = publish.id").
 		Where("kb_id = ?", kbID).
 		Order("created_at DESC").
+		Offset(offset).
+		Limit(limit).
 		Find(&releases).Error; err != nil {
 		return 0, nil, err
 	}

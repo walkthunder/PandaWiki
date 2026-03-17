@@ -24,6 +24,12 @@ export interface UseSmartScrollOptions {
    * @default true
    */
   enabled?: boolean;
+
+  /**
+   * 用户交互后恢复自动滚动的防抖时间（毫秒）
+   * @default 150
+   */
+  resumeDebounceMs?: number;
 }
 
 export interface UseSmartScrollReturn {
@@ -60,28 +66,6 @@ export interface UseSmartScrollReturn {
 
 /**
  * 智能滚动 Hook
- *
- * 自动检测用户滚动行为，当用户主动向上滚动时停止自动滚动，
- * 当用户滚动到底部时恢复自动滚动。
- *
- * @example
- * ```tsx
- * const { scrollToBottom, setShouldAutoScroll } = useSmartScroll({
- *   container: '.my-container',
- *   threshold: 20,
- * });
- *
- * // 在新消息到达时
- * useEffect(() => {
- *   scrollToBottom();
- * }, [messages]);
- *
- * // 开始新对话时重置自动滚动
- * const startNewChat = () => {
- *   setShouldAutoScroll(true);
- *   // ...
- * };
- * ```
  */
 export function useSmartScroll(
   options: UseSmartScrollOptions = {},
@@ -91,6 +75,7 @@ export function useSmartScroll(
     threshold = 10,
     behavior = 'smooth',
     enabled = true,
+    resumeDebounceMs = 150,
   } = options;
 
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
@@ -99,18 +84,20 @@ export function useSmartScroll(
    *
    * 场景说明：
    * 1. SSE 流式输出内容，触发 scrollToBottom()
-   * 2. 用户向上滚动，触发 scroll 事件
-   * 3. scroll 事件调用 setShouldAutoScroll(false) - 这是异步的
+   * 2. 用户向上滚动，触发用户交互事件
+   * 3. 交互事件调用 setShouldAutoScroll(false) - 这是异步的
    * 4. 但在状态更新前，又有新的 SSE 内容到达，再次触发 scrollToBottom()
    * 5. 此时 shouldAutoScroll 状态可能还是 true，导致意外滚动
    *
    * 解决方案：
-   * - ref 的更新是同步的，scroll 事件会立即更新 ref
+   * - ref 的更新是同步的，用户交互事件会立即更新 ref
    * - scrollToBottom() 检查 ref 而不是 state，确保获取最新值
    * - state 仍然保留，用于可能需要响应式更新的场景
    */
   const shouldAutoScrollRef = useRef(true);
   const containerRef = useRef<HTMLElement | null>(null);
+  const userInteractingRef = useRef(false); // 标记用户是否正在交互
+  const resumeTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   /**
    * 获取容器元素
@@ -157,34 +144,115 @@ export function useSmartScroll(
   }, [getContainer, threshold]);
 
   /**
-   * 处理滚动事件
+   * 处理滚轮事件 - 判断滚动方向
+   * 只有向上滚动且不在底部时才禁用自动滚动
    */
-  const handleScrollEvent = useCallback(
-    (event: Event) => {
+  const handleWheel = useCallback(
+    (event: WheelEvent) => {
       if (!enabled) return;
 
-      const target = event.target as HTMLElement;
-      if (target) {
-        const isAtBottom =
-          target.scrollHeight - target.scrollTop - target.clientHeight <=
-          threshold;
-        // 同步更新 ref，避免竞争条件
-        shouldAutoScrollRef.current = isAtBottom;
-        // 异步更新 state，用于响应式更新
-        setShouldAutoScroll(isAtBottom);
+      const element = getContainer();
+      if (!element) return;
+
+      // deltaY > 0 表示向下滚动，< 0 表示向上滚动
+      const isScrollingUp = event.deltaY < 0;
+
+      // 只有向上滚动且不在底部时才禁用自动滚动
+      if (isScrollingUp) {
+        userInteractingRef.current = true;
+        shouldAutoScrollRef.current = false;
+        setShouldAutoScroll(false);
+
+        // 清除之前的恢复计时器
+        if (resumeTimerRef.current) {
+          clearTimeout(resumeTimerRef.current);
+          resumeTimerRef.current = null;
+        }
       }
     },
-    [threshold, enabled],
+    [enabled, getContainer],
   );
 
   /**
-   * 强制滚动到底部（忽略 shouldAutoScroll 状态）
+   * 处理触摸/点击事件 - 任何触摸或点击滚动条都视为用户主动操作
+   */
+  const handleUserInteraction = useCallback(() => {
+    if (!enabled) return;
+
+    const element = getContainer();
+    if (!element) return;
+
+    // 检查是否在底部阈值内
+    const distanceFromBottom =
+      element.scrollHeight - element.scrollTop - element.clientHeight;
+    const isAtBottom = distanceFromBottom <= threshold;
+
+    // 如果不在底部，才禁用自动滚动
+    if (!isAtBottom) {
+      userInteractingRef.current = true;
+      shouldAutoScrollRef.current = false;
+      setShouldAutoScroll(false);
+
+      // 清除之前的恢复计时器
+      if (resumeTimerRef.current) {
+        clearTimeout(resumeTimerRef.current);
+        resumeTimerRef.current = null;
+      }
+    }
+  }, [enabled, threshold, getContainer]);
+
+  /**
+   * 处理滚动事件
+   * 仅用于检测用户是否滚动到底部，以便恢复自动滚动
+   */
+  const handleScrollEvent = useCallback(() => {
+    if (!enabled) return;
+
+    // 清除之前的恢复计时器
+    if (resumeTimerRef.current) {
+      clearTimeout(resumeTimerRef.current);
+      resumeTimerRef.current = null;
+    }
+
+    // 使用防抖检查是否在底部
+    resumeTimerRef.current = setTimeout(() => {
+      const element = getContainer();
+      if (!element) return;
+
+      const scrollTop = element.scrollTop;
+      const scrollHeight = element.scrollHeight;
+      const clientHeight = element.clientHeight;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      const isAtBottom = distanceFromBottom <= threshold;
+
+      // 如果用户滚动到底部，恢复自动滚动
+      if (isAtBottom && !shouldAutoScrollRef.current) {
+        userInteractingRef.current = false;
+        shouldAutoScrollRef.current = true;
+        setShouldAutoScroll(true);
+      }
+    }, resumeDebounceMs);
+  }, [enabled, threshold, resumeDebounceMs, getContainer]);
+
+  /**
+   * 强制滚动到底部（忽略 shouldAutoScroll 状态，并重置为允许自动滚动）
    */
   const forceScrollToBottom = useCallback(() => {
     if (!enabled) return;
 
     const element = getContainer();
     if (element) {
+      // 强制滚动时，重置为允许自动滚动状态
+      userInteractingRef.current = false;
+      shouldAutoScrollRef.current = true;
+      setShouldAutoScroll(true);
+
+      // 清除恢复计时器
+      if (resumeTimerRef.current) {
+        clearTimeout(resumeTimerRef.current);
+        resumeTimerRef.current = null;
+      }
+
       element.scrollTo({
         top: element.scrollHeight,
         behavior,
@@ -202,7 +270,7 @@ export function useSmartScroll(
   }, [forceScrollToBottom, enabled]);
 
   /**
-   * 监听滚动事件
+   * 监听用户交互事件和滚动事件
    */
   useEffect(() => {
     if (!enabled) return;
@@ -210,12 +278,66 @@ export function useSmartScroll(
     const element = getContainer();
     if (!element) return;
 
-    element.addEventListener('scroll', handleScrollEvent);
+    // 监听用户交互事件（表明用户主动操作）
+    element.addEventListener('wheel', handleWheel as EventListener, {
+      passive: true,
+    });
+    element.addEventListener('touchstart', handleUserInteraction, {
+      passive: true,
+    });
+    // 监听滚动事件（用于检测是否回到底部）
+    element.addEventListener('scroll', handleScrollEvent, { passive: true });
 
     return () => {
+      element.removeEventListener('wheel', handleWheel as EventListener);
+      element.removeEventListener('touchstart', handleUserInteraction);
       element.removeEventListener('scroll', handleScrollEvent);
+
+      // 清理恢复计时器
+      if (resumeTimerRef.current) {
+        clearTimeout(resumeTimerRef.current);
+        resumeTimerRef.current = null;
+      }
     };
-  }, [getContainer, handleScrollEvent, enabled]);
+  }, [
+    getContainer,
+    handleScrollEvent,
+    handleWheel,
+    handleUserInteraction,
+    enabled,
+  ]);
+
+  /**
+   * 监听容器内容高度变化（使用 ResizeObserver）
+   * 当内容高度增加且允许自动滚动时，自动滚动到底部
+   */
+  useEffect(() => {
+    if (!enabled) return;
+
+    const element = getContainer();
+    if (!element) return;
+
+    // 获取滚动容器的第一个子元素（实际包含内容的元素）
+    const contentElement = element.firstElementChild as HTMLElement;
+    if (!contentElement) return;
+
+    // 使用 ResizeObserver 监听内容元素的尺寸变化
+    const resizeObserver = new ResizeObserver(() => {
+      // 只有在允许自动滚动时才触发
+      if (shouldAutoScrollRef.current) {
+        // 使用 requestAnimationFrame 确保在 DOM 更新后滚动
+        requestAnimationFrame(() => {
+          scrollToBottom();
+        });
+      }
+    });
+
+    resizeObserver.observe(contentElement);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [enabled, getContainer, scrollToBottom]);
 
   /**
    * 手动设置是否应该自动滚动（包装函数，同时更新 state 和 ref）
@@ -223,6 +345,17 @@ export function useSmartScroll(
   const setShouldAutoScrollWrapper = useCallback((value: boolean) => {
     shouldAutoScrollRef.current = value;
     setShouldAutoScroll(value);
+
+    // 如果设置为 true，重置用户交互状态
+    if (value) {
+      userInteractingRef.current = false;
+
+      // 清除恢复计时器
+      if (resumeTimerRef.current) {
+        clearTimeout(resumeTimerRef.current);
+        resumeTimerRef.current = null;
+      }
+    }
   }, []);
 
   return {

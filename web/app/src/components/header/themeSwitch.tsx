@@ -1,5 +1,5 @@
 import { IconButton, alpha } from '@mui/material';
-import { IconDark, IconLight } from '../icons';
+import { IconShensemoshi, IconMingliangmoshi } from '@panda-wiki/icons';
 import { useThemeStore } from '@/provider/themeStore';
 
 const ThemeSwitch = () => {
@@ -10,11 +10,11 @@ const ThemeSwitch = () => {
       onClick={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
     >
       {themeMode === 'dark' ? (
-        <IconDark
+        <IconShensemoshi
           sx={theme => ({ color: alpha(theme.palette.text.primary, 0.65) })}
         />
       ) : (
-        <IconLight sx={{ fontSize: 20 }} />
+        <IconMingliangmoshi sx={{ fontSize: 20 }} />
       )}
     </IconButton>
   );

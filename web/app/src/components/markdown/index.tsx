@@ -1,7 +1,6 @@
 import { useStore } from '@/provider';
 import { addOpacityToColor, copyText } from '@/utils';
 import { Box, Dialog, IconButton, useTheme } from '@mui/material';
-import { Icon } from '@ctzhian/ui';
 import 'katex/dist/katex.min.css';
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -14,6 +13,7 @@ import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import MermaidDiagram from './mermaid';
+import { IconXiajiantou } from '@panda-wiki/icons';
 
 interface MarkDownProps {
   loading?: boolean;
@@ -144,8 +144,7 @@ const MarkDown = ({ loading = false, content }: MarkDownProps) => {
                       },
                     }}
                   >
-                    <Icon
-                      type='icon-xiajiantou'
+                    <IconXiajiantou
                       sx={{
                         fontSize: 18,
                         flexShrink: 0,

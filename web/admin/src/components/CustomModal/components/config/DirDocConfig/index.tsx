@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { CommonItem, StyledCommonWrapper } from '../../components/StyledCommon';
 import { TextField } from '@mui/material';
 import { Controller, useForm } from 'react-hook-form';
-import BasicDocDragList from './DragList';
+import DragList from '../../components/DragList';
+import SortableItem from '../../components/SortableItem';
+import Item from './Item';
 import { Empty } from '@ctzhian/ui';
+import { DomainNodeType } from '@/request/types';
 import type { ConfigProps } from '../type';
 import { useAppSelector } from '@/store';
 import AddRecommendContent from '@/pages/setting/component/AddRecommendContent';
@@ -39,6 +42,12 @@ const DirDocConfig = ({ setIsEdit, id }: ConfigProps) => {
     setIsEdit(true);
     nodeRec(newList);
   };
+
+  // 稳定的 SortableItemComponent 引用
+  const ItemSortableComponent = useMemo(
+    () => (props: any) => <SortableItem {...props} ItemComponent={Item} />,
+    [],
+  );
 
   useEffect(() => {
     reset(
@@ -117,13 +126,15 @@ const DirDocConfig = ({ setIsEdit, id }: ConfigProps) => {
         {nodes.length === 0 ? (
           <Empty />
         ) : (
-          <BasicDocDragList
+          <DragList
             data={nodes}
             onChange={value => {
               setIsEdit(true);
               setValue('nodes', value);
             }}
             setIsEdit={setIsEdit}
+            SortableItemComponent={ItemSortableComponent}
+            ItemComponent={Item}
           />
         )}
       </CommonItem>
@@ -132,7 +143,8 @@ const DirDocConfig = ({ setIsEdit, id }: ConfigProps) => {
         selected={nodes.map(item => item.id!)}
         onChange={handleListChange}
         onClose={() => setOpen(false)}
-        disabled={item => item.type === 2}
+        disabled={item => item.type === DomainNodeType.NodeTypeDocument}
+        nodeType={DomainNodeType.NodeTypeFolder}
       />
     </StyledCommonWrapper>
   );

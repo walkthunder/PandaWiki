@@ -5,9 +5,12 @@ import (
 )
 
 type MigrationFuncs struct {
-	NodeMigration        *fns.MigrationNodeVersion
-	BotAuthMigration     *fns.MigrationCreateBotAuth
-	OriginalURLMigration *fns.MigrationAddOriginalURLToNodes
+	NodeMigration                       *fns.MigrationNodeVersion
+	BotAuthMigration                    *fns.MigrationCreateBotAuth
+	OriginalURLMigration                *fns.MigrationAddOriginalURLToNodes
+	FixGroupIdsMigration                *fns.MigrationFixGroupIds
+	UpdateNodeStatusUnreleasedMigration *fns.MigrationUpdateNodeStatusUnreleased
+	CreateFirstNavs                     *fns.MigrationCreateFirstNavs
 }
 
 func (mf *MigrationFuncs) GetMigrationFuncs() []MigrationFunc {
@@ -23,6 +26,18 @@ func (mf *MigrationFuncs) GetMigrationFuncs() []MigrationFunc {
 	funcs = append(funcs, MigrationFunc{
 		Name: mf.OriginalURLMigration.Name,
 		Fn:   mf.OriginalURLMigration.Execute,
+	})
+	funcs = append(funcs, MigrationFunc{
+		Name: mf.FixGroupIdsMigration.Name,
+		Fn:   mf.FixGroupIdsMigration.Execute,
+	})
+	funcs = append(funcs, MigrationFunc{
+		Name: mf.UpdateNodeStatusUnreleasedMigration.Name,
+		Fn:   mf.UpdateNodeStatusUnreleasedMigration.Execute,
+	})
+	funcs = append(funcs, MigrationFunc{
+		Name: mf.CreateFirstNavs.Name,
+		Fn:   mf.CreateFirstNavs.Execute,
 	})
 	return funcs
 }

@@ -26,7 +26,6 @@ const CardWebSEO = ({ data, id, refresh }: CardWebSEOProps) => {
     defaultValues: {
       desc: '',
       keyword: '',
-      auto_sitemap: false,
     },
   });
 
@@ -44,7 +43,6 @@ const CardWebSEO = ({ data, id, refresh }: CardWebSEOProps) => {
   useEffect(() => {
     setValue('desc', data.settings?.desc || '');
     setValue('keyword', data.settings?.keyword || '');
-    setValue('auto_sitemap', data.settings?.auto_sitemap ?? false);
   }, [data]);
 
   return (
@@ -80,25 +78,6 @@ const CardWebSEO = ({ data, id, refresh }: CardWebSEOProps) => {
               placeholder='输入关键词'
               error={!!errors.keyword}
               helperText={errors.keyword?.message}
-              onChange={event => {
-                setIsEdit(true);
-                field.onChange(event);
-              }}
-            />
-          )}
-        />
-      </FormItem>
-
-      <FormItem label='自动生成 Sitemap'>
-        <Controller
-          control={control}
-          name='auto_sitemap'
-          render={({ field }) => (
-            <Checkbox
-              {...field}
-              checked={field.value}
-              size='small'
-              sx={{ p: 0, m: 0 }}
               onChange={event => {
                 setIsEdit(true);
                 field.onChange(event);

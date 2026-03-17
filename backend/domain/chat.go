@@ -8,11 +8,12 @@ import (
 )
 
 type ChatRequest struct {
-	ConversationID string  `json:"conversation_id"`
-	Message        string  `json:"message" validate:"required"`
-	Nonce          string  `json:"nonce"`
-	AppType        AppType `json:"app_type" validate:"required,oneof=1 2"`
-	CaptchaToken   string  `json:"captcha_token"`
+	ConversationID string   `json:"conversation_id"`
+	Message        string   `json:"message"`
+	ImagePaths     []string `json:"image_paths" validate:"max=3"`
+	Nonce          string   `json:"nonce"`
+	AppType        AppType  `json:"app_type" validate:"required,oneof=1 2"`
+	CaptchaToken   string   `json:"captcha_token"`
 
 	KBID  string `json:"-" validate:"required"`
 	AppID string `json:"-"`
@@ -21,6 +22,16 @@ type ChatRequest struct {
 
 	RemoteIP string           `json:"-"`
 	Info     ConversationInfo `json:"-"`
+	Prompt   string           `json:"-"`
+}
+
+type ChatRagOnlyRequest struct {
+	Message string `json:"message" validate:"required"`
+
+	KBID string `json:"-" validate:"required"`
+
+	UserInfo UserInfo `json:"user_info"`
+	AppType  AppType  `json:"app_type" validate:"required,oneof=1 2"`
 }
 
 type ConversationInfo struct {

@@ -53,6 +53,14 @@ const lightPalette: PaletteOptions = {
     tertiary: '#717572',
     disabled: '#6e7781',
   },
+  table: {
+    head: {
+      background: '#f2f3f5',
+    },
+    cell: {
+      border: '#dee0e3',
+    },
+  },
 };
 
 export default lightPalette;

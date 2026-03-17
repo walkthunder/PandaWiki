@@ -4,6 +4,7 @@
   "description": "",
   "main": "./src/index.tsx",
   "type": "module",
+  "types": "env.d.ts",
   "scripts": {
     "icon": "tsx ./scripts/generate.ts"
   },

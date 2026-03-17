@@ -1,4 +1,8 @@
-import { ConstsCrawlerSource, V1FeishuSetting } from '@/request';
+import {
+  AnydocDingtalkSetting,
+  AnydocFeishuSetting,
+  ConstsCrawlerSource,
+} from '@/request';
 import { useAppSelector } from '@/store';
 import { Modal } from '@ctzhian/ui';
 import { useCallback, useMemo, useState } from 'react';
@@ -34,7 +38,8 @@ export interface ListDataItem {
   open?: boolean;
   folderReq?: boolean;
 
-  feishu_setting?: V1FeishuSetting;
+  feishu_setting?: AnydocFeishuSetting;
+  dingtalk_setting?: AnydocDingtalkSetting;
 
   status:
     | 'common'
@@ -59,7 +64,6 @@ const AddDocByType = ({
   const [checked, setChecked] = useState<string[]>([]);
   const [formSubmitLoading, setFormSubmitLoading] = useState(false);
 
-  // 创建全局统一队列
   const queue = useGlobalQueue(5);
 
   const isUploadFileType = useMemo(() => {
@@ -70,15 +74,19 @@ const AddDocByType = ({
     return [
       ConstsCrawlerSource.CrawlerSourceRSS,
       ConstsCrawlerSource.CrawlerSourceSitemap,
+      ConstsCrawlerSource.CrawlerSourceDingtalk,
+      ConstsCrawlerSource.CrawlerSourceFeishu,
     ].includes(type);
   }, [type]);
 
   const handleCancel = useCallback(() => {
     onCancel();
-    refresh?.();
+    if (data.some(item => item.status === 'imported')) {
+      refresh?.();
+    }
     setData([]);
     setChecked([]);
-  }, [onCancel, refresh]);
+  }, [onCancel, refresh, data]);
 
   return (
     <Modal

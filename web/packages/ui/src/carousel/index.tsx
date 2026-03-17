@@ -1,11 +1,4 @@
-import {
-  CSSProperties,
-  memo,
-  useRef,
-  useCallback,
-  useState,
-  useEffect,
-} from 'react';
+import { memo, useRef, useCallback, useState, useEffect } from 'react';
 import { styled, alpha, Tabs, Tab, Box, useTheme } from '@mui/material';
 import { StyledTopicTitle, StyledTopicBox } from '../component/styledCommon';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -30,11 +23,11 @@ interface CarouselProps {
   }[];
 }
 
-export const indicatorContainerStyle: CSSProperties = {
+export const indicatorContainerStyle = {
   bottom: 0,
 };
 
-export const indicatorIconButtonStyle: CSSProperties = {
+export const indicatorIconButtonStyle = {
   width: 6,
   borderRadius: 2,
   background: 'rgba(255, 255, 255, 0.20)',
@@ -43,7 +36,7 @@ export const indicatorIconButtonStyle: CSSProperties = {
   opacity: 1,
 };
 
-export const activeIndicatorIconButtonStyle: CSSProperties = {
+export const activeIndicatorIconButtonStyle = {
   background: 'rgba(255, 255, 255, 1)',
 };
 
@@ -125,7 +118,7 @@ const StyledTab = styled(Tab)(({ theme }) => ({
   },
   '&.Mui-selected': {
     backgroundColor: theme.palette.primary.main,
-    color: theme.palette.background.default,
+    color: theme.palette.primary.contrastText,
     fontWeight: 500,
   },
 }));

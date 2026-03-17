@@ -314,7 +314,10 @@ const QaModal: React.FC<QaModalProps> = () => {
         <Box
           sx={{
             px: 3,
-            pt: kbDetail?.settings?.disclaimer_settings?.content ? 2 : 0,
+            pt: !kbDetail?.settings?.conversation_setting
+              ?.copyright_hide_enabled
+              ? 2
+              : 0,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -330,7 +333,12 @@ const QaModal: React.FC<QaModalProps> = () => {
               gap: 1,
             }}
           >
-            <Box>{kbDetail?.settings?.disclaimer_settings?.content}</Box>
+            <Box>
+              {!kbDetail?.settings?.conversation_setting
+                ?.copyright_hide_enabled &&
+                (kbDetail?.settings?.conversation_setting?.copyright_info ||
+                  '本网站由 PandaWiki 提供技术支持')}
+            </Box>
           </Typography>
         </Box>
       </Box>

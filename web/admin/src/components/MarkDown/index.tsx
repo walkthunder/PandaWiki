@@ -1,6 +1,5 @@
 import { addOpacityToColor, copyText } from '@/utils';
 import { Box, IconButton, useTheme } from '@mui/material';
-import { Icon } from '@ctzhian/ui';
 import 'katex/dist/katex.min.css';
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -12,6 +11,8 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
+import { IconXiajiantou } from '@panda-wiki/icons';
+import { getBasePath } from '@/utils/getBasePath';
 
 interface MarkDownProps {
   loading?: boolean;
@@ -117,8 +118,7 @@ const MarkDown = ({ loading = false, content }: MarkDownProps) => {
                       },
                     }}
                   >
-                    <Icon
-                      type='icon-xiajiantou'
+                    <IconXiajiantou
                       sx={{
                         fontSize: 18,
                         flexShrink: 0,
@@ -157,11 +157,12 @@ const MarkDown = ({ loading = false, content }: MarkDownProps) => {
             </a>
           ),
           img: (props: React.ImgHTMLAttributes<HTMLImageElement>) => {
-            const { style, alt, ...rest } = props;
+            const { style, alt, src, ...rest } = props;
             return (
               <img
                 alt={alt || 'markdown-img'}
                 {...rest}
+                src={getBasePath(src || '')}
                 style={{
                   ...style,
                   borderRadius: '10px',

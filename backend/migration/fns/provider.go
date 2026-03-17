@@ -8,4 +8,7 @@ var ProviderSet = wire.NewSet(
 	NewMigrationNodeVersion,
 	NewMigrationCreateBotAuth,
 	NewMigrationAddOriginalURLToNodes,
+	NewMigrationFixGroupIds,
+	NewMigrationUpdateNodeStatusUnreleased,
+	NewMigrationCreateFirstNavs,
 )

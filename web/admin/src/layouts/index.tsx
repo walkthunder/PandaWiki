@@ -7,7 +7,7 @@ import CreateWikiModal from '@/components/CreateWikiModal';
 import { getApiV1ModelList } from '@/request/Model';
 import { getApiV1KnowledgeBaseList } from '@/request/KnowledgeBase';
 import { getApiV1User } from '@/request/User';
-import { useAppDispatch } from '@/store';
+import { useAppDispatch, useAppSelector } from '@/store';
 import {
   setModelStatus,
   setModelList,
@@ -23,6 +23,7 @@ const useAuth = (hasAuth: boolean) => {
   const { pathname } = useLocation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const kb_id = useAppSelector(state => state.config.kb_id);
   const getModel = () => {
     return getApiV1ModelList().then(res => {
       // @ts-expect-error 类型不匹配
@@ -59,8 +60,13 @@ const useAuth = (hasAuth: boolean) => {
   };
 
   const initData = () => {
-    Promise.all([getModel(), getUser(), getKbList()]).then(
-      ([modelStatus, user, kbList]) => {
+    getUser().then(user => {
+      Promise.all([
+        user.role === ConstsUserRole.UserRoleAdmin
+          ? getModel()
+          : Promise.resolve(null),
+        getKbList(),
+      ]).then(([modelStatus, kbList]) => {
         if (
           user.role === ConstsUserRole.UserRoleUser &&
           kbList.length === 0 &&
@@ -68,8 +74,8 @@ const useAuth = (hasAuth: boolean) => {
         ) {
           navigate('401');
         }
-      },
-    );
+      });
+    });
   };
 
   useEffect(() => {

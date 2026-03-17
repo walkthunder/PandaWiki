@@ -1,6 +1,8 @@
 'use client';
 import { useStore } from '@/provider';
 import { useMemo } from 'react';
+import { getImagePath } from '@/utils/getImagePath';
+import { useBasePath } from '@/hooks';
 
 import {
   Footer,
@@ -17,7 +19,7 @@ export const FooterProvider = ({
   isWelcomePage?: boolean;
 }) => {
   const { mobile = false, catalogWidth, kbDetail } = useStore();
-
+  const basePath = useBasePath();
   const docWidth = useMemo(() => {
     if (isWelcomePage) return 'full';
     return kbDetail?.settings?.theme_and_style?.doc_width || 'full';
@@ -33,8 +35,23 @@ export const FooterProvider = ({
       isDocPage={isDocPage}
       logo='https://release.baizhi.cloud/panda-wiki/icon.png'
       docWidth={docWidth}
-      footerSetting={footerSetting || undefined}
-      customStyle={customStyle}
+      footerSetting={
+        footerSetting
+          ? {
+              ...footerSetting,
+              brand_logo: getImagePath(footerSetting?.brand_logo, basePath),
+            }
+          : undefined
+      }
+      customStyle={{
+        ...customStyle,
+        social_media_accounts: customStyle?.social_media_accounts?.map(
+          (item: any) => ({
+            ...item,
+            icon: getImagePath(item.icon, basePath),
+          }),
+        ),
+      }}
     />
   );
 };
@@ -45,6 +62,7 @@ export const WelcomeFooter = ({
   showBrand?: boolean;
 }) => {
   const { mobile = false, catalogWidth, kbDetail } = useStore();
+  const basePath = useBasePath();
   const footerSetting = kbDetail?.settings?.footer_settings;
   const customStyle = kbDetail?.settings?.web_app_custom_style;
   return (
@@ -55,8 +73,23 @@ export const WelcomeFooter = ({
       isDocPage={false}
       logo='https://release.baizhi.cloud/panda-wiki/icon.png'
       docWidth='full'
-      footerSetting={footerSetting || undefined}
-      customStyle={customStyle}
+      footerSetting={
+        footerSetting
+          ? {
+              ...footerSetting,
+              brand_logo: getImagePath(footerSetting?.brand_logo, basePath),
+            }
+          : undefined
+      }
+      customStyle={{
+        ...customStyle,
+        social_media_accounts: customStyle?.social_media_accounts?.map(
+          (item: any) => ({
+            ...item,
+            icon: getImagePath(item.icon, basePath),
+          }),
+        ),
+      }}
     />
   );
 };

@@ -20,10 +20,14 @@ import {
 import { ItemChangedReason } from '@/components/TreeDragSortable/types';
 import { treeSx } from '@/constant/styles';
 import { getApiProV1AuthGroupDetail } from '@/request/pro/AuthGroup';
-import { GithubComChaitinPandaWikiProApiAuthV1AuthGroupTreeItem } from '@/request/pro/types';
+import {
+  GithubComChaitinPandaWikiProApiAuthV1AuthGroupTreeItem,
+  ConstsSourceType,
+} from '@/request/pro/types';
 import { useAppSelector } from '@/store';
-import { Icon, Modal, Table } from '@ctzhian/ui';
+import { Modal, Table } from '@ctzhian/ui';
 import { ColumnType } from '@ctzhian/ui/dist/Table';
+import { IconGengduo, IconYonghuwenjianjia } from '@panda-wiki/icons';
 
 type TreeNode = {
   id: string | number;
@@ -55,6 +59,7 @@ export interface GroupTreeProps {
   ) => void;
   sync?: boolean;
   onSync?: () => void;
+  sourceType?: ConstsSourceType;
 }
 
 interface IContext {
@@ -67,6 +72,7 @@ interface IContext {
   ) => void;
   sync: boolean;
   onSync?: () => void;
+  sourceType?: ConstsSourceType;
 }
 
 const AppContext = createContext<IContext | null>(null);
@@ -94,7 +100,7 @@ const TreeItem = React.forwardRef<
   const { item } = props;
   const context = useContext(AppContext);
   if (!context) throw new Error('TreeItem 必须在 AppContext.Provider 内部使用');
-  const { onClickMembers, handleMenuOpen, sync, onSync } = context;
+  const { onClickMembers, handleMenuOpen, sync, onSync, sourceType } = context;
   return (
     <Box
       sx={[
@@ -177,25 +183,28 @@ const TreeItem = React.forwardRef<
                       size='small'
                       onClick={e => handleMenuOpen(e, item)}
                     >
-                      <Icon type='icon-gengduo' />
+                      <IconGengduo sx={{ fontSize: 16 }} />
                     </IconButton>
                   </Box>
                 )}
-                {sync && item.isRoot && (
-                  <Box
-                    sx={{
-                      fontSize: 14,
-                      color: 'primary.main',
-                      cursor: 'pointer',
-                    }}
-                    onClick={e => {
-                      e.stopPropagation();
-                      onSync?.();
-                    }}
-                  >
-                    同步
-                  </Box>
-                )}
+                {sync &&
+                  item.isRoot &&
+                  (sourceType === ConstsSourceType.SourceTypeDingTalk ||
+                    sourceType === ConstsSourceType.SourceTypeWeCom) && (
+                    <Box
+                      sx={{
+                        fontSize: 14,
+                        color: 'primary.main',
+                        cursor: 'pointer',
+                      }}
+                      onClick={e => {
+                        e.stopPropagation();
+                        onSync?.();
+                      }}
+                    >
+                      同步
+                    </Box>
+                  )}
               </Stack>
             </Stack>
           </TreeItemWrapper>
@@ -212,6 +221,7 @@ const GroupTree = ({
   onEdit,
   sync = false,
   onSync,
+  sourceType,
 }: GroupTreeProps) => {
   const itemsData = useMemo(() => mapToTree(data), [data]);
   const { kbDetail } = useAppSelector(state => state.config);
@@ -301,7 +311,7 @@ const GroupTree = ({
 
   return (
     <AppContext.Provider
-      value={{ onClickMembers, handleMenuOpen, sync, onSync }}
+      value={{ onClickMembers, handleMenuOpen, sync, onSync, sourceType }}
     >
       <GroupModal
         open={isModalOpen}
@@ -427,6 +437,9 @@ export const ActionsMenu = ({
       )}
       {canEdit && (
         <MenuItem
+          sx={{
+            color: 'error.main',
+          }}
           onClick={e => {
             e.stopPropagation();
             onClose(e);
@@ -471,10 +484,7 @@ const GroupModal = ({
                 />
               ))}
             {record.type === 'group' && (
-              <Icon
-                type='icon-yonghuwenjianjia'
-                sx={{ fontSize: 16, color: 'info.main' }}
-              />
+              <IconYonghuwenjianjia sx={{ fontSize: 16, color: 'info.main' }} />
             )}
             {text}
           </Stack>

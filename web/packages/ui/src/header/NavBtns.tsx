@@ -16,9 +16,10 @@ interface NavBtnsProps {
   logo?: string;
   title?: string;
   btns?: NavBtn[];
+  homePath: string;
 }
 
-const NavBtns = ({ logo, title, btns }: NavBtnsProps) => {
+const NavBtns = ({ logo, title, btns, homePath }: NavBtnsProps) => {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -61,7 +62,7 @@ const NavBtns = ({ logo, title, btns }: NavBtnsProps) => {
           }),
         }}
       >
-        <Link href={'/'}>
+        <Link href={homePath}>
           <Stack
             direction='row'
             alignItems='center'

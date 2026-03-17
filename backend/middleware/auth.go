@@ -15,7 +15,7 @@ type AuthMiddleware interface {
 	Authorize(next echo.HandlerFunc) echo.HandlerFunc
 	ValidateUserRole(role consts.UserRole) echo.MiddlewareFunc
 	ValidateKBUserPerm(role consts.UserKBPermission) echo.MiddlewareFunc
-	ValidateLicenseEdition(edition consts.LicenseEdition) echo.MiddlewareFunc
+	ValidateLicenseEdition(edition ...consts.LicenseEdition) echo.MiddlewareFunc
 	MustGetUserID(c echo.Context) (string, bool)
 }
 

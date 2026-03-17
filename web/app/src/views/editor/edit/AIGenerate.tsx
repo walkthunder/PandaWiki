@@ -1,7 +1,8 @@
 import SSEClient from '@/utils/fetch';
-import { Box, Divider, Stack } from '@mui/material';
+import { useBasePath } from '@/hooks/useBasePath';
 import { Editor, useTiptap, UseTiptapReturn } from '@ctzhian/tiptap';
 import { Modal } from '@ctzhian/ui';
+import { Box, Divider, Stack } from '@mui/material';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface AIGenerateProps {
@@ -18,7 +19,7 @@ const AIGenerate = ({
   editorRef,
 }: AIGenerateProps) => {
   const sseClientRef = useRef<SSEClient<string> | null>(null);
-
+  const baseUrl = useBasePath();
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState('');
 
@@ -30,6 +31,7 @@ const AIGenerate = ({
   const readEditor = useTiptap({
     editable: false,
     immediatelyRender: false,
+    baseUrl: baseUrl,
   });
 
   const onGenerate = useCallback(() => {
@@ -126,7 +128,7 @@ const AIGenerate = ({
               ml: 1,
               fontSize: 14,
               fontWeight: 'bold',
-              color: 'text.auxiliary',
+              color: 'text.tertiary',
             }}
           >
             原文
@@ -150,7 +152,7 @@ const AIGenerate = ({
               ml: 1,
               fontSize: 14,
               fontWeight: 'bold',
-              color: 'text.auxiliary',
+              color: 'text.tertiary',
             }}
           >
             润色后

@@ -12,7 +12,6 @@
 
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
-  DomainConversationDistribution,
   DomainHotBrowser,
   DomainHotPage,
   DomainHotRefererHost,
@@ -28,6 +27,7 @@ import {
   GetApiV1StatInstantCountParams,
   GetApiV1StatInstantPagesParams,
   GetApiV1StatRefererHostsParams,
+  V1StatConversationDistributionResp,
   V1StatCountResp,
 } from "./types";
 
@@ -72,7 +72,7 @@ export const getApiV1StatBrowsers = (
  * @request GET:/api/v1/stat/conversation_distribution
  * @secure
  * @response `200` `(DomainResponse & {
-    data?: (DomainConversationDistribution)[],
+    data?: (V1StatConversationDistributionResp)[],
 
 })` OK
  */
@@ -83,7 +83,7 @@ export const getApiV1StatConversationDistribution = (
 ) =>
   httpRequest<
     DomainResponse & {
-      data?: DomainConversationDistribution[];
+      data?: V1StatConversationDistributionResp[];
     }
   >({
     path: `/api/v1/stat/conversation_distribution`,

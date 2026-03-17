@@ -27,7 +27,9 @@ import {
   alpha,
   ButtonBase,
 } from '@mui/material';
-import { Ellipsis, Table, Modal, Icon, message } from '@ctzhian/ui';
+import { Ellipsis, Table, Modal, message } from '@ctzhian/ui';
+import { IconGengduo } from '@panda-wiki/icons';
+import { PROFESSION_VERSION_PERMISSION } from '@/constant/version';
 import dayjs from 'dayjs';
 import { useEffect, useState, useMemo } from 'react';
 
@@ -128,7 +130,7 @@ const ActionMenu = ({
   return (
     <>
       <IconButton size='small' onClick={handleClick}>
-        <Icon type='icon-gengduo' />
+        <IconGengduo sx={{ fontSize: 16 }} />
       </IconButton>
       <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
         {record.status! !== 1 && (
@@ -137,9 +139,7 @@ const ActionMenu = ({
         {record.status! !== -1 && (
           <MenuItem onClick={handleReject}>拒绝</MenuItem>
         )}
-        <MenuItem color='error' onClick={handleDelete}>
-          删除
-        </MenuItem>
+        <MenuItem onClick={handleDelete}>删除</MenuItem>
       </Menu>
     </>
   );
@@ -164,11 +164,8 @@ const Comments = ({
     useState<DomainWebAppCommentSettings | null>(null);
 
   const isEnableReview = useMemo(() => {
-    return !!(
-      appSetting?.moderation_enable &&
-      (license.edition === 1 || license.edition === 2)
-    );
-  }, [appSetting, license]);
+    return PROFESSION_VERSION_PERMISSION.includes(license.edition!);
+  }, [license.edition]);
 
   useEffect(() => {
     setShowCommentsFilter(isEnableReview);
@@ -311,7 +308,8 @@ const Comments = ({
       title: '操作',
       width: 120,
       render: (text: string, record: DomainCommentListItem) => {
-        return isEnableReview ? (
+        return isEnableReview &&
+          (appSetting?.moderation_enable || record.status === 0) ? (
           <ActionMenu
             record={record}
             onDeleteComment={onDeleteComment}

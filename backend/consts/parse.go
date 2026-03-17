@@ -4,11 +4,12 @@ type CrawlerSource string
 
 const (
 	// CrawlerSourceUrl key或url形式 直接走parse接口
-	CrawlerSourceUrl     CrawlerSource = "url"
-	CrawlerSourceRSS     CrawlerSource = "rss"
-	CrawlerSourceSitemap CrawlerSource = "sitemap"
-	CrawlerSourceNotion  CrawlerSource = "notion"
-	CrawlerSourceFeishu  CrawlerSource = "feishu"
+	CrawlerSourceUrl      CrawlerSource = "url"
+	CrawlerSourceRSS      CrawlerSource = "rss"
+	CrawlerSourceSitemap  CrawlerSource = "sitemap"
+	CrawlerSourceNotion   CrawlerSource = "notion"
+	CrawlerSourceFeishu   CrawlerSource = "feishu"
+	CrawlerSourceDingtalk CrawlerSource = "dingtalk"
 
 	// CrawlerSourceFile file形式 需要先走upload接口先上传文件
 	CrawlerSourceFile       CrawlerSource = "file"
@@ -30,7 +31,7 @@ const (
 
 func (c CrawlerSource) Type() CrawlerSourceType {
 	switch c {
-	case CrawlerSourceNotion, CrawlerSourceFeishu:
+	case CrawlerSourceNotion, CrawlerSourceFeishu, CrawlerSourceDingtalk:
 		return CrawlerSourceTypeKey
 	case CrawlerSourceUrl, CrawlerSourceRSS, CrawlerSourceSitemap:
 		return CrawlerSourceTypeUrl

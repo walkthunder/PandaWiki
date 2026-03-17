@@ -137,7 +137,7 @@ const Member = () => {
               <Button
                 size='small'
                 sx={{
-                  color: 'text.tertiary',
+                  color: 'var(--mui-palette-action-disabled)',
                   cursor: 'not-allowed',
                   p: 0,
                   minWidth: 'auto',
@@ -151,6 +151,11 @@ const Member = () => {
               size='small'
               sx={{ p: 0, minWidth: 'auto' }}
               color='primary'
+              disabled={
+                record.role === 'admin' &&
+                user.account !== 'admin' &&
+                user.id !== record.id
+              }
               onClick={() => {
                 setCurUser(record);
                 setCurType('reset-password');
@@ -159,8 +164,9 @@ const Member = () => {
               {user?.id === record.id ? '修改密码' : '重置密码'}
             </Button>
           )}
-          {record.account !== 'admin' &&
-            (user?.id === record.id || user.account === 'admin') && (
+          {user?.id !== record.id &&
+            (user.account === 'admin' ||
+              (user.role === 'admin' && record.role !== 'admin')) && (
               <Button
                 size='small'
                 color='error'

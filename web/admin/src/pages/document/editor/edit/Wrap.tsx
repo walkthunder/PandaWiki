@@ -1,8 +1,14 @@
 import { uploadFile } from '@/api';
 import Emoji from '@/components/Emoji';
-import { postApiV1CreationTabComplete, putApiV1NodeDetail } from '@/request';
+import { BUSINESS_VERSION_PERMISSION } from '@/constant/version';
+import {
+  postApiV1CreationTabComplete,
+  postApiV1FileUploadUrl,
+  putApiV1NodeDetail,
+} from '@/request';
 import { V1NodeDetailResp } from '@/request/types';
 import { useAppSelector } from '@/store';
+import { completeIncompleteLinks } from '@/utils';
 import {
   EditorMarkdown,
   MarkdownEditorRef,
@@ -10,8 +16,15 @@ import {
   useTiptap,
   UseTiptapReturn,
 } from '@ctzhian/tiptap';
-import { Icon, message } from '@ctzhian/ui';
+import { message } from '@ctzhian/ui';
 import { Box, Stack, TextField, Tooltip } from '@mui/material';
+import {
+  IconAShijian2,
+  IconDJzhinengzhaiyao,
+  IconTianjiawendang,
+  IconZiti,
+} from '@panda-wiki/icons';
+import IconPageview1 from '@panda-wiki/icons/IconPageview1';
 import dayjs from 'dayjs';
 import { debounce } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -39,8 +52,15 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
   const { license } = useAppSelector(state => state.config);
 
   const state = useLocation().state as { node?: V1NodeDetailResp };
-  const { catalogOpen, nodeDetail, setNodeDetail, onSave, docWidth } =
-    useOutletContext<WrapContext>();
+  const {
+    catalogOpen,
+    setCatalogOpen,
+    nodeDetail,
+    setNodeDetail,
+    onSave,
+    catalogData,
+    saveCurrentDocRef,
+  } = useOutletContext<WrapContext>();
 
   const storageTocOpen = localStorage.getItem('toc-open');
 
@@ -71,8 +91,8 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
     emoji: defaultDetail.meta?.emoji || '',
   });
 
-  const isEnterprise = useMemo(() => {
-    return license.edition === 2;
+  const isBusiness = useMemo(() => {
+    return BUSINESS_VERSION_PERMISSION.includes(license.edition!);
   }, [license]);
 
   const debouncedUpdateSummary = useCallback(
@@ -80,6 +100,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
       putApiV1NodeDetail({
         id: defaultDetail.id!,
         kb_id: defaultDetail.kb_id!,
+        nav_id: defaultDetail.nav_id || '',
         summary: newSummary,
       }).then(() => {
         updateDetail({
@@ -98,11 +119,8 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
       putApiV1NodeDetail({
         id: defaultDetail.id!,
         kb_id: defaultDetail.kb_id!,
+        nav_id: defaultDetail.nav_id || '',
         name: newTitle,
-      }).then(() => {
-        updateDetail({
-          name: newTitle,
-        });
       });
     }, 500),
     [defaultDetail.id, defaultDetail.kb_id],
@@ -115,19 +133,6 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
       status: 1,
       ...value,
     });
-  };
-
-  const handleExport = async (type: string) => {
-    const value = editorRef?.getContent() || '';
-    if (!value) return;
-    const blob = new Blob([value], { type: `text/${type}` });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${nodeDetail?.name}.${type}`;
-    a.click();
-    URL.revokeObjectURL(url);
-    message.success('导出成功');
   };
 
   const handleUpload = async (
@@ -143,6 +148,22 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
       },
       abortSignal,
     });
+    return Promise.resolve('/static-file/' + key);
+  };
+
+  const handleUploadByImgUrl = async (
+    url: string,
+    abortSignal?: AbortSignal,
+  ) => {
+    const { key } = await postApiV1FileUploadUrl(
+      {
+        kb_id: defaultDetail.kb_id!,
+        url,
+      },
+      {
+        signal: abortSignal,
+      },
+    );
     return Promise.resolve('/static-file/' + key);
   };
 
@@ -193,6 +214,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
     contentType: isMarkdown ? 'markdown' : 'html',
     immediatelyRender: true,
     content: defaultDetail.content,
+    baseUrl: window.__BASENAME__ || '',
     exclude: ['invisibleCharacters', 'youtube', 'mention'],
     onCreate: ({ editor: tiptapEditor }) => {
       const characterCount = (
@@ -202,23 +224,65 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
     },
     onError: handleError,
     onUpload: handleUpload,
+    onUploadImgUrl: handleUploadByImgUrl,
     onUpdate: handleUpdate,
     onTocUpdate: handleTocUpdate,
     onAiWritingGetSuggestion: handleAiWritingGetSuggestion,
   });
 
+  const exportFile = (value: string, type: string) => {
+    if (!value) return;
+    const content = completeIncompleteLinks(value);
+    const blob = new Blob([content], { type: `text/${type}` });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${nodeDetail?.name}.${type}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    message.success('导出成功');
+  };
+
+  const handleExport = useCallback(
+    async (type: string) => {
+      if (type === 'html') {
+        const value = editorRef.getHTML() || '';
+        exportFile(value, type);
+      } else if (type === 'md') {
+        if (isMarkdown) {
+          const value = nodeDetail?.content || '';
+          exportFile(value, type);
+        } else if (editorRef) {
+          const value = editorRef.getMarkdown() || '';
+          exportFile(value, type);
+        }
+      }
+    },
+    [editorRef, nodeDetail?.content, nodeDetail?.name, isMarkdown],
+  );
+
   const checkIfEdited = useCallback(() => {
-    const currentContent = editorRef?.getContent() || '';
-    const currentSummary = summary;
-    const currentEmoji = nodeDetail?.meta?.emoji || '';
+    if (editorRef) {
+      let value = nodeDetail?.content || '';
+      if (!isMarkdown) {
+        value = editorRef.getContent() || '';
+      }
+      const currentSummary = summary;
+      const currentEmoji = nodeDetail?.meta?.emoji || '';
+      const hasChanges =
+        value !== initialStateRef.current.content ||
+        currentSummary !== initialStateRef.current.summary ||
+        currentEmoji !== initialStateRef.current.emoji;
 
-    const hasChanges =
-      currentContent !== initialStateRef.current.content ||
-      currentSummary !== initialStateRef.current.summary ||
-      currentEmoji !== initialStateRef.current.emoji;
-
-    setIsEditing(hasChanges);
-  }, [editorRef, summary, nodeDetail?.meta?.emoji, isMarkdown]);
+      setIsEditing(hasChanges);
+    }
+  }, [
+    editorRef,
+    summary,
+    nodeDetail?.meta?.emoji,
+    nodeDetail?.content,
+    isMarkdown,
+  ]);
 
   const handleAiGenerate = useCallback(() => {
     if (editorRef.editor) {
@@ -235,10 +299,13 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
 
   const changeCatalogItem = useCallback(() => {
     if (editorRef && editorRef.editor) {
-      const content = editorRef.getContent();
-      updateDetail({
-        content: content,
-      });
+      let content = nodeDetail?.content || '';
+      if (!isMarkdown) {
+        content = editorRef.getContent();
+        updateDetail({
+          content: content,
+        });
+      }
       onSave(content);
       initialStateRef.current = {
         content: content,
@@ -247,28 +314,28 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
       };
       setIsEditing(false);
     }
-  }, [id, editorRef, onSave, summary, nodeDetail?.meta?.emoji, isMarkdown]);
+  }, [
+    id,
+    editorRef,
+    onSave,
+    summary,
+    nodeDetail?.meta?.emoji,
+    nodeDetail?.content,
+    isMarkdown,
+  ]);
 
-  const handleGlobalSave = useCallback(
+  const handleGlobalKeydown = useCallback(
     (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
         event.preventDefault();
-        if (editorRef && editorRef.editor) {
-          const content = editorRef.getContent();
-          updateDetail({
-            content: content,
-          });
-          onSave(content);
-          initialStateRef.current = {
-            content: content,
-            summary: summary,
-            emoji: nodeDetail?.meta?.emoji || '',
-          };
-          setIsEditing(false);
-        }
+        changeCatalogItem();
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
+        event.preventDefault();
+        setCatalogOpen(!catalogOpen);
       }
     },
-    [editorRef, onSave, id, summary, nodeDetail?.meta?.emoji, isMarkdown],
+    [changeCatalogItem, catalogOpen, setCatalogOpen],
   );
 
   const renderEditorTitleEmojiSummary = () => {
@@ -289,6 +356,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
               putApiV1NodeDetail({
                 id: defaultDetail.id!,
                 kb_id: defaultDetail.kb_id!,
+                nav_id: defaultDetail.nav_id || '',
                 emoji: value,
               }).then(() => {
                 updateDetail({
@@ -324,6 +392,9 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
             }}
             onChange={e => {
               setTitle(e.target.value);
+              updateDetail({
+                name: e.target.value,
+              });
               debouncedUpdateTitle(e.target.value);
             }}
           />
@@ -355,12 +426,12 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
                   color: 'text.tertiary',
                 }}
               >
-                <Icon type='icon-tianjiawendang' sx={{ fontSize: 9 }} />
+                <IconTianjiawendang sx={{ fontSize: 9 }} />
                 {nodeDetail?.editor_account} 编辑
               </Stack>
             </Tooltip>
           )}
-          <Tooltip arrow title={isEnterprise ? '查看历史版本' : ''}>
+          <Tooltip arrow title={isBusiness ? '查看历史版本' : ''}>
             <Stack
               direction={'row'}
               alignItems={'center'}
@@ -368,18 +439,18 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
               sx={{
                 fontSize: 12,
                 color: 'text.tertiary',
-                cursor: isEnterprise ? 'pointer' : 'text',
+                cursor: isBusiness ? 'pointer' : 'text',
                 ':hover': {
-                  color: isEnterprise ? 'primary.main' : 'text.tertiary',
+                  color: isBusiness ? 'primary.main' : 'text.tertiary',
                 },
               }}
               onClick={() => {
-                if (isEnterprise) {
+                if (isBusiness) {
                   navigate(`/doc/editor/history/${defaultDetail.id}`);
                 }
               }}
             >
-              <Icon type='icon-a-shijian2' />
+              <IconAShijian2 sx={{ fontSize: 12 }} />
               {dayjs(defaultDetail.created_at).format(
                 'YYYY-MM-DD HH:mm:ss',
               )}{' '}
@@ -392,8 +463,17 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
             gap={0.5}
             sx={{ fontSize: 12, color: 'text.tertiary' }}
           >
-            <Icon type='icon-ziti' />
+            <IconZiti sx={{ fontSize: 12 }} />
             {characterCount} 字
+          </Stack>
+          <Stack
+            direction={'row'}
+            alignItems={'center'}
+            gap={0.5}
+            sx={{ fontSize: 12, color: 'text.tertiary' }}
+          >
+            <IconPageview1 sx={{ fontSize: 12 }} />
+            浏览量 {nodeDetail?.pv}
           </Stack>
         </Stack>
         <Box
@@ -439,7 +519,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
               },
             }}
           >
-            <Icon type='icon-DJzhinengzhaiyao' sx={{ fontSize: 12 }} />
+            <IconDJzhinengzhaiyao sx={{ fontSize: 12 }} />
             文档摘要
           </Stack>
           {nodeDetail?.meta?.summary ? (
@@ -506,11 +586,11 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
   }, [defaultDetail]);
 
   useEffect(() => {
-    document.addEventListener('keydown', handleGlobalSave);
+    document.addEventListener('keydown', handleGlobalKeydown);
     return () => {
-      document.removeEventListener('keydown', handleGlobalSave);
+      document.removeEventListener('keydown', handleGlobalKeydown);
     };
-  }, [handleGlobalSave]);
+  }, [handleGlobalKeydown]);
 
   useEffect(() => {
     if (state && state.node && editorRef.editor) {
@@ -540,11 +620,14 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
   useEffect(() => {
     const handleTabClose = () => {
       if (isEditing) {
-        const content = editorRef?.getContent() || '';
+        let content = nodeDetail?.content || '';
+        if (!isMarkdown) {
+          content = editorRef.getContent();
+          updateDetail({
+            content: content,
+          });
+        }
         onSave(content);
-        updateDetail({
-          content: content,
-        });
         // 更新初始状态引用
         initialStateRef.current = {
           content: content,
@@ -555,9 +638,14 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
     };
     const handleVisibilityChange = () => {
       if (document.hidden && isEditing) {
-        const content = editorRef?.getContent() || '';
+        let content = nodeDetail?.content || '';
+        if (!isMarkdown) {
+          content = editorRef.getContent();
+          updateDetail({
+            content: content,
+          });
+        }
         onSave(content);
-        updateDetail({});
         // 更新初始状态引用
         initialStateRef.current = {
           content: content,
@@ -572,7 +660,14 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
       window.removeEventListener('beforeunload', handleTabClose);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [editorRef, isEditing, summary, nodeDetail?.meta?.emoji]);
+  }, [
+    editorRef,
+    isEditing,
+    summary,
+    nodeDetail?.meta?.emoji,
+    nodeDetail?.content,
+    isMarkdown,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -581,8 +676,52 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
   }, []);
 
   useEffect(() => {
-    if (id !== defaultDetail.id) changeCatalogItem();
-  }, [id]);
+    saveCurrentDocRef.current = async () => {
+      if (editorRef?.editor) {
+        let content = nodeDetail?.content || '';
+        if (!isMarkdown) {
+          content = editorRef.getContent();
+          updateDetail({ content });
+        }
+        await onSave(content);
+        initialStateRef.current = {
+          content: content,
+          summary: summary,
+          emoji: nodeDetail?.meta?.emoji || '',
+        };
+        setIsEditing(false);
+      }
+    };
+    return () => {
+      saveCurrentDocRef.current = null;
+    };
+  }, [
+    editorRef,
+    isMarkdown,
+    nodeDetail?.content,
+    nodeDetail?.meta?.emoji,
+    onSave,
+    summary,
+    saveCurrentDocRef,
+  ]);
+
+  useEffect(() => {
+    if (id !== defaultDetail.id) {
+      // 检查当前文档是否存在于目录数据中（避免保存已删除的文档）
+      const checkDocExists = (items: typeof catalogData): boolean => {
+        for (const item of items) {
+          if (item.id === defaultDetail.id) return true;
+          if (item.children && checkDocExists(item.children)) return true;
+        }
+        return false;
+      };
+
+      // 只有文档存在时才执行保存
+      if (checkDocExists(catalogData)) {
+        changeCatalogItem();
+      }
+    }
+  }, [id, catalogData, defaultDetail.id, changeCatalogItem]);
 
   return (
     <>
@@ -602,17 +741,22 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
           detail={nodeDetail!}
           updateDetail={updateDetail}
           handleSave={async () => {
-            const content = editorRef?.getContent() || '';
-            updateDetail({
-              content: content,
-            });
-            await onSave(content);
-            initialStateRef.current = {
-              content: content,
-              summary: summary,
-              emoji: nodeDetail?.meta?.emoji || '',
-            };
-            setIsEditing(false);
+            if (editorRef) {
+              let content = nodeDetail?.content || '';
+              if (!isMarkdown) {
+                content = editorRef.getContent();
+                updateDetail({
+                  content: content,
+                });
+              }
+              await onSave(content);
+              initialStateRef.current = {
+                content: content,
+                summary: summary,
+                emoji: nodeDetail?.meta?.emoji || '',
+              };
+              setIsEditing(false);
+            }
           }}
           handleExport={handleExport}
         />
@@ -620,27 +764,45 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
           <Toolbar editorRef={editorRef} handleAiGenerate={handleAiGenerate} />
         )}
       </Box>
-      <Box sx={{ ...(fixedToc && { display: 'flex' }) }}>
+      <Box
+        sx={{ ...(fixedToc && { display: 'flex' }) }}
+        onKeyDown={event => {
+          if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+            return;
+          }
+          if (
+            isMarkdown &&
+            (event.ctrlKey || event.metaKey) &&
+            event.key === 'b'
+          ) {
+            return;
+          }
+          event.stopPropagation();
+        }}
+      >
         {isMarkdown ? (
           <Box
             sx={{
               mt: '56px',
               px: 10,
               pt: 4,
+              pb: 3,
               flex: 1,
             }}
           >
-            <Box sx={{}}>{renderEditorTitleEmojiSummary()}</Box>
+            <Box>{renderEditorTitleEmojiSummary()}</Box>
             <EditorMarkdown
               ref={markdownEditorRef}
               editor={editorRef.editor}
               value={nodeDetail?.content || ''}
+              onUpload={handleUpload}
+              placeholder='请输入文档内容'
               onAceChange={value => {
                 updateDetail({
                   content: value,
                 });
               }}
-              height='calc(100vh - 340px)'
+              height='calc(100vh - 127px)'
             />
           </Box>
         ) : (

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 	"github.com/sbzhu/weworkapi_golang/wxbizmsgcrypt"
@@ -15,7 +16,7 @@ import (
 	"github.com/chaitin/panda-wiki/handler"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/pkg/bot/wechat"
-	"github.com/chaitin/panda-wiki/pkg/bot/wechatservice"
+	"github.com/chaitin/panda-wiki/pkg/bot/wechat_service"
 	"github.com/chaitin/panda-wiki/usecase"
 )
 
@@ -24,7 +25,7 @@ type ShareWechatHandler struct {
 	logger           *log.Logger
 	appCase          *usecase.AppUsecase
 	conversationCase *usecase.ConversationUsecase
-	wechatUsecase    *usecase.WechatUsecase
+	wechatUsecase    *usecase.WechatServiceUsecase
 	wecomUsecase     *usecase.WecomUsecase
 	wechatAppUsecase *usecase.WechatAppUsecase
 }
@@ -35,7 +36,7 @@ func NewShareWechatHandler(
 	logger *log.Logger,
 	appCase *usecase.AppUsecase,
 	conversationCase *usecase.ConversationUsecase,
-	wechatUsecase *usecase.WechatUsecase,
+	wechatUsecase *usecase.WechatServiceUsecase,
 	wecomUsecase *usecase.WecomUsecase,
 	wechatAppUsecase *usecase.WechatAppUsecase,
 ) *ShareWechatHandler {
@@ -111,6 +112,12 @@ func (h *ShareWechatHandler) GetWechatAnswer(c echo.Context) error {
 			return err
 		}
 		//2.answer
+		if err := h.writeSSEEvent(c, domain.SSEEvent{Type: "feedback_score", Content: strconv.Itoa(int(conversation.Messages[1].Info.Score))}); err != nil {
+			return err
+		}
+		if err := h.writeSSEEvent(c, domain.SSEEvent{Type: "message_id", Content: conversation.Messages[1].ID}); err != nil {
+			return err
+		}
 		if err := h.writeSSEEvent(c, domain.SSEEvent{Type: "answer", Content: conversation.Messages[1].Content}); err != nil {
 			return err
 		}
@@ -200,7 +207,7 @@ func (h *ShareWechatHandler) VerifyUrlWechatService(c echo.Context) error {
 		return errors.New("wechat service bot is not enabled")
 	}
 
-	WechatServiceConf, err := h.wechatUsecase.NewWechatServiceConfig(ctx, appInfo, kbID)
+	WechatServiceConf, err := h.wechatUsecase.NewWechatServiceConfig(ctx, kbID, appInfo)
 	if err != nil {
 		h.logger.Error("failed to create WechatServiceConfig", log.Error(err))
 		return err
@@ -248,7 +255,7 @@ func (h *ShareWechatHandler) WechatHandlerService(c echo.Context) error {
 	}
 
 	// 创建一个wechat service对象
-	wechatServiceConf, err := h.wechatUsecase.NewWechatServiceConfig(context.Background(), appInfo, kbID)
+	wechatServiceConf, err := h.wechatUsecase.NewWechatServiceConfig(context.Background(), kbID, appInfo)
 
 	h.logger.Info("wechat service config", log.Any("wechat service config", wechatServiceConf))
 
@@ -271,7 +278,7 @@ func (h *ShareWechatHandler) WechatHandlerService(c echo.Context) error {
 		return err
 	}
 
-	go func(WechatServiceConf *wechatservice.WechatServiceConfig, msg *wechatservice.WeixinUserAskMsg, kbID string) {
+	go func(WechatServiceConf *wechat_service.WechatServiceConfig, msg *wechat_service.WeixinUserAskMsg, kbID string) {
 		ctx := context.Background()
 		err := h.wechatUsecase.WechatService(ctx, msg, kbID, WechatServiceConf)
 		if err != nil {
@@ -331,6 +338,7 @@ func (h *ShareWechatHandler) VerifyUrlWechatApp(c echo.Context) error {
 	return c.String(http.StatusOK, string(req))
 }
 
+// WechatHandlerApp /share/v1/app/wechat/app
 func (h *ShareWechatHandler) WechatHandlerApp(c echo.Context) error {
 	signature := c.QueryParam("msg_signature")
 	timestamp := c.QueryParam("timestamp")
@@ -383,20 +391,22 @@ func (h *ShareWechatHandler) WechatHandlerApp(c echo.Context) error {
 		return c.String(http.StatusOK, "")
 	}
 
-	immediateResponse, err := wechatConfig.SendResponse(*msg, "正在思考您的问题,请稍候...")
-	if err != nil {
-		return h.NewResponseWithError(c, "Failed to send immediate response", err)
+	var immediateResponse []byte
+	if domain.GetBaseEditionLimitation(ctx).AllowAdvancedBot && appInfo.Settings.WeChatAppAdvancedSetting.TextResponseEnable {
+		immediateResponse, err = wechatConfig.SendResponse(*msg, "正在思考您的问题,请稍候...")
+		if err != nil {
+			return h.NewResponseWithError(c, "Failed to send immediate response", err)
+		}
 	}
 
-	go func(msg *wechat.ReceivedMessage, wechatConfig *wechat.WechatConfig, kbId string) {
-		ctx := context.Background()
-		err := h.wechatAppUsecase.Wechat(ctx, msg, wechatConfig, kbId)
+	go func(ctx context.Context, msg *wechat.ReceivedMessage, wechatConfig *wechat.WechatConfig, kbId string, appInfo *domain.AppDetailResp) {
+		err := h.wechatAppUsecase.Wechat(ctx, msg, wechatConfig, kbId, &appInfo.Settings.WeChatAppAdvancedSetting)
 		if err != nil {
 			h.logger.Error("wechat async failed")
 		}
-	}(msg, wechatConfig, kbID)
+	}(ctx, msg, wechatConfig, kbID, appInfo)
 
-	return c.XMLBlob(http.StatusOK, []byte(immediateResponse))
+	return c.XMLBlob(http.StatusOK, immediateResponse)
 }
 
 func (h *ShareWechatHandler) WecomAIBotVerify(c echo.Context) error {

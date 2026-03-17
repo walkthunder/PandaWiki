@@ -2,6 +2,7 @@ package v1
 
 import (
 	"github.com/chaitin/panda-wiki/consts"
+	"github.com/chaitin/panda-wiki/domain"
 )
 
 type StatInstantCountReq struct {
@@ -50,4 +51,6 @@ type StatConversationDistributionReq struct {
 }
 
 type StatConversationDistributionResp struct {
+	AppType domain.AppType `json:"app_type"`
+	Count   int64          `json:"count"`
 }

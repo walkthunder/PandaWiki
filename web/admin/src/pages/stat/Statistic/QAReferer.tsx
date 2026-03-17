@@ -18,6 +18,7 @@ const QAReferer = ({ tab }: { tab: ActiveTab }) => {
     getApiV1StatConversationDistribution({ kb_id, day: tab }).then(res => {
       setList(
         (res || [])
+          .filter(it => AppType[it.app_type as keyof typeof AppType])
           .map((it, idx) => ({
             count: it.count!,
             name: AppType[it.app_type as keyof typeof AppType].label,

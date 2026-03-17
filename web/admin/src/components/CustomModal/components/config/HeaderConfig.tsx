@@ -2,12 +2,11 @@ import { AppDetail, HeaderSetting } from '@/api';
 import DragBtn from '../basicComponents/DragBtn';
 import UploadFile from '@/components/UploadFile';
 import { Stack, Box, TextField } from '@mui/material';
-import { Icon } from '@ctzhian/ui';
 import { Dispatch, SetStateAction, useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { useAppDispatch, useAppSelector } from '@/store';
-import { setAppPreviewData } from '@/store/slices/config';
+import { useAppSelector } from '@/store';
 import useDebounceAppPreviewData from '@/hooks/useDebounceAppPreviewData';
+import { IconTianjia } from '@panda-wiki/icons';
 
 interface CardWebHeaderProps {
   data?: AppDetail | null;
@@ -17,7 +16,6 @@ interface CardWebHeaderProps {
 
 const HeaderConfig = ({ data, setIsEdit, isEdit }: CardWebHeaderProps) => {
   const { appPreviewData } = useAppSelector(state => state.config);
-  const dispatch = useAppDispatch();
   const debouncedDispatch = useDebounceAppPreviewData();
   const {
     control,
@@ -169,7 +167,7 @@ const HeaderConfig = ({ data, setIsEdit, isEdit }: CardWebHeaderProps) => {
               },
             }}
           >
-            Logo 文字
+            页面标题 / Logo文本
           </Box>
           <Controller
             control={control}
@@ -257,8 +255,7 @@ const HeaderConfig = ({ data, setIsEdit, isEdit }: CardWebHeaderProps) => {
               }}
               onClick={handleAddButton}
             >
-              <Icon
-                type='icon-tianjia'
+              <IconTianjia
                 sx={{ fontSize: '10px !important', color: '#5F58FE' }}
               />
               <Box sx={{ fontSize: 14, lineHeight: '22px', marginLeft: 0.5 }}>

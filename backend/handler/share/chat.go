@@ -61,6 +61,7 @@ func NewShareChatHandler(
 	share.POST("/search", h.ChatSearch, h.ShareAuthMiddleware.Authorize)
 	share.POST("/completions", h.ChatCompletions)
 	share.POST("/widget", h.ChatWidget)
+	share.POST("/widget/search", h.WidgetSearch)
 	share.POST("/feedback", h.FeedBack)
 	return h
 }
@@ -87,6 +88,17 @@ func (h *ShareChatHandler) ChatMessage(c echo.Context) error {
 		h.logger.Error("validate request failed", log.Error(err))
 		return h.sendErrMsg(c, "validate request failed")
 	}
+
+	for _, path := range req.ImagePaths {
+		if !strings.HasPrefix(path, "/static-file/") {
+			return h.sendErrMsg(c, "invalid image path")
+		}
+	}
+
+	if req.Message == "" && len(req.ImagePaths) == 0 {
+		return h.sendErrMsg(c, "message is empty")
+	}
+
 	if req.AppType != domain.AppTypeWeb {
 		return h.sendErrMsg(c, "invalid app type")
 	}
@@ -131,7 +143,7 @@ func (h *ShareChatHandler) ChatMessage(c echo.Context) error {
 //
 //	@Summary		ChatWidget
 //	@Description	ChatWidget
-//	@Tags			share_chat
+//	@Tags			Widget
 //	@Accept			json
 //	@Produce		json
 //	@Param			app_type	query		string				true	"app type"
@@ -152,6 +164,15 @@ func (h *ShareChatHandler) ChatWidget(c echo.Context) error {
 	if req.AppType != domain.AppTypeWidget {
 		return h.sendErrMsg(c, "invalid app type")
 	}
+	if req.Message == "" && len(req.ImagePaths) == 0 {
+		return h.sendErrMsg(c, "message is empty")
+	}
+	for _, path := range req.ImagePaths {
+		if !strings.HasPrefix(path, "/static-file/") {
+			return h.sendErrMsg(c, "invalid image path")
+		}
+	}
+
 	// get widget app info
 	widgetAppInfo, err := h.appUsecase.GetWidgetAppInfo(c.Request().Context(), req.KBID)
 	if err != nil {
@@ -268,7 +289,9 @@ func (h *ShareChatHandler) ChatCompletions(c echo.Context) error {
 	var lastUserMessage string
 	for i := len(req.Messages) - 1; i >= 0; i-- {
 		if req.Messages[i].Role == "user" {
-			lastUserMessage = req.Messages[i].Content
+			if req.Messages[i].Content != nil {
+				lastUserMessage = req.Messages[i].Content.String()
+			}
 			break
 		}
 	}
@@ -345,11 +368,12 @@ func (h *ShareChatHandler) handleOpenAIStreamResponse(c echo.Context, eventCh <-
 						Index: 0,
 						Delta: domain.OpenAIMessage{
 							Role:    "assistant",
-							Content: event.Content,
+							Content: domain.NewStringContent(event.Content),
 						},
 					},
 				},
 			}
+
 			if err := h.writeOpenAIStreamEvent(c, streamResp); err != nil {
 				return err
 			}
@@ -397,7 +421,7 @@ func (h *ShareChatHandler) handleOpenAINonStreamResponse(c echo.Context, eventCh
 						Index: 0,
 						Message: domain.OpenAIMessage{
 							Role:    "assistant",
-							Content: content,
+							Content: domain.NewStringContent(content),
 						},
 						FinishReason: "stop",
 					},
@@ -441,7 +465,7 @@ func stringPtr(s string) *string {
 	return &s
 }
 
-// ChatMessage chat search
+// ChatSearch searches chat messages in shared knowledge base
 //
 //	@Summary		ChatSearch
 //	@Description	ChatSearch
@@ -477,6 +501,46 @@ func (h *ShareChatHandler) ChatSearch(c echo.Context) error {
 			return h.NewResponseWithError(c, "invalid user id type", nil)
 		}
 	}
+
+	resp, err := h.chatUsecase.Search(ctx, &req)
+	if err != nil {
+		return h.NewResponseWithError(c, "failed to search docs", err)
+	}
+	return h.NewResponseWithData(c, resp)
+}
+
+// WidgetSearch
+//
+//	@Summary		WidgetSearch
+//	@Description	WidgetSearch
+//	@Tags			Widget
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		domain.ChatSearchReq	true	"Comment"
+//	@Success		200		{object}	domain.Response{data=domain.ChatSearchResp}
+//	@Router			/share/v1/chat/widget/search [post]
+func (h *ShareChatHandler) WidgetSearch(c echo.Context) error {
+	var req domain.ChatSearchReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "parse request failed", err)
+	}
+	req.KBID = c.Request().Header.Get("X-KB-ID")
+	if err := c.Validate(&req); err != nil {
+		return h.NewResponseWithError(c, "validate request failed", err)
+	}
+	ctx := c.Request().Context()
+
+	// validate widget info
+	widgetAppInfo, err := h.appUsecase.GetWidgetAppInfo(c.Request().Context(), req.KBID)
+	if err != nil {
+		h.logger.Error("get widget app info failed", log.Error(err))
+		return h.sendErrMsg(c, "get app info error")
+	}
+	if !widgetAppInfo.Settings.WidgetBotSettings.IsOpen {
+		return h.sendErrMsg(c, "widget is not open")
+	}
+
+	req.RemoteIP = c.RealIP()
 
 	resp, err := h.chatUsecase.Search(ctx, &req)
 	if err != nil {

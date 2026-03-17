@@ -1,8 +1,15 @@
+import { getBasePath } from '@/utils/getBasePath';
+
 const handleHeaderProps = (setting: any) => {
   return {
     title: setting.title,
-    logo: setting.icon,
-    btns: setting.btns,
+    logo: getBasePath(setting.icon || ''),
+    btns: setting.btns?.map((btn: any) => ({
+      ...btn,
+      url: getBasePath(btn.url || ''),
+      icon: getBasePath(btn.icon || ''),
+    })),
+    homePath: window.__BASENAME__ || '',
     placeholder:
       setting.web_app_custom_style?.header_search_placeholder || '搜索...',
   };
@@ -10,10 +17,22 @@ const handleHeaderProps = (setting: any) => {
 
 const handleFooterProps = (setting: any) => {
   return {
-    footerSetting: setting.footer_settings,
+    footerSetting: {
+      ...(setting.footer_settings || {}),
+      brand_logo: getBasePath(setting.footer_settings?.brand_logo || ''),
+    },
     logo: 'https://release.baizhi.cloud/panda-wiki/icon.png',
     showBrand: setting.web_app_custom_style?.show_brand_info || false,
-    customStyle: setting.web_app_custom_style,
+    customStyle: {
+      ...(setting.web_app_custom_style || {}),
+      social_media_accounts:
+        setting.web_app_custom_style?.social_media_accounts?.map(
+          (item: any) => ({
+            ...item,
+            icon: getBasePath(item.icon),
+          }),
+        ),
+    },
   };
 };
 
@@ -79,7 +98,7 @@ const handleCarouselProps = (config: any = {}) => {
       config.list?.map((item: any) => ({
         id: item.id,
         title: item.title,
-        url: item.url,
+        url: getBasePath(item.url),
         desc: item.desc,
       })) || [],
   };
@@ -97,7 +116,7 @@ const handleBannerProps = (config: any = {}) => {
       color: config.subtitle_color,
       fontSize: config.subtitle_font_size,
     },
-    bg_url: config.bg_url,
+    bg_url: getBasePath(config.bg_url),
     search: {
       placeholder: config.placeholder,
       hot: config.hot_search,
@@ -136,7 +155,10 @@ const handleFeatureProps = (config: any = {}) => {
 const handleImgTextProps = (config: any = {}) => {
   return {
     title: config.title || '左图右字',
-    item: config.item || {},
+    item: {
+      ...(config.item || {}),
+      url: getBasePath(config.item?.url || ''),
+    },
     direction: 'row',
   };
 };
@@ -144,7 +166,10 @@ const handleImgTextProps = (config: any = {}) => {
 const handleTextImgProps = (config: any = {}) => {
   return {
     title: config.title || '右图左字',
-    item: config.item || {},
+    item: {
+      ...(config.item || {}),
+      url: getBasePath(config.item?.url || ''),
+    },
     direction: 'row-reverse',
   };
 };
@@ -152,14 +177,22 @@ const handleTextImgProps = (config: any = {}) => {
 const handleCommentProps = (config: any = {}) => {
   return {
     title: config.title || '评论卡片',
-    items: config.list || [],
+    items:
+      config.list?.map((item: any) => ({
+        ...item,
+        avatar: getBasePath(item.avatar || ''),
+      })) || [],
   };
 };
 
 const handleBlockGridProps = (config: any = {}) => {
   return {
     title: config.title || '区块网格',
-    items: config.list || [],
+    items:
+      config.list?.map((item: any) => ({
+        ...item,
+        url: getBasePath(item.url || ''),
+      })) || [],
   };
 };
 

@@ -4,11 +4,12 @@ import {
   V1NodeDetailResp,
 } from '@/request';
 import { useAppSelector } from '@/store';
-import { Icon, message, Modal } from '@ctzhian/ui';
+import { message, Modal } from '@ctzhian/ui';
 import { Button, CircularProgress, Stack, TextField } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { WrapContext } from '..';
+import { IconDJzhinengzhaiyao } from '@panda-wiki/icons';
 
 interface SummaryProps {
   open: boolean;
@@ -66,7 +67,12 @@ const Summary = ({ open, onClose, updateDetail }: SummaryProps) => {
             summary,
           },
         });
-        putApiV1NodeDetail({ id: nodeDetail.id!, kb_id, summary }).then(() => {
+        putApiV1NodeDetail({
+          id: nodeDetail.id!,
+          kb_id,
+          nav_id: nodeDetail.nav_id || '',
+          summary,
+        }).then(() => {
           message.success('保存成功');
         });
         handleClose();
@@ -95,7 +101,7 @@ const Summary = ({ open, onClose, updateDetail }: SummaryProps) => {
             loading ? (
               <CircularProgress size={16} />
             ) : (
-              <Icon type='icon-DJzhinengzhaiyao' sx={{ fontSize: 16 }} />
+              <IconDJzhinengzhaiyao sx={{ fontSize: 16 }} />
             )
           }
         >

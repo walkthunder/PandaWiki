@@ -84,7 +84,7 @@ func (u *CreationUsecase) TextCreation(ctx context.Context, req *domain.TextReq,
 func (u *CreationUsecase) TabComplete(ctx context.Context, req *domain.CompleteReq) (string, error) {
 	// For FIM (Fill in Middle) style completion, we need to handle prefix and suffix
 	if req.Prefix != "" || req.Suffix != "" {
-		model, err := u.model.GetModelByType(ctx, domain.ModelTypeChat)
+		model, err := u.model.GetChatModel(ctx)
 		if err != nil {
 			u.logger.Error("get chat model failed", log.Error(err))
 			return "", domain.ErrModelNotConfigured

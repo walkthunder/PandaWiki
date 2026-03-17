@@ -9,7 +9,8 @@ import { Modal, message } from '@ctzhian/ui';
 import { useState, useMemo, useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useAppSelector } from '@/store';
-
+import { PROFESSION_VERSION_PERMISSION } from '@/constant/version';
+import { VersionCanUse } from '@/components/VersionMask';
 import { ConstsUserKBPermission, V1KBUserInviteReq } from '@/request/types';
 import { ConstsLicenseEdition } from '@/request/pro/types';
 
@@ -26,9 +27,13 @@ const VERSION_MAP = {
     message: '开源版只支持 1 个管理员',
     max: 1,
   },
-  [ConstsLicenseEdition.LicenseEditionContributor]: {
-    message: '联创版最多支持 3 个管理员',
-    max: 3,
+  [ConstsLicenseEdition.LicenseEditionProfession]: {
+    message: '专业版最多支持 20 个管理员',
+    max: 20,
+  },
+  [ConstsLicenseEdition.LicenseEditionBusiness]: {
+    message: '商业版最多支持 50 个管理员',
+    max: 50,
   },
 };
 
@@ -45,9 +50,6 @@ const MemberAdd = ({
   const { kbList, license, refreshAdminRequest } = useAppSelector(
     state => state.config,
   );
-  const isEnterprise = useMemo(() => {
-    return license.edition === 2;
-  }, [license]);
 
   const {
     control,
@@ -117,6 +119,10 @@ const MemberAdd = ({
         setLoading(false);
       });
   });
+
+  const isPro = useMemo(() => {
+    return PROFESSION_VERSION_PERMISSION.includes(license.edition!);
+  }, [license.edition]);
 
   return (
     <>
@@ -253,6 +259,14 @@ const MemberAdd = ({
                     fullWidth
                     displayEmpty
                     sx={{ height: 52 }}
+                    MenuProps={{
+                      sx: {
+                        '.Mui-disabled': {
+                          opacity: '1 !important',
+                          color: 'text.disabled',
+                        },
+                      },
+                    }}
                     renderValue={(value: V1KBUserInviteReq['perm']) => {
                       return value ? (
                         PERM_MAP[value]
@@ -266,17 +280,25 @@ const MemberAdd = ({
                     >
                       完全控制
                     </MenuItem>
+
                     <MenuItem
-                      disabled={!isEnterprise}
                       value={ConstsUserKBPermission.UserKBPermissionDocManage}
+                      disabled={!isPro}
                     >
-                      文档管理 {isEnterprise ? '' : '(企业版可用)'}
+                      文档管理{' '}
+                      <VersionCanUse
+                        permission={PROFESSION_VERSION_PERMISSION}
+                      />
                     </MenuItem>
+
                     <MenuItem
-                      disabled={!isEnterprise}
                       value={ConstsUserKBPermission.UserKBPermissionDataOperate}
+                      disabled={!isPro}
                     >
-                      数据运营 {isEnterprise ? '' : '(企业版可用)'}
+                      数据运营{' '}
+                      <VersionCanUse
+                        permission={PROFESSION_VERSION_PERMISSION}
+                      />
                     </MenuItem>
                   </Select>
                 )}

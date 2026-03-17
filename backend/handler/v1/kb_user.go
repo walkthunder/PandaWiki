@@ -5,6 +5,7 @@ import (
 
 	v1 "github.com/chaitin/panda-wiki/api/kb/v1"
 	"github.com/chaitin/panda-wiki/consts"
+	"github.com/chaitin/panda-wiki/domain"
 )
 
 // KBUserList
@@ -55,8 +56,8 @@ func (h *KnowledgeBaseHandler) KBUserInvite(c echo.Context) error {
 		return h.NewResponseWithError(c, "validate request failed", err)
 	}
 
-	if consts.GetLicenseEdition(c) != consts.LicenseEditionEnterprise && req.Perm != consts.UserKBPermissionFullControl {
-		return h.NewResponseWithError(c, "非企业版本只能使用完全控制权限", nil)
+	if !domain.GetBaseEditionLimitation(c.Request().Context()).AllowAdminPerm && req.Perm != consts.UserKBPermissionFullControl {
+		return h.NewResponseWithError(c, "当前版本不支持管理员分权控制", nil)
 	}
 
 	err := h.usecase.KBUserInvite(c.Request().Context(), req)
@@ -87,8 +88,8 @@ func (h *KnowledgeBaseHandler) KBUserUpdate(c echo.Context) error {
 		return h.NewResponseWithError(c, "validate request failed", err)
 	}
 
-	if consts.GetLicenseEdition(c) != consts.LicenseEditionEnterprise && req.Perm != consts.UserKBPermissionFullControl {
-		return h.NewResponseWithError(c, "非企业版本只能使用完全控制权限", nil)
+	if !domain.GetBaseEditionLimitation(c.Request().Context()).AllowAdminPerm && req.Perm != consts.UserKBPermissionFullControl {
+		return h.NewResponseWithError(c, "当前版本不支持管理员分权控制", nil)
 	}
 
 	err := h.usecase.UpdateUserKB(c.Request().Context(), req)

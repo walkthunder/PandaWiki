@@ -53,10 +53,11 @@ type UserInfo struct {
 	EmployeeNo      string `json:"employee_no"`
 }
 
-func NewClient(ctx context.Context, logger *log.Logger, appID, appSecret, redirectURI string) (*Client, error) {
-	redirectURL, _ := url.Parse(redirectURI)
-	redirectURL.Path = callbackPath
-	redirectURI = redirectURL.String()
+func NewClient(ctx context.Context, logger *log.Logger, appID, appSecret, baseUrl string) (*Client, error) {
+	redirectURI, err := url.JoinPath(baseUrl, callbackPath)
+	if err != nil {
+		return nil, err
+	}
 
 	oauthConfig := &oauth2.Config{
 		ClientID:     appID,

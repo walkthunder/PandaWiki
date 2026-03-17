@@ -24,10 +24,12 @@ const AIGenerate = ({
 
   const defaultEditor = useTiptap({
     editable: false,
+    baseUrl: window.__BASENAME__ || '',
   });
 
   const readEditor = useTiptap({
     editable: false,
+    baseUrl: window.__BASENAME__ || '',
   });
 
   const onGenerate = useCallback(() => {

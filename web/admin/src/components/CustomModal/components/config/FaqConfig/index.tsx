@@ -1,14 +1,15 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { CommonItem, StyledCommonWrapper } from '../../components/StyledCommon';
 import { TextField } from '@mui/material';
 import { Controller, useForm } from 'react-hook-form';
-import FaqDragList from './FaqDragList';
+import DragList from '../../components/DragList';
+import SortableItem from '../../components/SortableItem';
+import FaqItem from './Item';
 import type { ConfigProps } from '../type';
 import { useAppSelector } from '@/store';
 import useDebounceAppPreviewData from '@/hooks/useDebounceAppPreviewData';
 import { Empty } from '@ctzhian/ui';
 import { DEFAULT_DATA } from '../../../constants';
-import ColorPickerField from '../../components/ColorPickerField';
 import { findConfigById, handleLandingConfigs } from '../../../utils';
 
 const FaqConfig = ({ setIsEdit, id }: ConfigProps) => {
@@ -34,6 +35,12 @@ const FaqConfig = ({ setIsEdit, id }: ConfigProps) => {
     setValue('list', newList);
     setIsEdit(true);
   };
+
+  // 稳定的 SortableItemComponent 引用
+  const FaqSortableComponent = useMemo(
+    () => (props: any) => <SortableItem {...props} ItemComponent={FaqItem} />,
+    [],
+  );
 
   useEffect(() => {
     reset(
@@ -111,10 +118,12 @@ const FaqConfig = ({ setIsEdit, id }: ConfigProps) => {
         {list.length === 0 ? (
           <Empty />
         ) : (
-          <FaqDragList
+          <DragList
             data={list}
             onChange={handleListChange}
             setIsEdit={setIsEdit}
+            SortableItemComponent={FaqSortableComponent}
+            ItemComponent={FaqItem}
           />
         )}
       </CommonItem>

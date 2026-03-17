@@ -10,7 +10,7 @@ import {
   alpha,
 } from '@mui/material';
 import { v4 as uuidv4 } from 'uuid';
-import { Icon } from '@ctzhian/ui';
+import { IconWangyeguajian } from '@panda-wiki/icons';
 import { Dispatch, SetStateAction, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Component } from '../../index';
@@ -185,8 +185,7 @@ const ComponentBar = ({
         }}
         {...(!item.fixed ? { ...attributes, ...listeners } : {})}
       >
-        <Icon
-          type='icon-wangyeguajian'
+        <IconWangyeguajian
           sx={{
             color:
               item.id === curComponent.id
@@ -196,7 +195,7 @@ const ComponentBar = ({
                   : 'text.secondary',
             fontSize: '14px',
           }}
-        ></Icon>
+        ></IconWangyeguajian>
         <Typography
           sx={{
             marginLeft: '8px',
