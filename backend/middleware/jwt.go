@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"slices"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"

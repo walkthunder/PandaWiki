@@ -23,8 +23,17 @@ import (
 )
 
 const (
-	machineIDFile  = "/data/.machine_id"
 	reportInterval = time.Hour
+)
+
+var (
+	machineIDFile = func() string {
+		dataDir := os.Getenv("DATA_DIR")
+		if dataDir == "" {
+			dataDir = "/data"
+		}
+		return filepath.Join(dataDir, ".machine_id")
+	}()
 )
 
 // Client is the telemetry client

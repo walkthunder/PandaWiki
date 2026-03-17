@@ -90,6 +90,17 @@ else
     echo -e "  ${YELLOW}⚠${NC} 未找到 API PID 文件"
 fi
 
+if [ -f logs/consumer.pid ]; then
+    CONSUMER_PID=$(cat logs/consumer.pid)
+    if ps -p $CONSUMER_PID > /dev/null 2>&1; then
+        echo -e "  ${GREEN}✓${NC} Consumer 进程运行中 (PID: $CONSUMER_PID)"
+    else
+        echo -e "  ${RED}✗${NC} Consumer 进程不存在 (PID 文件: $CONSUMER_PID)"
+    fi
+else
+    echo -e "  ${YELLOW}⚠${NC} 未找到 Consumer PID 文件"
+fi
+
 if [ -f logs/app.pid ]; then
     APP_PID=$(cat logs/app.pid)
     if ps -p $APP_PID > /dev/null 2>&1; then
@@ -109,6 +120,13 @@ if [ -f logs/api.log ]; then
     echo -e "  ${GREEN}✓${NC} API 日志: logs/api.log ($API_LOG_SIZE)"
 else
     echo -e "  ${YELLOW}⚠${NC} API 日志文件不存在"
+fi
+
+if [ -f logs/consumer.log ]; then
+    CONSUMER_LOG_SIZE=$(du -h logs/consumer.log | cut -f1)
+    echo -e "  ${GREEN}✓${NC} Consumer 日志: logs/consumer.log ($CONSUMER_LOG_SIZE)"
+else
+    echo -e "  ${YELLOW}⚠${NC} Consumer 日志文件不存在"
 fi
 
 if [ -f logs/app.log ]; then
@@ -154,8 +172,9 @@ echo ""
 
 # 快捷命令提示
 echo -e "${YELLOW}🔧 快捷命令:${NC}"
-echo "  - 查看 API 日志:    tail -f logs/api.log"
-echo "  - 查看 App 日志:    tail -f logs/app.log"
-echo "  - 重启所有服务:     ./stop-local-dev.sh && ./start-local-dev.sh"
-echo "  - 停止所有服务:     ./stop-local-dev.sh"
+echo "  - 查看 API 日志:      tail -f logs/api.log"
+echo "  - 查看 Consumer 日志: tail -f logs/consumer.log"
+echo "  - 查看 App 日志:      tail -f logs/app.log"
+echo "  - 重启所有服务:       ./stop-local-dev.sh && ./start-local-dev.sh"
+echo "  - 停止所有服务:       ./stop-local-dev.sh"
 echo ""

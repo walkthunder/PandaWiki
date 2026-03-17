@@ -20,14 +20,17 @@
 4. 自动生成 `backend/config.yml` 配置文件（使用正确的密码）
 5. 创建必要的数据目录（`backend/data/`, `backend/data/ssl/`）
 6. 后台启动 API 服务（端口 8000）
-7. 后台启动 Web App（端口 3010）
-8. 显示所有服务的访问地址和凭据
+7. 后台启动 Consumer 服务（处理RAG文档索引任务）
+8. 后台启动 Web App（端口 3010）
+9. 显示所有服务的访问地址和凭据
 
 **输出文件**:
 - `backend/config.yml` - 自动生成的后端配置
 - `logs/api.log` - API 服务日志
+- `logs/consumer.log` - Consumer 服务日志
 - `logs/app.log` - Web App 日志
 - `logs/api.pid` - API 服务进程 ID
+- `logs/consumer.pid` - Consumer 服务进程 ID
 - `logs/app.pid` - Web App 进程 ID
 
 ---
@@ -44,8 +47,9 @@
 **执行流程**:
 1. 停止 Web App 进程
 2. 停止 API 服务进程
-3. 停止所有 Docker 容器
-4. 清理 PID 文件
+3. 停止 Consumer 服务进程
+4. 停止所有 Docker 容器
+5. 清理 PID 文件
 
 ---
 
@@ -80,6 +84,7 @@ Docker 服务:
 
 应用服务:
   ✓ API 服务 (端口 8000, PID: 12345)
+  ✓ Consumer 服务 (PID: 23456)
   ✓ Web App (端口 3010, PID: 67890)
   ...
 ```
@@ -148,8 +153,10 @@ PandaWiki/
 ├── LOCAL_DEV_SCRIPTS.md        # 本文档
 ├── logs/                       # 日志目录（自动创建）
 │   ├── api.log                 # API 服务日志
+│   ├── consumer.log            # Consumer 服务日志
 │   ├── app.log                 # Web App 日志
 │   ├── api.pid                 # API 进程 ID
+│   ├── consumer.pid            # Consumer 进程 ID
 │   └── app.pid                 # Web App 进程 ID
 ├── backend/
 │   ├── config.yml              # 自动生成的配置文件
@@ -191,6 +198,7 @@ open http://localhost:3010
 
 # 查看日志
 tail -f logs/api.log
+tail -f logs/consumer.log
 tail -f logs/app.log
 
 # 停止服务
@@ -242,6 +250,7 @@ open -a Docker
 
 # 2. 查看日志
 tail -f logs/api.log
+tail -f logs/consumer.log
 tail -f logs/app.log
 
 # 3. 查看 Docker 日志
@@ -304,6 +313,9 @@ docker compose -f docker-compose.local.yml up -d
 ```bash
 # API 日志
 tail -f logs/api.log
+
+# Consumer 日志
+tail -f logs/consumer.log
 
 # Web App 日志
 tail -f logs/app.log

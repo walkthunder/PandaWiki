@@ -13,7 +13,7 @@ import (
 
 type MQHandlers struct {
 	RAGMQHandler        *RAGMQHandler
-	RagDocUpdateHandler *RagDocUpdateHandler
+	RagDocUpdateHandler *RagDocUpdateHandler  // 重新启用，已添加对应的NATS流
 	StatCronHandler     *CronHandler
 }
 
@@ -30,7 +30,7 @@ var ProviderSet = wire.NewSet(
 	usecase.NewModelUsecase,
 
 	NewRAGMQHandler,
-	NewRagDocUpdateHandler,
+	NewRagDocUpdateHandler,  // 重新启用，已添加对应的NATS流
 	NewCronHandler,
 
 	wire.Struct(new(MQHandlers), "*"),

@@ -75,6 +75,24 @@ else
     fi
 fi
 
+# 2.5. 停止 Consumer 服务
+log_info "停止 Consumer 服务..."
+if [ -f logs/consumer.pid ]; then
+    CONSUMER_PID=$(cat logs/consumer.pid)
+    if ps -p $CONSUMER_PID > /dev/null 2>&1; then
+        kill $CONSUMER_PID
+        log_success "Consumer 服务已停止 (PID: $CONSUMER_PID)"
+    else
+        log_warning "Consumer 服务进程不存在"
+    fi
+    rm logs/consumer.pid
+else
+    log_warning "未找到 Consumer PID 文件"
+    # 尝试通过进程名查找并停止
+    pkill -f "go run ./cmd/consumer" || true
+    log_success "已停止 Consumer 相关进程"
+fi
+
 # 3. 停止 Docker 服务
 log_info "停止 Docker 服务..."
 docker compose -f docker-compose.dev.yml down

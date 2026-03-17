@@ -157,6 +157,34 @@ else
     log_warning "API 服务可能未完全启动，请检查日志: tail -f logs/api.log"
 fi
 
+# 5.5. 启动 Consumer 服务（后台）
+log_info "启动 Consumer 服务..."
+
+# 检查是否已有 Consumer 进程在运行
+pkill -f "go run ./cmd/consumer" || true
+sleep 1
+
+cd backend
+nohup env DATA_DIR=./data SSL_DIR=./data/ssl CONFIG_FILE=config.dev.yml \
+MQ_NATS_SERVER="nats://localhost:4222" \
+NATS_PASSWORD="admin123" \
+PG_DSN="host=localhost user=panda-wiki password=admin123 dbname=panda-wiki port=5432 sslmode=disable TimeZone=Asia/Shanghai" \
+go run ./cmd/consumer > ../logs/consumer.log 2>&1 &
+CONSUMER_PID=$!
+echo $CONSUMER_PID > ../logs/consumer.pid
+cd "$PROJECT_ROOT"
+
+# 等待 Consumer 启动
+log_info "等待 Consumer 服务启动..."
+sleep 3
+
+# 检查 Consumer 进程是否还在运行
+if kill -0 $CONSUMER_PID 2>/dev/null; then
+    log_success "Consumer 服务已启动 (PID: $CONSUMER_PID)"
+else
+    log_warning "Consumer 服务可能启动失败，请检查日志: tail -f logs/consumer.log"
+fi
+
 # 6. 配置 Web App 环境
 log_info "配置 Web App 环境..."
 cd web/app
@@ -214,15 +242,17 @@ echo "  - Qdrant:     http://localhost:6333"
 echo "  - Raglite:    http://localhost:8080"
 echo ""
 echo -e "${YELLOW}🔧 常用命令：${NC}"
-echo "  - 查看 API 日志:  tail -f logs/api.log"
-echo "  - 查看 App 日志:  tail -f logs/app.log"
-echo "  - 停止所有服务:   ./stop-local-dev.sh"
+echo "  - 查看 API 日志:      tail -f logs/api.log"
+echo "  - 查看 Consumer 日志: tail -f logs/consumer.log"
+echo "  - 查看 App 日志:      tail -f logs/app.log"
+echo "  - 停止所有服务:       ./stop-local-dev.sh"
 echo ""
 echo -e "${YELLOW}💡 默认账号：${NC}"
 echo "  - 用户名: admin"
 echo "  - 密码:   admin123"
 echo ""
 echo -e "${YELLOW}📌 进程 ID：${NC}"
-echo "  - API PID:  $API_PID (保存在 logs/api.pid)"
-echo "  - App PID:  $APP_PID (保存在 logs/app.pid)"
+echo "  - API PID:      $API_PID (保存在 logs/api.pid)"
+echo "  - Consumer PID: $CONSUMER_PID (保存在 logs/consumer.pid)"
+echo "  - App PID:      $APP_PID (保存在 logs/app.pid)"
 echo ""
