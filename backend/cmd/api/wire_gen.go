@@ -143,6 +143,11 @@ func createApp() (*App, error) {
 	authV1Handler := v1.NewAuthV1Handler(echo, baseHandler, logger, authUsecase)
 	navUsecase := usecase.NewNavUsecase(navRepository, nodeRepository, ragRepository, logger)
 	navHandler := v1.NewNavHandler(baseHandler, echo, navUsecase, authMiddleware, logger)
+	licenseUsecase, err := usecase.NewLicenseUsecase(logger)
+	if err != nil {
+		return nil, err
+	}
+	licenseHandler := v1.NewLicenseHandler(echo, baseHandler, logger, licenseUsecase)
 	apiHandlers := &v1.APIHandlers{
 		UserHandler:          userHandler,
 		KnowledgeBaseHandler: knowledgeBaseHandler,
@@ -157,6 +162,7 @@ func createApp() (*App, error) {
 		CommentHandler:       commentHandler,
 		AuthV1Handler:        authV1Handler,
 		NavHandler:           navHandler,
+		LicenseHandler:       licenseHandler,
 	}
 	shareNodeHandler := share.NewShareNodeHandler(baseHandler, echo, nodeUsecase, logger)
 	shareNavHandler := share.NewShareNavHandler(baseHandler, echo, navUsecase, logger)
