@@ -88,7 +88,9 @@ func (s *CTRAG) QueryRecords(ctx context.Context, req *QueryRecordsRequest) (str
 		ChatHistory:         chatMsgs,
 		MaxChunksPerDoc:     req.MaxChunksPerDoc,
 	}
-	res, err := s.client.Search.Retrieve(ctx, data)
+	
+	// Use custom retrieveWithAuth to fix SDK bug
+	res, err := s.retrieveWithAuth(ctx, data)
 	if err != nil {
 		return "", nil, err
 	}
@@ -435,6 +437,108 @@ func (s *CTRAG) ListDocuments(ctx context.Context, datasetID string, documentIDs
 
 // uploadDocumentWithAuth is a workaround for SDK bug where Upload method doesn't add Authorization header
 // This method replicates the SDK's Upload logic but properly adds the Authorization header
+// retrieveResponse matches the structure returned by Raglite retrieve API
+type retrieveResponse struct {
+	Query   string `json:"query"`
+	Results []struct {
+		ChunkID    string `json:"chunk_id"`
+		Content    string `json:"content"`
+		DocumentID string `json:"document_id"`
+	} `json:"results"`
+}
+
+// retrieveWithAuth is a workaround for SDK bug where Search.Retrieve() returns 404
+// This method tries multiple possible API paths and properly adds Authorization header
+func (s *CTRAG) retrieveWithAuth(ctx context.Context, req *raglite.RetrieveRequest) (*retrieveResponse, error) {
+	// Build request data
+	data := map[string]interface{}{
+		"dataset_id":           req.DatasetID,
+		"query":                req.Query,
+		"top_k":                req.TopK,
+		"metadata":             req.Metadata,
+		"tags":                 req.Tags,
+		"similarity_threshold": req.SimilarityThreshold,
+		"chat_history":         req.ChatHistory,
+		"max_chunks_per_doc":   req.MaxChunksPerDoc,
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	// Try multiple possible API paths
+	paths := []string{
+		"/api/v1/search/retrieve",
+		"/api/v1/retrieve",
+		"/api/v1/datasets/" + req.DatasetID + "/retrieve",
+		"/retrieve",
+	}
+
+	var lastErr error
+	for _, path := range paths {
+		fullURL := s.baseURL + path
+		s.logger.Debug("trying retrieve path", log.String("url", fullURL))
+
+		httpReq, err := http.NewRequestWithContext(ctx, "POST", fullURL, bytes.NewBuffer(jsonData))
+		if err != nil {
+			lastErr = fmt.Errorf("failed to create request: %w", err)
+			continue
+		}
+
+		httpReq.Header.Set("Content-Type", "application/json")
+		if s.apiKey != "" {
+			httpReq.Header.Set("Authorization", "Bearer "+s.apiKey)
+		}
+
+		resp, err := http.DefaultClient.Do(httpReq)
+		if err != nil {
+			lastErr = fmt.Errorf("failed to execute request: %w", err)
+			continue
+		}
+		defer resp.Body.Close()
+
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			lastErr = fmt.Errorf("failed to read response: %w", err)
+			continue
+		}
+
+		// If 404, try next path
+		if resp.StatusCode == http.StatusNotFound {
+			s.logger.Debug("path not found, trying next", log.String("path", path), log.String("response", string(respBody)))
+			lastErr = fmt.Errorf("path not found: %s", path)
+			continue
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			lastErr = fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(respBody))
+			continue
+		}
+
+		// Parse response
+		var result struct {
+			Code    int              `json:"code"`
+			Message string           `json:"message"`
+			Data    retrieveResponse `json:"data"`
+		}
+		if err := json.Unmarshal(respBody, &result); err != nil {
+			lastErr = fmt.Errorf("failed to unmarshal response: %w", err)
+			continue
+		}
+
+		if result.Code != 0 {
+			lastErr = fmt.Errorf("API returned error code %d: %s", result.Code, result.Message)
+			continue
+		}
+
+		s.logger.Info("retrieve successful", log.String("path", path), log.Int("results", len(result.Data.Results)))
+		return &result.Data, nil
+	}
+
+	return nil, fmt.Errorf("all retrieve paths failed, last error: %w", lastErr)
+}
+
 func (s *CTRAG) uploadDocumentWithAuth(ctx context.Context, req *raglite.UploadDocumentRequest) (*raglite.UploadDocumentResponse, error) {
 	// Create multipart form
 	body := &bytes.Buffer{}

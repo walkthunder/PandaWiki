@@ -79,3 +79,18 @@ temp/
 *.swp
 *.swo
 *~
+
+# Build artifacts
+backend/api/api
+backend/consumer
+backend/migrate
+
+# SSL certificates
+backend/ssl/*.crt
+backend/ssl/*.key
+backend/data/ssl/*.crt
+backend/data/ssl/*.key
+
+# Logs
+*.log
+nohup.out
