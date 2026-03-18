@@ -55,6 +55,26 @@ else
     fi
 fi
 
+# 1.5. 停止 Admin 管理后台
+log_info "停止 Admin 管理后台..."
+if [ -f logs/admin.pid ]; then
+    ADMIN_PID=$(cat logs/admin.pid)
+    if ps -p $ADMIN_PID > /dev/null 2>&1; then
+        kill $ADMIN_PID
+        log_success "Admin 管理后台已停止 (PID: $ADMIN_PID)"
+    else
+        log_warning "Admin 管理后台进程不存在"
+    fi
+    rm logs/admin.pid
+else
+    log_warning "未找到 Admin PID 文件"
+    # 尝试通过端口查找并停止
+    if lsof -i :5173 > /dev/null 2>&1; then
+        pkill -f "vite" || true
+        log_success "已停止占用 5173 端口的进程"
+    fi
+fi
+
 # 2. 停止 API 服务
 log_info "停止 API 服务..."
 if [ -f logs/api.pid ]; then

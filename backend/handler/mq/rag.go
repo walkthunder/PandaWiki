@@ -3,6 +3,7 @@ package mq
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/chaitin/panda-wiki/consts"
 	"github.com/chaitin/panda-wiki/domain"
@@ -95,6 +96,16 @@ func (h *RAGMQHandler) HandleNodeContentVectorRequest(ctx context.Context, msg t
 		})
 		if err != nil {
 			h.logger.Error("upsert node content vector failed", log.Error(err))
+			// update node rag_info status to failed
+			if updateErr := h.nodeRepo.Update(ctx, nodeRelease.NodeID, map[string]interface{}{
+				"rag_info": domain.RagInfo{
+					Status:   consts.NodeRagStatusFailed,
+					Message:  err.Error(),
+					SyncedAt: time.Now(),
+				},
+			}); updateErr != nil {
+				h.logger.Error("update node rag_info status to failed error", log.String("node_id", nodeRelease.NodeID), log.Error(updateErr))
+			}
 			return nil
 		}
 		// update node doc_id
@@ -115,6 +126,18 @@ func (h *RAGMQHandler) HandleNodeContentVectorRequest(ctx context.Context, msg t
 				h.logger.Error("delete old RAG records failed", log.String("kb_id", kb.ID), log.Error(err))
 				return nil
 			}
+		}
+
+		// update node rag_info status to succeeded
+		if err := h.nodeRepo.Update(ctx, nodeRelease.NodeID, map[string]interface{}{
+			"rag_info": domain.RagInfo{
+				Status:   consts.NodeRagStatusSucceeded,
+				Message:  "",
+				SyncedAt: time.Now(),
+			},
+		}); err != nil {
+			h.logger.Error("update node rag_info status failed", log.String("node_id", nodeRelease.NodeID), log.Error(err))
+			return nil
 		}
 
 		h.logger.Info("upsert node content vector success", log.Any("updated_ids", request.NodeReleaseID))

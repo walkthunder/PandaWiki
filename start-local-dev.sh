@@ -69,17 +69,36 @@ fi
 
 # 等待 PostgreSQL
 log_info "等待 PostgreSQL..."
-until docker exec panda-wiki-postgres pg_isready -U panda-wiki -d panda-wiki > /dev/null 2>&1; do
+POSTGRES_READY=false
+for i in {1..15}; do
+    if docker exec panda-wiki-postgres pg_isready -U panda-wiki -d panda-wiki > /dev/null 2>&1; then
+        POSTGRES_READY=true
+        break
+    fi
     sleep 2
 done
-log_success "PostgreSQL 已就绪"
+if [ "$POSTGRES_READY" = true ]; then
+    log_success "PostgreSQL 已就绪"
+else
+    log_error "PostgreSQL 启动失败，请检查 Docker 日志"
+    exit 1
+fi
 
 # 等待 Redis
 log_info "等待 Redis..."
-until docker exec panda-wiki-redis redis-cli -a admin123 ping > /dev/null 2>&1; do
+REDIS_READY=false
+for i in {1..10}; do
+    if docker exec panda-wiki-redis redis-cli -a admin123 ping > /dev/null 2>&1; then
+        REDIS_READY=true
+        break
+    fi
     sleep 2
 done
-log_success "Redis 已就绪"
+if [ "$REDIS_READY" = true ]; then
+    log_success "Redis 已就绪"
+else
+    log_warning "Redis 可能未完全启动，但继续执行"
+fi
 
 # 等待 MinIO（检查容器状态）
 log_info "等待 MinIO..."
@@ -227,6 +246,32 @@ else
     log_warning "Web App 可能未完全启动，请检查日志: tail -f logs/app.log"
 fi
 
+# 8. 启动 Admin 管理后台（后台）
+log_info "启动 Admin 管理后台..."
+
+# 检查是否已有进程在运行
+if lsof -i :5173 > /dev/null 2>&1; then
+    log_warning "端口 5173 已被占用，尝试停止旧进程..."
+    pkill -f "vite" || true
+    sleep 2
+fi
+
+cd web/admin
+nohup pnpm dev > ../../logs/admin.log 2>&1 &
+ADMIN_PID=$!
+echo $ADMIN_PID > ../../logs/admin.pid
+cd "$PROJECT_ROOT"
+
+# 等待 Admin 启动
+log_info "等待 Admin 管理后台启动..."
+sleep 8
+
+if curl -s http://localhost:5173 > /dev/null 2>&1; then
+    log_success "Admin 管理后台已启动 (PID: $ADMIN_PID, http://localhost:5173)"
+else
+    log_warning "Admin 管理后台可能未完全启动，请检查日志: tail -f logs/admin.log"
+fi
+
 echo ""
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}✅ 所有服务已启动！${NC}"
@@ -234,6 +279,7 @@ echo -e "${GREEN}========================================${NC}"
 echo ""
 echo -e "${YELLOW}📝 服务地址：${NC}"
 echo "  - Web App:    http://localhost:3010"
+echo "  - Admin 后台: http://localhost:5173"
 echo "  - API 服务:   http://localhost:8000"
 echo "  - PostgreSQL: localhost:5432"
 echo "  - Redis:      localhost:6379"
@@ -245,6 +291,7 @@ echo -e "${YELLOW}🔧 常用命令：${NC}"
 echo "  - 查看 API 日志:      tail -f logs/api.log"
 echo "  - 查看 Consumer 日志: tail -f logs/consumer.log"
 echo "  - 查看 App 日志:      tail -f logs/app.log"
+echo "  - 查看 Admin 日志:    tail -f logs/admin.log"
 echo "  - 停止所有服务:       ./stop-local-dev.sh"
 echo ""
 echo -e "${YELLOW}💡 默认账号：${NC}"
@@ -255,4 +302,5 @@ echo -e "${YELLOW}📌 进程 ID：${NC}"
 echo "  - API PID:      $API_PID (保存在 logs/api.pid)"
 echo "  - Consumer PID: $CONSUMER_PID (保存在 logs/consumer.pid)"
 echo "  - App PID:      $APP_PID (保存在 logs/app.pid)"
+echo "  - Admin PID:    $ADMIN_PID (保存在 logs/admin.pid)"
 echo ""
