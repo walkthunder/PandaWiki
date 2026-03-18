@@ -79,3 +79,7 @@ temp/
 *.swp
 *.swo
 *~
+
+
+pdf-tools/
+.dev/
