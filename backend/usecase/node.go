@@ -740,9 +740,7 @@ func (u *NodeUsecase) NodeRestudy(ctx context.Context, req *v1.NodeRestudyReq) e
 	}
 
 	for _, nodeRelease := range nodeReleases {
-		if nodeRelease.DocID == "" {
-			continue
-		}
+		// Allow re-study even if doc_id is empty - it will be assigned during upsert
 		if err := u.ragRepo.AsyncUpdateNodeReleaseVector(ctx, []*domain.NodeReleaseVectorRequest{
 			{
 				KBID:          nodeRelease.KBID,
