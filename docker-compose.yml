@@ -158,7 +158,7 @@ services:
       panda-wiki:
         ipv4_address: "${SUBNET_PREFIX:-169.254.15}.17"
   raglite:
-    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-raglite:latest
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-raglite:1-5-0
     container_name: panda-wiki-raglite
     restart: always
     volumes:

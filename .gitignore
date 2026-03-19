@@ -59,7 +59,6 @@ web/admin/.env
 
 # Backup files
 backups/
-*.sql
 *.sql.gz
 *.tar
 *.tar.gz
@@ -79,3 +78,7 @@ temp/
 *.swp
 *.swo
 *~
+
+
+pdf-tools/
+.dev/

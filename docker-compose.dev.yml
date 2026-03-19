@@ -99,7 +99,7 @@ services:
       - minio
 
   raglite:
-    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-raglite:latest
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-raglite:1-5-0
     container_name: panda-wiki-raglite
     restart: always
     ports:
