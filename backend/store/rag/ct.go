@@ -88,7 +88,7 @@ func (s *CTRAG) QueryRecords(ctx context.Context, req *QueryRecordsRequest) (str
 		ChatHistory:         chatMsgs,
 		MaxChunksPerDoc:     req.MaxChunksPerDoc,
 	}
-
+	
 	// Use custom retrieveWithAuth to fix SDK bug
 	res, err := s.retrieveWithAuth(ctx, data)
 	if err != nil {
@@ -130,7 +130,7 @@ func (s *CTRAG) UpsertRecords(ctx context.Context, req *UpsertRecordsRequest) (s
 	if req.Tags != nil {
 		data.Tags = req.Tags
 	}
-
+	
 	// WORKAROUND: SDK bug - Upload method doesn't use client.do() which adds Authorization header
 	// We need to use a custom upload implementation that properly sets the Authorization header
 	res, err := s.uploadDocumentWithAuth(ctx, data)
@@ -188,9 +188,158 @@ func (s *CTRAG) UpsertModel(ctx context.Context, model *domain.Model) error {
 	if maxTokens == 0 {
 		maxTokens = 8192
 	}
-
+	
 	// Use custom HTTP request instead of SDK to avoid API path issues
 	return s.upsertModelWithAuth(ctx, model, maxTokens)
+}
+
+func (s *CTRAG) upsertModelWithAuth(ctx context.Context, model *domain.Model, maxTokens int) error {
+	// First, try to find existing model by name and type
+	existingModels, err := s.getModelsWithAuth(ctx)
+	if err != nil {
+		s.logger.Warn("failed to get existing models, will create new one", log.Error(err))
+	}
+	
+	var existingModelID string
+	if existingModels != nil {
+		for _, m := range existingModels {
+			if m["name"] == model.Model && m["task_type"] == string(model.Type) {
+				if id, ok := m["id"].(string); ok {
+					existingModelID = id
+					s.logger.Info("model already exists, skipping update", log.String("id", existingModelID), log.String("model", model.Model), log.String("type", string(model.Type)))
+					return nil // Skip update for existing models since Raglite doesn't support PUT/DELETE
+				}
+			}
+		}
+	}
+	
+	// Only create new model if it doesn't exist
+	// Prepare request data
+	data := map[string]interface{}{
+		"name":        model.Model,
+		"provider":    string(model.Provider),
+		"task_type":   string(model.Type),
+		"api_base":    model.BaseURL,
+		"api_key":     model.APIKey,
+		"max_tokens":  maxTokens,
+		"is_default":  true,
+		"enabled":     model.IsActive,
+	}
+	
+	// Add optional fields
+	config := make(map[string]interface{})
+	if model.Parameters.MaxTokens > 0 {
+		config["max_tokens"] = model.Parameters.MaxTokens
+	}
+	if model.Parameters.Temperature != nil {
+		config["temperature"] = *model.Parameters.Temperature
+	}
+	if model.Parameters.ContextWindow > 0 {
+		config["context_window"] = model.Parameters.ContextWindow
+	}
+	config["r1_enabled"] = model.Parameters.R1Enabled
+	config["support_images"] = model.Parameters.SupportImages
+	config["support_computer_use"] = model.Parameters.SupportComputerUse
+	config["support_prompt_cache"] = model.Parameters.SupportPromptCache
+	
+	if len(config) > 0 {
+		data["config"] = config
+	}
+	
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("failed to marshal model data: %w", err)
+	}
+	
+	// Create new model
+	fullURL := s.baseURL + "/api/v1/models"
+	s.logger.Info("creating new model", log.String("model", model.Model))
+	
+	// Create HTTP request
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", fullURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	
+	httpReq.Header.Set("Content-Type", "application/json")
+	if s.apiKey != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+s.apiKey)
+	}
+	
+	// Execute request
+	resp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+	
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(respBody))
+	}
+	
+	// Parse response
+	var result struct {
+		Code    int         `json:"code"`
+		Message string      `json:"message"`
+		Data    interface{} `json:"data"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+	
+	if result.Code != 0 {
+		return fmt.Errorf("API returned error code %d: %s", result.Code, result.Message)
+	}
+	
+	s.logger.Info("successfully upserted model", log.String("model", model.Model), log.String("type", string(model.Type)))
+	return nil
+}
+
+func (s *CTRAG) getModelsWithAuth(ctx context.Context) ([]map[string]interface{}, error) {
+	fullURL := s.baseURL + "/api/v1/models"
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", fullURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	
+	if s.apiKey != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+s.apiKey)
+	}
+	
+	resp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(respBody))
+	}
+	
+	var result struct {
+		Code    int                      `json:"code"`
+		Message string                   `json:"message"`
+		Data    []map[string]interface{} `json:"data"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+	
+	if result.Code != 0 {
+		return nil, fmt.Errorf("API returned error code %d: %s", result.Code, result.Message)
+	}
+	
+	return result.Data, nil
 }
 
 func (s *CTRAG) UpdateModel(ctx context.Context, model *domain.Model) error {
@@ -285,6 +434,9 @@ func (s *CTRAG) ListDocuments(ctx context.Context, datasetID string, documentIDs
 	return documents, nil
 }
 
+
+// uploadDocumentWithAuth is a workaround for SDK bug where Upload method doesn't add Authorization header
+// This method replicates the SDK's Upload logic but properly adds the Authorization header
 // retrieveResponse matches the structure returned by Raglite retrieve API
 type retrieveResponse struct {
 	Query   string          `json:"query"`
@@ -395,20 +547,18 @@ func (s *CTRAG) retrieveWithAuth(ctx context.Context, req *raglite.RetrieveReque
 // fallbackRetrieve implements a compatibility layer for older Raglite versions
 func (s *CTRAG) fallbackRetrieve(ctx context.Context, req *raglite.RetrieveRequest) (*retrieveResponse, error) {
 	s.logger.Info("using fallback retrieve for compatibility", log.String("query", req.Query), log.String("dataset_id", req.DatasetID))
-
+	
 	// For compatibility, return empty results to let the system fall back to basic chat mode
 	// This ensures the user gets an answer even if RAG retrieval fails
 	response := &retrieveResponse{
 		Query:   req.Query,
 		Results: []retrieveResult{}, // Empty results to trigger fallback to basic chat
 	}
-
+	
 	s.logger.Info("fallback retrieve completed with empty results to trigger basic chat mode", log.Int("results", len(response.Results)))
 	return response, nil
 }
 
-// uploadDocumentWithAuth is a workaround for SDK bug where Upload method doesn't add Authorization header
-// This method replicates the SDK's Upload logic but properly adds the Authorization header
 func (s *CTRAG) uploadDocumentWithAuth(ctx context.Context, req *raglite.UploadDocumentRequest) (*raglite.UploadDocumentResponse, error) {
 	// Create multipart form
 	body := &bytes.Buffer{}
@@ -476,7 +626,7 @@ func (s *CTRAG) uploadDocumentWithAuth(ctx context.Context, req *raglite.UploadD
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", writer.FormDataContentType())
-
+	
 	// FIX: Add Authorization header that SDK's Upload method is missing
 	if apiKey != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
@@ -515,156 +665,4 @@ func (s *CTRAG) uploadDocumentWithAuth(ctx context.Context, req *raglite.UploadD
 	}
 
 	return &result.Data[0], nil
-}
-
-// upsertModelWithAuth is a workaround for SDK API path issues
-func (s *CTRAG) upsertModelWithAuth(ctx context.Context, model *domain.Model, maxTokens int) error {
-	// First, try to find existing model by name and type
-	existingModels, err := s.getModelsWithAuth(ctx)
-	if err != nil {
-		s.logger.Warn("failed to get existing models, will create new one", log.Error(err))
-	}
-
-	var existingModelID string
-	if existingModels != nil {
-		for _, m := range existingModels {
-			if m["name"] == model.Model && m["task_type"] == string(model.Type) {
-				if id, ok := m["id"].(string); ok {
-					existingModelID = id
-					s.logger.Info("model already exists, skipping update", log.String("id", existingModelID), log.String("model", model.Model), log.String("type", string(model.Type)))
-					return nil // Skip update for existing models since Raglite doesn't support PUT/DELETE
-				}
-			}
-		}
-	}
-
-	// Only create new model if it doesn't exist
-	// Prepare request data
-	data := map[string]interface{}{
-		"name":        model.Model,
-		"provider":    string(model.Provider),
-		"task_type":   string(model.Type),
-		"api_base":    model.BaseURL,
-		"api_key":     model.APIKey,
-		"max_tokens":  maxTokens,
-		"is_default":  true,
-		"enabled":     model.IsActive,
-	}
-
-	// Add optional fields
-	config := make(map[string]interface{})
-	if model.Parameters.MaxTokens > 0 {
-		config["max_tokens"] = model.Parameters.MaxTokens
-	}
-	if model.Parameters.Temperature != nil {
-		config["temperature"] = *model.Parameters.Temperature
-	}
-	if model.Parameters.ContextWindow > 0 {
-		config["context_window"] = model.Parameters.ContextWindow
-	}
-	config["r1_enabled"] = model.Parameters.R1Enabled
-	config["support_images"] = model.Parameters.SupportImages
-	config["support_computer_use"] = model.Parameters.SupportComputerUse
-	config["support_prompt_cache"] = model.Parameters.SupportPromptCache
-
-	if len(config) > 0 {
-		data["config"] = config
-	}
-
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		return fmt.Errorf("failed to marshal model data: %w", err)
-	}
-
-	// Create new model
-	fullURL := s.baseURL + "/api/v1/models"
-	s.logger.Info("creating new model", log.String("model", model.Model))
-
-	// Create HTTP request
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", fullURL, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	if s.apiKey != "" {
-		httpReq.Header.Set("Authorization", "Bearer "+s.apiKey)
-	}
-
-	// Execute request
-	resp, err := http.DefaultClient.Do(httpReq)
-	if err != nil {
-		return fmt.Errorf("failed to execute request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(respBody))
-	}
-
-	// Parse response
-	var result struct {
-		Code    int         `json:"code"`
-		Message string      `json:"message"`
-		Data    interface{} `json:"data"`
-	}
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
-	if result.Code != 0 {
-		return fmt.Errorf("API returned error code %d: %s", result.Code, result.Message)
-	}
-
-	s.logger.Info("successfully upserted model", log.String("model", model.Model), log.String("type", string(model.Type)))
-	return nil
-}
-
-// getModelsWithAuth retrieves all models using custom HTTP request
-func (s *CTRAG) getModelsWithAuth(ctx context.Context) ([]map[string]interface{}, error) {
-	fullURL := s.baseURL + "/api/v1/models"
-
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", fullURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	if s.apiKey != "" {
-		httpReq.Header.Set("Authorization", "Bearer "+s.apiKey)
-	}
-
-	resp, err := http.DefaultClient.Do(httpReq)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(respBody))
-	}
-
-	var result struct {
-		Code    int                      `json:"code"`
-		Message string                   `json:"message"`
-		Data    []map[string]interface{} `json:"data"`
-	}
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
-	if result.Code != 0 {
-		return nil, fmt.Errorf("API returned error code %d: %s", result.Code, result.Message)
-	}
-
-	return result.Data, nil
 }

@@ -118,10 +118,15 @@ func (u *LLMUsecase) BuildConversationMessageWithRAG(
 				HistoryMessages:     historyMessages[:len(historyMessages)-1],
 			})
 			if err != nil {
-				u.logger.Error("get rank nodes failed", log.Error(err))
-				return nil, nil, errors.New("get rank nodes failed")
+				u.logger.Warn("get rank nodes failed, falling back to basic chat mode", log.Error(err))
+				// 回退到基本对话模式，不使用RAG
+				rewrittenQuery = question
+				rankedNodes = make([]*domain.RankedNodeChunks, 0)
 			}
 			documents := domain.FormatNodeChunks(rankedNodes, kb.AccessSettings.BaseURL)
+			if documents == "" {
+				documents = "抱歉，当前知识库中没有找到相关文档，我将基于我的通用知识来回答您的问题。"
+			}
 			u.logger.Debug("documents", log.String("documents", documents))
 
 			formattedMessages, err := template.Format(ctx, map[string]any{

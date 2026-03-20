@@ -10,14 +10,14 @@ http:
 admin_password: "admin123"
 
 pg:
-  dsn: "host=localhost user=panda-wiki password=panda-wiki dbname=panda-wiki port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+  dsn: "host=localhost user=panda-wiki password=admin123 dbname=panda-wiki port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 
 mq:
   type: "nats"
   nats:
     server: "nats://localhost:4222"
     user: "panda-wiki"
-    password: "panda-wiki"
+    password: "admin123"
 
 rag:
   provider: "ct"
@@ -27,17 +27,17 @@ rag:
 
 redis:
   addr: "localhost:6379"
-  password: "panda-wiki"
+  password: "admin123"
 
 auth:
   type: "jwt"
   jwt:
-    secret: "panda-wiki"
+    secret: "admin123"
 
 s3:
   endpoint: "localhost:9000"
   access_key: "s3panda-wiki"
-  secret_key: "panda-wiki"
+  secret_key: "admin123"
 
 sentry:
   enabled: false

@@ -37,8 +37,8 @@ func NewSessionMiddleware(logger *log.Logger, config *config.Config, cache *cach
 		10,
 		"tcp",
 		config.Redis.Addr,
-		"",
 		config.Redis.Password,
+		"",
 		[]byte(secretKey.(string)),
 	)
 

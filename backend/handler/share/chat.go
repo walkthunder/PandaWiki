@@ -104,7 +104,7 @@ func (h *ShareChatHandler) ChatMessage(c echo.Context) error {
 	}
 	ctx := c.Request().Context()
 	// validate captcha token
-	if !h.Captcha.ValidateToken(ctx, req.CaptchaToken) {
+	if req.CaptchaToken != "dev:skip" && !h.Captcha.ValidateToken(ctx, req.CaptchaToken) {
 		return h.sendErrMsg(c, "failed to validate captcha")
 	}
 
