@@ -10,6 +10,7 @@ import (
 	"maps"
 	"net"
 	"net/http"
+	"os"
 	"time"
 
 	"strconv"
@@ -60,6 +61,15 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 	if len(kbList) == 0 {
 		return nil
 	}
+	
+	socketPath := r.config.CaddyAPI
+	
+	// Check if Caddy socket exists - skip sync in local development if not available
+	if _, err := os.Stat(socketPath); os.IsNotExist(err) {
+		r.logger.Warn("Caddy admin socket not found, skipping sync (local development mode)", "socket_path", socketPath)
+		return nil
+	}
+	
 	firstKB := kbList[0]
 	firstHost := ""
 	if len(firstKB.AccessSettings.Hosts) > 0 {
@@ -94,7 +104,6 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 			})
 		}
 	}
-	socketPath := r.config.CaddyAPI
 	// sync kb to caddy
 	// create server for each port
 	subnetPrefix := r.config.SubnetPrefix

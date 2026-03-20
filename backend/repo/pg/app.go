@@ -62,9 +62,10 @@ func (r *AppRepository) GetOrCreateAppByKBIDAndType(ctx context.Context, kbID st
 					return err
 				}
 				app = &domain.App{
-					ID:   uuid.New().String(),
-					KBID: kbID,
-					Type: appType,
+					ID:       uuid.New().String(),
+					KBID:     kbID,
+					Type:     appType,
+					Settings: r.getDefaultSettings(appType),
 				}
 				return tx.Create(app).Error
 			}
@@ -75,6 +76,37 @@ func (r *AppRepository) GetOrCreateAppByKBIDAndType(ctx context.Context, kbID st
 		return nil, err
 	}
 	return app, nil
+}
+
+func (r *AppRepository) getDefaultSettings(appType domain.AppType) domain.AppSettings {
+	settings := domain.AppSettings{
+		Title:              "PandaWiki",
+		WelcomeStr:         "欢迎使用 PandaWiki",
+		SearchPlaceholder:  "搜索文档...",
+		RecommendQuestions: []string{},
+		RecommendNodeIDs:   []string{},
+	}
+
+	// Add default web_app_landing_configs for Web app type
+	if appType == domain.AppTypeWeb {
+		settings.WebAppLandingConfigs = []domain.WebAppLandingConfig{
+			{
+				Type: "banner",
+				BannerConfig: &domain.BannerConfig{
+					HotSearch: []string{
+						"如何开始使用？",
+						"常见问题解答",
+						"快速入门指南",
+					},
+				},
+			},
+		}
+		settings.WebAppLandingTheme = domain.WebAppLandingTheme{
+			Name: "blue",
+		}
+	}
+
+	return settings
 }
 
 // GetAppsByTypes returns all apps of a specific type

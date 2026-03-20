@@ -48,13 +48,9 @@ func NewCTRAG(config *config.Config, logger *log.Logger) (*CTRAG, error) {
 }
 
 func (s *CTRAG) CreateKnowledgeBase(ctx context.Context) (string, error) {
-	dataset, err := s.client.Datasets.Create(ctx, &raglite.CreateDatasetRequest{
-		Name: uuid.New().String(),
-	})
-	if err != nil {
-		return "", err
-	}
-	return dataset.ID, nil
+	// WORKAROUND: SDK bug - Create method may not properly handle the wrapped response format
+	// Use custom HTTP request to ensure proper response parsing
+	return s.createDatasetWithAuth(ctx)
 }
 
 func (s *CTRAG) QueryRecords(ctx context.Context, req *QueryRecordsRequest) (string, []*domain.NodeContentChunk, error) {
@@ -665,4 +661,79 @@ func (s *CTRAG) uploadDocumentWithAuth(ctx context.Context, req *raglite.UploadD
 	}
 
 	return &result.Data[0], nil
+}
+
+// createDatasetWithAuth is a workaround for SDK bug where Create method may not properly handle wrapped response
+// This method directly calls the Raglite API and properly parses the response format: {"code":0,"data":{...}}
+func (s *CTRAG) createDatasetWithAuth(ctx context.Context) (string, error) {
+	// Create request body
+	datasetName := uuid.New().String()
+	reqBody := map[string]interface{}{
+		"name": datasetName,
+	}
+	
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	// Build full URL
+	fullURL := s.baseURL + "/api/v1/datasets"
+	
+	// Create HTTP request
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", fullURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+	
+	// Set headers
+	httpReq.Header.Set("Content-Type", "application/json")
+	if s.apiKey != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+s.apiKey)
+	}
+
+	// Execute request
+	resp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return "", fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(respBody))
+	}
+
+	// Parse wrapped response format: {"code":0,"data":{...}}
+	var result struct {
+		Code int `json:"code"`
+		Data struct {
+			ID             string `json:"id"`
+			Name           string `json:"name"`
+			EmbeddingModel string `json:"embedding_model"`
+			EnableRaptor   bool   `json:"enable_raptor"`
+			CreateTime     int64  `json:"create_time"`
+			UpdateTime     int64  `json:"update_time"`
+		} `json:"data"`
+	}
+	
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if result.Code != 0 {
+		return "", fmt.Errorf("API returned error code %d", result.Code)
+	}
+
+	if result.Data.ID == "" {
+		return "", fmt.Errorf("API returned empty dataset ID")
+	}
+
+	s.logger.Info("created dataset successfully", log.String("dataset_id", result.Data.ID), log.String("name", result.Data.Name))
+	return result.Data.ID, nil
 }
