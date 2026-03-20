@@ -12,10 +12,28 @@ import (
 	"time"
 )
 
-const (
-	keyFile  = "/app/etc/nginx/ssl/panda-wiki.key" // Key file path
-	certFile = "/app/etc/nginx/ssl/panda-wiki.crt" // Certificate file path
+var (
+	keyFile  = getSSLPath("panda-wiki.key") // Key file path
+	certFile = getSSLPath("panda-wiki.crt") // Certificate file path
 )
+
+// getSSLPath returns the SSL file path based on environment
+func getSSLPath(filename string) string {
+	// Check if SSL_DIR environment variable is set (for local development)
+	if sslDir := os.Getenv("SSL_DIR"); sslDir != "" {
+		return sslDir + "/" + filename
+	}
+	// Default to Docker container path
+	return "/app/etc/nginx/ssl/" + filename
+}
+
+// getSSLDir returns the SSL directory path based on environment
+func getSSLDir() string {
+	if sslDir := os.Getenv("SSL_DIR"); sslDir != "" {
+		return sslDir
+	}
+	return "/app/etc/nginx/ssl"
+}
 
 // check init cert
 func CheckInitCert() error {
@@ -67,13 +85,15 @@ func createSelfSignedCerts() error {
 		return fmt.Errorf("failed to create certificate: %v", err)
 	}
 
-	// ensure dir /app/etc/nginx/ssl exists
-	if err := os.MkdirAll("/app/etc/nginx/ssl", 0o755); err != nil {
+	// ensure SSL directory exists
+	sslDir := getSSLDir()
+	if err := os.MkdirAll(sslDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create ssl dir: %v", err)
 	}
 
 	// Write certificate file with appropriate permissions
-	certFile, err := os.Create("/app/etc/nginx/ssl/panda-wiki.crt")
+	certFilePath := sslDir + "/panda-wiki.crt"
+	certFile, err := os.Create(certFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to create cert file: %v", err)
 	}
@@ -90,7 +110,8 @@ func createSelfSignedCerts() error {
 	}
 
 	// Write private key file with appropriate permissions
-	keyFile, err := os.Create("/app/etc/nginx/ssl/panda-wiki.key")
+	keyFilePath := sslDir + "/panda-wiki.key"
+	keyFile, err := os.Create(keyFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to create key file: %v", err)
 	}

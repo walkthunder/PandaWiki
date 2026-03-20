@@ -92,8 +92,15 @@ func (c *Client) GetMachineID() string {
 }
 
 func (c *Client) getOrCreateMachineID() (string, error) {
+	// Use DATA_DIR from environment or default to /data
+	dataDir := os.Getenv("DATA_DIR")
+	if dataDir == "" {
+		dataDir = "/data"
+	}
+	machineIDPath := filepath.Join(dataDir, ".machine_id")
+	
 	// get machine id from file
-	if id, err := os.ReadFile(machineIDFile); err == nil {
+	if id, err := os.ReadFile(machineIDPath); err == nil {
 		c.firstReport = false
 		return strings.TrimSpace(string(id)), nil
 	} else if !os.IsNotExist(err) {
@@ -101,13 +108,13 @@ func (c *Client) getOrCreateMachineID() (string, error) {
 	}
 
 	// ensure dir is exists
-	dir := filepath.Dir(machineIDFile)
+	dir := filepath.Dir(machineIDPath)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", fmt.Errorf("failed to create machine ID directory: %w", err)
 	}
 
 	// create lock file to prevent concurrent access
-	lockFile := machineIDFile + ".lock"
+	lockFile := machineIDPath + ".lock"
 	lock, err := os.OpenFile(lockFile, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
 	if err != nil {
 		if os.IsExist(err) {
@@ -127,7 +134,7 @@ func (c *Client) getOrCreateMachineID() (string, error) {
 		}
 	}()
 
-	if id, err := os.ReadFile(machineIDFile); err == nil {
+	if id, err := os.ReadFile(machineIDPath); err == nil {
 		c.firstReport = false
 		return strings.TrimSpace(string(id)), nil
 	}
@@ -136,12 +143,12 @@ func (c *Client) getOrCreateMachineID() (string, error) {
 	id := uuid.New().String()
 
 	// write machine ID to file and ensure data is written to disk
-	if err := os.WriteFile(machineIDFile, []byte(id), 0o644); err != nil {
+	if err := os.WriteFile(machineIDPath, []byte(id), 0o644); err != nil {
 		return "", fmt.Errorf("failed to write machine ID file: %w", err)
 	}
 
 	// sync file to ensure data is written to disk
-	if file, err := os.OpenFile(machineIDFile, os.O_RDWR, 0o644); err == nil {
+	if file, err := os.OpenFile(machineIDPath, os.O_RDWR, 0o644); err == nil {
 		if err := file.Sync(); err != nil {
 			if err := file.Close(); err != nil {
 				c.logger.Error("failed to close machine ID file after write", log.Error(err))
