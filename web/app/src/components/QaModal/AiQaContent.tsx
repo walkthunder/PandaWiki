@@ -375,18 +375,7 @@ const AiQaContent: React.FC<{
 
     let token = '';
 
-    const Cap = (await import('@cap.js/widget')).default;
-    const cap = new Cap({
-      apiEndpoint: '/share/v1/captcha/',
-    });
-    try {
-      const solution = await cap.solve();
-      token = solution.token;
-    } catch (error) {
-      message.error('验证失败');
-      console.log(error, 'error---------');
-      return;
-    }
+    // 政务版禁用外网验证 - 直接使用空 token
 
     const reqData = {
       message: q,
@@ -492,9 +481,10 @@ const AiQaContent: React.FC<{
   };
 
   useEffect(() => {
+    // 政务版禁用外网验证 - CAP WASM URL 已移除
     // @ts-ignore
-    window.CAP_CUSTOM_WASM_URL =
-      window.location.origin + '/cap@0.0.6/cap_wasm.min.js';
+    // window.CAP_CUSTOM_WASM_URL =
+    //   window.location.origin + '/cap@0.0.6/cap_wasm.min.js';
   }, []);
 
   const onSearch = (q: string, reset: boolean = false) => {

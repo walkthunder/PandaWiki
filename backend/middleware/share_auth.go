@@ -38,7 +38,6 @@ func (h *ShareAuthMiddleware) CheckForbidden(next echo.HandlerFunc) echo.Handler
 		kb, err := h.kbUsecase.GetKnowledgeBase(c.Request().Context(), kbID)
 		if err != nil {
 			h.logger.Error("get knowledge base failed", log.String("kb_id", kbID), log.Error(err))
-			sentry.CaptureException(err)
 			return c.JSON(http.StatusInternalServerError, domain.PWResponse{
 				Success: false,
 				Message: "failed to get knowledge base detail",

@@ -78,17 +78,7 @@ export const useSSEChat = ({
       setThinking(1);
 
       let token = '';
-      try {
-        const Cap = (await import('@cap.js/widget')).default;
-        const cap = new Cap({ apiEndpoint: CAP_CONFIG.apiEndpoint });
-        const solution = await cap.solve();
-        token = solution.token;
-      } catch (error) {
-        message.error('验证失败');
-        console.error('Captcha error:', error);
-        setLoading(false);
-        return;
-      }
+      // 政务版禁用外网验证 - 直接使用空 token
 
       const reqData: ChatRequestData = {
         message: q,

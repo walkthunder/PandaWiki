@@ -91,10 +91,10 @@ func (h *ShareChatHandler) ChatMessage(c echo.Context) error {
 		return h.sendErrMsg(c, "invalid app type")
 	}
 	ctx := c.Request().Context()
-	// validate captcha token
-	if !h.Captcha.ValidateToken(ctx, req.CaptchaToken) {
-		return h.sendErrMsg(c, "failed to validate captcha")
-	}
+	// validate captcha token - 政务版禁用外网验证
+	// if !h.Captcha.ValidateToken(ctx, req.CaptchaToken) {
+	// 	return h.sendErrMsg(c, "failed to validate captcha")
+	// }
 
 	req.RemoteIP = c.RealIP()
 
@@ -461,10 +461,7 @@ func (h *ShareChatHandler) ChatSearch(c echo.Context) error {
 		return h.NewResponseWithError(c, "validate request failed", err)
 	}
 	ctx := c.Request().Context()
-	// validate captcha token
-	if !h.Captcha.ValidateToken(ctx, req.CaptchaToken) {
-		return h.NewResponseWithError(c, "invalid captcha token", nil)
-	}
+	// 政务版禁用外网验证 - captcha 验证已跳过
 
 	req.RemoteIP = c.RealIP()
 

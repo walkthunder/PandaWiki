@@ -77,10 +77,10 @@ func (h *ShareCommonHandler) FileUpload(c echo.Context) error {
 		return h.NewResponseWithError(c, "只支持图片文件上传", fmt.Errorf("unsupported file type: %s", file.Filename))
 	}
 
-	// validate captcha token
-	if !h.Captcha.ValidateToken(ctx, req.CaptchaToken) {
-		return h.NewResponseWithError(c, "failed to validate captcha token", nil)
-	}
+	// 政务版禁用外网验证 - captcha 验证已跳过
+	// if !h.Captcha.ValidateToken(ctx, req.CaptchaToken) {
+	// 	return h.NewResponseWithError(c, "failed to validate captcha token", nil)
+	// }
 
 	key, err := h.fileUsecase.UploadFile(ctx, req.KbId, file)
 	if err != nil {

@@ -1,5 +1,6 @@
 'use client';
-import * as Sentry from '@sentry/nextjs';
+// 政务版禁用外网上报 - Sentry 已移除
+// import * as Sentry from '@sentry/nextjs';
 import { useEffect } from 'react';
 import ErrorPng from '@/assets/images/500.png';
 import Footer from '@/components/footer';
@@ -15,10 +16,11 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // 只在生产环境下上报错误到 Sentry
-    if (process.env.NODE_ENV === 'production') {
-      Sentry.captureException(error);
-    }
+    // 政务版禁用外网上报 - Sentry 已移除
+    // if (process.env.NODE_ENV === 'production') {
+    //   Sentry.captureException(error);
+    // }
+    console.error('Global error:', error);
   }, [error]);
 
   return (
