@@ -211,12 +211,19 @@ const Landing = () => {
               onChange={e => setQuestionInput(e.target.value)}
               onKeyPress={handleKeyPress}
             />
-            <img
-              className={styles.image_9}
-              referrerPolicy='no-referrer'
-              src='/img/SketchPng7d7afad26f2a058209a5bf5975ee6ba390be412f4f3aa74e428e7e8bea9b1fb3.png'
-              alt='Icon'
-            />
+            <button
+              type='button'
+              className={styles.searchIconButton}
+              onClick={() => submitQuestion('chat')}
+              aria-label='开始智能问答'
+            >
+              <img
+                className={styles.image_9}
+                referrerPolicy='no-referrer'
+                src='/img/SketchPng7d7afad26f2a058209a5bf5975ee6ba390be412f4f3aa74e428e7e8bea9b1fb3.png'
+                alt=''
+              />
+            </button>
           </div>
 
           {/* Action Buttons */}

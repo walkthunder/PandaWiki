@@ -51,8 +51,9 @@ const homeProxy = async (
     // 获取节点列表
     if (url.pathname === '/') {
       const homePath = await getHomePath();
+      // test 分支：自定义首页为「无线一点通」落地页
       if (homePath === 'custom') {
-        return NextResponse.rewrite(new URL('/home', request.url));
+        return NextResponse.rewrite(new URL('/landing', request.url));
       } else {
         const [firstNode] = await Promise.all([getFirstNode(), getHomePath()]);
         if (firstNode) {
@@ -181,6 +182,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     '/',
+    '/landing',
     '/home',
     '/share/:path*',
     '/chat/:path*',
