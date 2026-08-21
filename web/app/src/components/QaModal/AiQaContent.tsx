@@ -158,6 +158,7 @@ const AiQaContent: React.FC<{
     }>
   >([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const conversationListRef = useRef<HTMLDivElement>(null);
   const [fuzzySuggestions, setFuzzySuggestions] = useState<string[]>([]);
   const [showFuzzySuggestions, setShowFuzzySuggestions] = useState(false);
 
@@ -165,10 +166,20 @@ const AiQaContent: React.FC<{
   const basePath = useBasePath();
 
   // 使用智能滚动 hook（内置 ResizeObserver 自动监听内容高度变化，自动滚动）
-  const { setShouldAutoScroll } = useSmartScroll({
-    container: '.conversation-container',
-    behavior: 'smooth',
+  const { setShouldAutoScroll, forceScrollToBottom } = useSmartScroll({
+    container: () => conversationListRef.current,
+    behavior: 'auto',
+    threshold: 80,
   });
+
+  const pinToLatest = () => {
+    requestAnimationFrame(() => {
+      forceScrollToBottom();
+      requestAnimationFrame(() => {
+        forceScrollToBottom();
+      });
+    });
+  };
 
   const onReset = () => {
     if (loading) {
@@ -468,6 +479,7 @@ const AiQaContent: React.FC<{
               return newConversation;
             });
             if (content) message.error(content);
+            pinToLatest();
           } else if (type === 'done') {
             setConversation(prev => {
               const newConversation = [...prev];
@@ -487,6 +499,7 @@ const AiQaContent: React.FC<{
             setLoading(false);
 
             setThinking(4);
+            pinToLatest();
           } else if (type === 'data') {
             setFullAnswer(prevFullAnswer => {
               const newFullAnswer = prevFullAnswer + content;
@@ -568,6 +581,7 @@ const AiQaContent: React.FC<{
     messageIdRef.current = '';
     setConversation(newConversation);
     setFullAnswer('');
+    pinToLatest();
     setTimeout(() => {
       chatAnswer(q);
       setInput('');
@@ -837,6 +851,7 @@ const AiQaContent: React.FC<{
 
       {/* 有对话时显示对话历史 */}
       <StyledConversationContainer
+        ref={conversationListRef}
         direction='column'
         className='conversation-container'
         sx={{

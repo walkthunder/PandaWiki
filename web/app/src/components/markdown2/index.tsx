@@ -92,8 +92,8 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
   // 使用智能滚动 hook
   const { scrollToBottom } = useSmartScroll({
     container: '.conversation-container',
-    threshold: 50, // 距离底部 50px 内认为是在底部附近
-    behavior: 'smooth',
+    threshold: 80,
+    behavior: 'auto',
     enabled: autoScroll,
   });
 
