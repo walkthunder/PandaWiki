@@ -195,10 +195,10 @@ const Landing = () => {
             <div className={styles.box_8} />
           </div>
           <span className={styles.paragraph_1}>
-            「无线一点通」—— 上海无线电监测站官方 AI
-            政策文件、技术标准等查询工具，专注无线电技术管理领域的政策文件、技术标准、
-            <br />
-            技术动态等信息检索，为无线电技术管理者、本市行业部门以及社会用户提供数据支持，助力本市无线电管理秩序规范有序。
+            上海无线电监测站基于AI+三年行动方案，推出「无线一点通」智能查询平台。平台整合无线电领域的技术标准、管理制度文件及上海本地行政审批流程，输入关键词即可获得精准权威的解答。
+            <span className={styles.paragraphTagline}>
+              --查标准、看流程，一点就通。
+            </span>
           </span>
 
           {/* Search Box */}

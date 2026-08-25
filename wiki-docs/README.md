@@ -15,6 +15,7 @@
 | [服务端数据库设计](./服务端数据库设计.md) | PostgreSQL 业务表清单、逻辑外键关系、与 RAG 的 dataset_id/doc_id 桥接 |
 | [本地开发启动](./本地开发启动.md) | 基于 **test** 分支；Compose 跑后端；pnpm 跑前端；含互联网检索 env |
 | [生产环境部署](./生产环境部署.md) | 基于 **test** 分支；内网首次部署与增量发布（含 WEB_SEARCH_URL） |
+| [Wiki前台打包部署与回退](./Wiki前台打包部署与回退.md) | 只改 `web/app` 时：打 `frontend:main`、备份旧镜像、load 覆盖、回退 |
 
 ## 项目一句话
 
