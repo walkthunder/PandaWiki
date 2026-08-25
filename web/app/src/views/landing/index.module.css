@@ -269,11 +269,7 @@
   line-height: 22px;
   margin: 23px auto 0;
   z-index: 2;
-}
-
-.paragraphTagline {
-  display: block;
-  margin-top: 8px;
+  white-space: pre-wrap;
 }
 
 .block_2 {

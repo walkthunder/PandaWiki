@@ -11,6 +11,9 @@ import styles from './index.module.css';
 import { useStore } from '@/provider';
 import QaModal from '@/components/QaModal';
 
+const DEFAULT_SUBTITLE =
+  '上海无线电监测站基于AI+三年行动方案，推出「无线一点通」智能查询平台。平台整合无线电领域的技术标准、管理制度文件及上海本地行政审批流程，输入关键词即可获得精准权威的解答。\n--查标准、看流程，一点就通。';
+
 const Landing = () => {
   const { setQaModalOpen, kbDetail } = useStore();
   const [questionInput, setQuestionInput] = useState('');
@@ -20,13 +23,16 @@ const Landing = () => {
   const [showRobot, setShowRobot] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Get quick questions from banner config's hot_search
-  const quickQuestions = useMemo(() => {
-    const bannerConfig = kbDetail?.settings?.web_app_landing_configs?.find(
-      config => config.type === 'banner',
+  const bannerConfig = useMemo(() => {
+    return (
+      kbDetail?.settings?.web_app_landing_configs?.find(
+        config => config.type === 'banner',
+      )?.banner_config || {}
     );
-    return bannerConfig?.banner_config?.hot_search || [];
   }, [kbDetail?.settings?.web_app_landing_configs]);
+
+  const heroSubtitle = bannerConfig.subtitle?.trim() || DEFAULT_SUBTITLE;
+  const quickQuestions = bannerConfig.hot_search || [];
 
   useEffect(() => {
     setQaModalOpen?.(false);
@@ -194,12 +200,7 @@ const Landing = () => {
             />
             <div className={styles.box_8} />
           </div>
-          <span className={styles.paragraph_1}>
-            上海无线电监测站基于AI+三年行动方案，推出「无线一点通」智能查询平台。平台整合无线电领域的技术标准、管理制度文件及上海本地行政审批流程，输入关键词即可获得精准权威的解答。
-            <span className={styles.paragraphTagline}>
-              --查标准、看流程，一点就通。
-            </span>
-          </span>
+          <span className={styles.paragraph_1}>{heroSubtitle}</span>
 
           {/* Search Box */}
           <div className={`${styles.block_2} ${styles.flexRow}`}>
