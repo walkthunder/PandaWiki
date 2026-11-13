@@ -487,8 +487,24 @@ func (u *ModelUsecase) syncLocalModels() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	if err := u.syncConfiguredLocalModels(ctx); err != nil {
-		u.logger.Error("sync intranet models failed", log.Error(err))
+	if err := u.persistLocalModels(ctx); err != nil {
+		u.logger.Error("save intranet models failed", log.Error(err))
+	}
+	go u.retrySyncLocalModelsToRAG()
+}
+
+func (u *ModelUsecase) retrySyncLocalModelsToRAG() {
+	var lastErr error
+	for attempt := 1; attempt <= 12; attempt++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		lastErr = u.syncLocalModelsToRAG(ctx)
+		cancel()
+		if lastErr == nil {
+			u.logger.Info("intranet models synced to rag")
+			return
+		}
+		u.logger.Error("sync intranet models to rag failed", log.Int("attempt", attempt), log.Error(lastErr))
+		time.Sleep(10 * time.Second)
 	}
 }
 
@@ -501,7 +517,8 @@ func (u *ModelUsecase) hasLocalModels() bool {
 	return false
 }
 
-func (u *ModelUsecase) syncConfiguredLocalModels(ctx context.Context) error {
+func (u *ModelUsecase) persistLocalModels(ctx context.Context) error {
+	var errs []error
 	for _, modelType := range []domain.ModelType{domain.ModelTypeChat, domain.ModelTypeEmbedding, domain.ModelTypeRerank} {
 		endpoint, fallbackPath, ok := u.localEndpoint(modelType)
 		if !ok {
@@ -513,15 +530,30 @@ func (u *ModelUsecase) syncConfiguredLocalModels(ctx context.Context) error {
 			log.String("base_url", strings.TrimSpace(endpoint.BaseURL)),
 			log.String("request_url", endpoint.RequestURL(fallbackPath)),
 		)
-		model, err := u.ensureLocalModel(ctx, modelType, endpoint)
-		if err != nil {
-			return err
-		}
-		if err := u.ragStore.SyncLocalModel(ctx, model); err != nil {
-			return fmt.Errorf("sync %s model to rag: %w", modelType, err)
+		if _, err := u.ensureLocalModel(ctx, modelType, endpoint); err != nil {
+			errs = append(errs, fmt.Errorf("save %s model: %w", modelType, err))
 		}
 	}
-	return nil
+	return errors.Join(errs...)
+}
+
+func (u *ModelUsecase) syncLocalModelsToRAG(ctx context.Context) error {
+	var errs []error
+	for _, modelType := range []domain.ModelType{domain.ModelTypeChat, domain.ModelTypeEmbedding, domain.ModelTypeRerank} {
+		endpoint, _, ok := u.localEndpoint(modelType)
+		if !ok {
+			continue
+		}
+		model, err := u.ensureLocalModel(ctx, modelType, endpoint)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("save %s model: %w", modelType, err))
+			continue
+		}
+		if err := u.ragStore.SyncLocalModel(ctx, model); err != nil {
+			errs = append(errs, fmt.Errorf("sync %s model to rag: %w", modelType, err))
+		}
+	}
+	return errors.Join(errs...)
 }
 
 func (u *ModelUsecase) ensureLocalModel(ctx context.Context, modelType domain.ModelType, endpoint config.LocalModelEndpoint) (*domain.Model, error) {
@@ -537,9 +569,17 @@ func (u *ModelUsecase) ensureLocalModel(ctx context.Context, modelType domain.Mo
 		}
 		u.overrideWithLocalModel(model)
 		if err := u.modelRepo.Create(ctx, model); err != nil {
-			return nil, err
+			if !isDuplicateModel(err) {
+				return nil, err
+			}
+			existing, getErr := u.modelRepo.GetModelByType(ctx, modelType)
+			if getErr != nil {
+				return nil, err
+			}
+			model = existing
+		} else {
+			return model, nil
 		}
-		return model, nil
 	}
 	provider := string(model.Provider)
 	modelName := model.Model
@@ -563,4 +603,15 @@ func (u *ModelUsecase) ensureLocalModel(ctx context.Context, modelType domain.Mo
 	model.Provider = domain.ModelProvider(provider)
 	model.IsActive = true
 	return model, nil
+}
+
+func isDuplicateModel(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, gorm.ErrDuplicatedKey) {
+		return true
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "duplicate") || strings.Contains(msg, "23505")
 }

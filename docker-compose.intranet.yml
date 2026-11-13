@@ -15,3 +15,6 @@ services:
       CONFIG_FILE: /app/config.intranet.yml
     volumes:
       - ./config.intranet.yml:/app/config.intranet.yml:ro
+  nginx:
+    volumes:
+      - ./nginx/intranet-server.conf:/etc/nginx/conf.d/server.conf:ro

@@ -208,8 +208,7 @@ func (s *CTRAG) SyncLocalModel(ctx context.Context, model *domain.Model) error {
 	if !ok {
 		return s.upsertModelWithAuth(ctx, model, maxTokens)
 	}
-	// 列表没带回 api_base 时无法判断旧地址，避免每次启动都打不支持的更新接口。
-	if name == model.Model && (apiBase == "" || apiBase == model.BaseURL) {
+	if name == model.Model && apiBase == model.BaseURL && apiBase != "" {
 		s.logger.Info("local model already synced",
 			log.String("id", id),
 			log.String("model", model.Model),
@@ -252,6 +251,15 @@ func matchRAGModel(models []map[string]interface{}, model *domain.Model) (id, ap
 	return "", "", "", false
 }
 
+func ragProviderName(provider string) string {
+	switch strings.TrimSpace(provider) {
+	case "", "OpenAI", "openai":
+		return "openai-compatible-api"
+	default:
+		return provider
+	}
+}
+
 func modelAPIBase(m map[string]interface{}) string {
 	if base, ok := m["api_base"].(string); ok && base != "" {
 		return base
@@ -266,14 +274,16 @@ func modelAPIBase(m map[string]interface{}) string {
 
 func modelRequestData(model *domain.Model, maxTokens int) map[string]interface{} {
 	data := map[string]interface{}{
-		"name":       model.Model,
-		"provider":   string(model.Provider),
-		"task_type":  string(model.Type),
-		"api_base":   model.BaseURL,
-		"api_key":    model.APIKey,
-		"max_tokens": maxTokens,
-		"is_default": true,
-		"enabled":    model.IsActive,
+		"name":        model.Model,
+		"model_name":  model.Model,
+		"provider":    ragProviderName(string(model.Provider)),
+		"task_type":   string(model.Type),
+		"model_type":  string(model.Type),
+		"api_base":    model.BaseURL,
+		"api_key":     model.APIKey,
+		"max_tokens":  maxTokens,
+		"is_default":  true,
+		"enabled":     model.IsActive,
 	}
 	config := map[string]interface{}{
 		"r1_enabled":           model.Parameters.R1Enabled,
@@ -356,18 +366,7 @@ func (s *CTRAG) upsertModelWithAuth(ctx context.Context, model *domain.Model, ma
 		}
 	}
 	
-	// Only create new model if it doesn't exist
-	// Prepare request data
-	data := map[string]interface{}{
-		"name":        model.Model,
-		"provider":    string(model.Provider),
-		"task_type":   string(model.Type),
-		"api_base":    model.BaseURL,
-		"api_key":     model.APIKey,
-		"max_tokens":  maxTokens,
-		"is_default":  true,
-		"enabled":     model.IsActive,
-	}
+	data := modelRequestData(model, maxTokens)
 	
 	// Add optional fields
 	config := make(map[string]interface{})
