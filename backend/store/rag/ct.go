@@ -188,9 +188,152 @@ func (s *CTRAG) UpsertModel(ctx context.Context, model *domain.Model) error {
 	if maxTokens == 0 {
 		maxTokens = 8192
 	}
-	
+
 	// Use custom HTTP request instead of SDK to avoid API path issues
 	return s.upsertModelWithAuth(ctx, model, maxTokens)
+}
+
+// SyncLocalModel 把内网配置里的向量/重排序模型写到 raglite。
+// 已存在且 api_base 一致时不改动；地址变了才更新。ECS 不走这个方法。
+func (s *CTRAG) SyncLocalModel(ctx context.Context, model *domain.Model) error {
+	maxTokens := model.Parameters.MaxTokens
+	if maxTokens == 0 {
+		maxTokens = 8192
+	}
+	existingModels, err := s.getModelsWithAuth(ctx)
+	if err != nil {
+		s.logger.Warn("failed to list models before local sync, will create", log.Error(err))
+	}
+	id, apiBase, name, ok := matchRAGModel(existingModels, model)
+	if !ok {
+		return s.upsertModelWithAuth(ctx, model, maxTokens)
+	}
+	// 列表没带回 api_base 时无法判断旧地址，避免每次启动都打不支持的更新接口。
+	if name == model.Model && (apiBase == "" || apiBase == model.BaseURL) {
+		s.logger.Info("local model already synced",
+			log.String("id", id),
+			log.String("model", model.Model),
+			log.String("type", string(model.Type)),
+			log.String("api_base", model.BaseURL),
+		)
+		return nil
+	}
+	s.logger.Info("updating local model endpoint",
+		log.String("id", id),
+		log.String("model", model.Model),
+		log.String("type", string(model.Type)),
+		log.String("api_base", model.BaseURL),
+	)
+	return s.putModelWithAuth(ctx, id, modelRequestData(model, maxTokens))
+}
+
+func matchRAGModel(models []map[string]interface{}, model *domain.Model) (id, apiBase, name string, ok bool) {
+	var fallbackID, fallbackBase, fallbackName string
+	foundFallback := false
+	for _, m := range models {
+		task, _ := m["task_type"].(string)
+		if task != string(model.Type) {
+			continue
+		}
+		currentID, _ := m["id"].(string)
+		currentName, _ := m["name"].(string)
+		currentBase := modelAPIBase(m)
+		if currentName == model.Model {
+			return currentID, currentBase, currentName, currentID != ""
+		}
+		if !foundFallback {
+			fallbackID, fallbackBase, fallbackName = currentID, currentBase, currentName
+			foundFallback = true
+		}
+	}
+	if foundFallback && fallbackID != "" {
+		return fallbackID, fallbackBase, fallbackName, true
+	}
+	return "", "", "", false
+}
+
+func modelAPIBase(m map[string]interface{}) string {
+	if base, ok := m["api_base"].(string); ok && base != "" {
+		return base
+	}
+	cfg, ok := m["config"].(map[string]interface{})
+	if !ok {
+		return ""
+	}
+	base, _ := cfg["api_base"].(string)
+	return base
+}
+
+func modelRequestData(model *domain.Model, maxTokens int) map[string]interface{} {
+	data := map[string]interface{}{
+		"name":       model.Model,
+		"provider":   string(model.Provider),
+		"task_type":  string(model.Type),
+		"api_base":   model.BaseURL,
+		"api_key":    model.APIKey,
+		"max_tokens": maxTokens,
+		"is_default": true,
+		"enabled":    model.IsActive,
+	}
+	config := map[string]interface{}{
+		"r1_enabled":           model.Parameters.R1Enabled,
+		"support_images":       model.Parameters.SupportImages,
+		"support_computer_use": model.Parameters.SupportComputerUse,
+		"support_prompt_cache": model.Parameters.SupportPromptCache,
+	}
+	if model.Parameters.MaxTokens > 0 {
+		config["max_tokens"] = model.Parameters.MaxTokens
+	}
+	if model.Parameters.Temperature != nil {
+		config["temperature"] = *model.Parameters.Temperature
+	}
+	if model.Parameters.ContextWindow > 0 {
+		config["context_window"] = model.Parameters.ContextWindow
+	}
+	data["config"] = config
+	return data
+}
+
+func (s *CTRAG) putModelWithAuth(ctx context.Context, id string, data map[string]interface{}) error {
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("failed to marshal model data: %w", err)
+	}
+	fullURL := s.baseURL + "/api/v1/models/" + id
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, fullURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	if s.apiKey != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+s.apiKey)
+	}
+	resp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(respBody))
+	}
+	var result struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
+	if len(respBody) > 0 {
+		if err := json.Unmarshal(respBody, &result); err != nil {
+			return fmt.Errorf("failed to unmarshal response: %w", err)
+		}
+		if result.Code != 0 {
+			return fmt.Errorf("API returned error code %d: %s", result.Code, result.Message)
+		}
+	}
+	s.logger.Info("updated rag model endpoint", log.String("id", id), log.String("api_base", fmt.Sprint(data["api_base"])))
+	return nil
 }
 
 func (s *CTRAG) upsertModelWithAuth(ctx context.Context, model *domain.Model, maxTokens int) error {

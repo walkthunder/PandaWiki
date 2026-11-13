@@ -3,9 +3,14 @@ package usecase
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/cloudwego/eino/schema"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	modelkitDomain "github.com/chaitin/ModelKit/v2/domain"
 	modelkit "github.com/chaitin/ModelKit/v2/usecase"
@@ -44,10 +49,12 @@ func NewModelUsecase(modelRepo *pg.ModelRepository, nodeRepo *pg.NodeRepository,
 		systemSettingRepo: settingRepo,
 		modelkit:          modelkit,
 	}
+	u.syncLocalModels()
 	return u
 }
 
 func (u *ModelUsecase) Create(ctx context.Context, model *domain.Model) error {
+	u.overrideWithLocalModel(model)
 	var updatedEmbeddingModel bool
 	if model.Type == domain.ModelTypeEmbedding {
 		updatedEmbeddingModel = true
@@ -65,7 +72,14 @@ func (u *ModelUsecase) Create(ctx context.Context, model *domain.Model) error {
 }
 
 func (u *ModelUsecase) GetList(ctx context.Context) ([]*domain.ModelListItem, error) {
-	return u.modelRepo.GetList(ctx)
+	list, err := u.modelRepo.GetList(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, item := range list {
+		u.overrideListItem(item)
+	}
+	return list, nil
 }
 
 // trigger upsert records after embedding model is updated or created
@@ -109,6 +123,7 @@ func (u *ModelUsecase) TriggerUpsertRecords(ctx context.Context) error {
 }
 
 func (u *ModelUsecase) Update(ctx context.Context, req *domain.UpdateModelReq) error {
+	u.overrideUpdateReq(req)
 	var updatedEmbeddingModel bool
 	if req.Type == domain.ModelTypeEmbedding {
 		updatedEmbeddingModel = true
@@ -163,18 +178,32 @@ func (u *ModelUsecase) GetChatModel(ctx context.Context) (*domain.Model, error) 
 			APIKey:   modelModeSetting.AutoModeAPIKey,
 			Provider: domain.ModelProviderBrandBaiZhiCloud,
 		}
+		u.overrideWithLocalModel(model)
 		return model, nil
 	}
 	model, err = u.modelRepo.GetChatModel(ctx)
 	if err != nil {
+		if _, _, ok := u.localEndpoint(domain.ModelTypeChat); ok {
+			model = &domain.Model{
+				Type:     domain.ModelTypeChat,
+				IsActive: true,
+			}
+			u.overrideWithLocalModel(model)
+			return model, nil
+		}
 		return nil, err
 	}
-
+	u.overrideWithLocalModel(model)
 	return model, nil
 }
 
 func (u *ModelUsecase) GetModelByType(ctx context.Context, modelType domain.ModelType) (*domain.Model, error) {
-	return u.modelRepo.GetModelByType(ctx, modelType)
+	model, err := u.modelRepo.GetModelByType(ctx, modelType)
+	if err != nil {
+		return nil, err
+	}
+	u.overrideWithLocalModel(model)
+	return model, nil
 }
 
 func (u *ModelUsecase) UpdateUsage(ctx context.Context, modelID string, usage *schema.TokenUsage) error {
@@ -352,6 +381,7 @@ func (u *ModelUsecase) updateRAGModelsByMode(ctx context.Context, mode, autoMode
 
 		// 更新RAG存储中的模型
 		if model != nil {
+			u.overrideWithLocalModel(model)
 			// rag store中更新失败不影响其他模型更新
 			if err := u.ragStore.UpsertModel(ctx, model); err != nil {
 				u.logger.Error("failed to update model in RAG store", log.String("model_id", model.ID), log.String("type", string(modelType)), log.Any("error", err))
@@ -367,4 +397,170 @@ func (u *ModelUsecase) updateRAGModelsByMode(ctx context.Context, mode, autoMode
 		return u.TriggerUpsertRecords(ctx)
 	}
 	return nil
+}
+
+func (u *ModelUsecase) localEndpoint(modelType domain.ModelType) (config.LocalModelEndpoint, string, bool) {
+	if u.config == nil {
+		return config.LocalModelEndpoint{}, "", false
+	}
+	switch modelType {
+	case domain.ModelTypeChat:
+		endpoint := u.config.LocalModels.Chat
+		if strings.TrimSpace(endpoint.BaseURL) == "" {
+			return config.LocalModelEndpoint{}, "", false
+		}
+		return endpoint, "/chat/completions", true
+	case domain.ModelTypeEmbedding:
+		endpoint := u.config.LocalModels.Embedding
+		if strings.TrimSpace(endpoint.BaseURL) == "" {
+			return config.LocalModelEndpoint{}, "", false
+		}
+		return endpoint, "/embeddings", true
+	case domain.ModelTypeRerank:
+		endpoint := u.config.LocalModels.Rerank
+		if strings.TrimSpace(endpoint.BaseURL) == "" {
+			return config.LocalModelEndpoint{}, "", false
+		}
+		return endpoint, "/rerank", true
+	default:
+		return config.LocalModelEndpoint{}, "", false
+	}
+}
+
+func (u *ModelUsecase) overrideWithLocalModel(model *domain.Model) {
+	if model == nil {
+		return
+	}
+	endpoint, _, ok := u.localEndpoint(model.Type)
+	if !ok {
+		return
+	}
+	provider := string(model.Provider)
+	applyLocalEndpoint(endpoint, &model.Model, &model.BaseURL, &model.APIKey, &provider)
+	model.Provider = domain.ModelProvider(provider)
+	model.IsActive = true
+}
+
+func (u *ModelUsecase) overrideUpdateReq(req *domain.UpdateModelReq) {
+	if req == nil {
+		return
+	}
+	endpoint, _, ok := u.localEndpoint(req.Type)
+	if !ok {
+		return
+	}
+	provider := string(req.Provider)
+	applyLocalEndpoint(endpoint, &req.Model, &req.BaseURL, &req.APIKey, &provider)
+	req.Provider = domain.ModelProvider(provider)
+}
+
+func (u *ModelUsecase) overrideListItem(item *domain.ModelListItem) {
+	if item == nil {
+		return
+	}
+	endpoint, _, ok := u.localEndpoint(item.Type)
+	if !ok {
+		return
+	}
+	provider := string(item.Provider)
+	applyLocalEndpoint(endpoint, &item.Model, &item.BaseURL, &item.APIKey, &provider)
+	item.Provider = domain.ModelProvider(provider)
+	item.IsActive = true
+}
+
+func applyLocalEndpoint(endpoint config.LocalModelEndpoint, modelName, baseURL, apiKey, provider *string) {
+	if name := strings.TrimSpace(endpoint.Model); name != "" {
+		*modelName = name
+	}
+	*baseURL = strings.TrimSpace(endpoint.BaseURL)
+	if key := strings.TrimSpace(endpoint.APIKey); key != "" {
+		*apiKey = key
+	}
+	if name := strings.TrimSpace(endpoint.Provider); name != "" {
+		*provider = name
+	}
+}
+
+func (u *ModelUsecase) syncLocalModels() {
+	if !u.hasLocalModels() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := u.syncConfiguredLocalModels(ctx); err != nil {
+		u.logger.Error("sync intranet models failed", log.Error(err))
+	}
+}
+
+func (u *ModelUsecase) hasLocalModels() bool {
+	for _, modelType := range []domain.ModelType{domain.ModelTypeChat, domain.ModelTypeEmbedding, domain.ModelTypeRerank} {
+		if _, _, ok := u.localEndpoint(modelType); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func (u *ModelUsecase) syncConfiguredLocalModels(ctx context.Context) error {
+	for _, modelType := range []domain.ModelType{domain.ModelTypeChat, domain.ModelTypeEmbedding, domain.ModelTypeRerank} {
+		endpoint, fallbackPath, ok := u.localEndpoint(modelType)
+		if !ok {
+			continue
+		}
+		u.logger.Info("intranet model endpoint",
+			log.String("type", string(modelType)),
+			log.String("model", endpoint.Model),
+			log.String("base_url", strings.TrimSpace(endpoint.BaseURL)),
+			log.String("request_url", endpoint.RequestURL(fallbackPath)),
+		)
+		model, err := u.ensureLocalModel(ctx, modelType, endpoint)
+		if err != nil {
+			return err
+		}
+		if err := u.ragStore.SyncLocalModel(ctx, model); err != nil {
+			return fmt.Errorf("sync %s model to rag: %w", modelType, err)
+		}
+	}
+	return nil
+}
+
+func (u *ModelUsecase) ensureLocalModel(ctx context.Context, modelType domain.ModelType, endpoint config.LocalModelEndpoint) (*domain.Model, error) {
+	model, err := u.modelRepo.GetModelByType(ctx, modelType)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		model = &domain.Model{
+			ID:       uuid.New().String(),
+			Type:     modelType,
+			IsActive: true,
+		}
+		u.overrideWithLocalModel(model)
+		if err := u.modelRepo.Create(ctx, model); err != nil {
+			return nil, err
+		}
+		return model, nil
+	}
+	provider := string(model.Provider)
+	modelName := model.Model
+	baseURL := model.BaseURL
+	apiKey := model.APIKey
+	applyLocalEndpoint(endpoint, &modelName, &baseURL, &apiKey, &provider)
+	if model.Model != modelName || model.BaseURL != baseURL || model.APIKey != apiKey || string(model.Provider) != provider || !model.IsActive {
+		if err := u.modelRepo.Updates(ctx, model.ID, map[string]any{
+			"model":     modelName,
+			"base_url":  baseURL,
+			"api_key":   apiKey,
+			"provider":  provider,
+			"is_active": true,
+		}); err != nil {
+			return nil, err
+		}
+	}
+	model.Model = modelName
+	model.BaseURL = baseURL
+	model.APIKey = apiKey
+	model.Provider = domain.ModelProvider(provider)
+	model.IsActive = true
+	return model, nil
 }

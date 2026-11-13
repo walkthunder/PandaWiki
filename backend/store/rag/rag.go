@@ -59,6 +59,7 @@ type RAGService interface {
 	AddModel(ctx context.Context, model *domain.Model) (string, error)
 	UpdateModel(ctx context.Context, model *domain.Model) error
 	UpsertModel(ctx context.Context, model *domain.Model) error
+	SyncLocalModel(ctx context.Context, model *domain.Model) error
 	DeleteModel(ctx context.Context, model *domain.Model) error
 }
 

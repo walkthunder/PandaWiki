@@ -1,0 +1,30 @@
+# 离线 CentOS 内网部署专用。
+# ECS 不要设置 CONFIG_FILE，发布后仍走现在的代码和百智云模型地址。
+#
+# 内网启动（与 docker-compose.yml 叠在一起，不改 ECS 用的 compose）：
+#   docker compose -f docker-compose.yml -f docker-compose.intranet.yml up -d
+#
+# base_url 作为 api_base。按类型拼路径：
+#   deepseek-chat      -> http://172.16.121.2/v1/chat/completions
+#   bge-m3             -> http://172.16.121.2/v1/embeddings
+#   bge-reranker-v2-m3 -> http://172.16.121.2/v1/rerank
+
+local_models:
+  chat:
+    model: deepseek-chat
+    base_url: http://172.16.121.2/v1
+    path: /chat/completions
+    provider: OpenAI
+    api_key: apikey_1cb886c943df9385_065d8aa00405814272017a02fff5b26e
+  embedding:
+    model: bge-m3
+    base_url: http://172.16.121.2/v1
+    path: /embeddings
+    provider: OpenAI
+    api_key: apikey_1cb886c943df9385_065d8aa00405814272017a02fff5b26e
+  rerank:
+    model: bge-reranker-v2-m3
+    base_url: http://172.16.121.2/v1
+    path: /rerank
+    provider: OpenAI
+    api_key: apikey_1cb886c943df9385_065d8aa00405814272017a02fff5b26e

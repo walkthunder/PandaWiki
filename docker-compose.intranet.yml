@@ -1,0 +1,17 @@
+# 离线 CentOS 内网叠加配置。不要单独使用。
+# ECS：docker compose -f docker-compose.yml up -d
+# 内网：docker compose -f docker-compose.yml -f docker-compose.intranet.yml up -d
+
+services:
+  api:
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-api:intranet
+    environment:
+      CONFIG_FILE: /app/config.intranet.yml
+    volumes:
+      - ./config.intranet.yml:/app/config.intranet.yml:ro
+  consumer:
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-consumer:intranet
+    environment:
+      CONFIG_FILE: /app/config.intranet.yml
+    volumes:
+      - ./config.intranet.yml:/app/config.intranet.yml:ro

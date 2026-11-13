@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -19,8 +20,37 @@ type Config struct {
 	Auth          AuthConfig   `mapstructure:"auth"`
 	S3            S3Config     `mapstructure:"s3"`
 	Sentry        SentryConfig `mapstructure:"sentry"`
-	CaddyAPI      string       `mapstructure:"caddy_api"`
-	SubnetPrefix  string       `mapstructure:"subnet_prefix"`
+	CaddyAPI     string            `mapstructure:"caddy_api"`
+	SubnetPrefix string            `mapstructure:"subnet_prefix"`
+	LocalModels  LocalModelsConfig `mapstructure:"local_models"`
+}
+
+// LocalModelsConfig 只在离线 CentOS 内网配置里填写。
+// ECS 不加载该配置时这些字段为空，模型和请求地址保持原逻辑。
+type LocalModelsConfig struct {
+	Chat      LocalModelEndpoint `mapstructure:"chat"`
+	Embedding LocalModelEndpoint `mapstructure:"embedding"`
+	Rerank    LocalModelEndpoint `mapstructure:"rerank"`
+}
+
+type LocalModelEndpoint struct {
+	Model    string `mapstructure:"model"`
+	BaseURL  string `mapstructure:"base_url"`
+	Path     string `mapstructure:"path"`
+	Provider string `mapstructure:"provider"`
+	APIKey   string `mapstructure:"api_key"`
+}
+
+func (e LocalModelEndpoint) RequestURL(fallbackPath string) string {
+	base := strings.TrimRight(strings.TrimSpace(e.BaseURL), "/")
+	path := strings.TrimSpace(e.Path)
+	if path == "" {
+		path = fallbackPath
+	}
+	if path != "" && !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	return base + path
 }
 
 type LogConfig struct {
