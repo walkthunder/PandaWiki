@@ -7,12 +7,14 @@ services:
     image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-api:intranet
     environment:
       CONFIG_FILE: /app/config.intranet.yml
+      RAG_CT_RAG_BASE_URL: http://${SUBNET_PREFIX:-169.254.15}.18:8080
     volumes:
       - ./config.intranet.yml:/app/config.intranet.yml:ro
   consumer:
     image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-consumer:intranet
     environment:
       CONFIG_FILE: /app/config.intranet.yml
+      RAG_CT_RAG_BASE_URL: http://${SUBNET_PREFIX:-169.254.15}.18:8080
     volumes:
       - ./config.intranet.yml:/app/config.intranet.yml:ro
   nginx:
