@@ -875,18 +875,19 @@
   margin: 14px auto 0;
 }
 
-/* Footer */
+/* Footer：内容不足一屏时贴在视口底部，内容更高时跟在内容后面 */
 .textWrapper_4 {
   background-color: rgba(58, 140, 216, 0.06);
   height: 44px;
   width: 100%;
+  margin-top: auto;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .text_10 {
-  width: 285px;
   height: 13px;
   overflow-wrap: break-word;
   color: rgba(51, 51, 51, 1);

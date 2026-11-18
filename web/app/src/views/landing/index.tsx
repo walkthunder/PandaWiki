@@ -356,7 +356,7 @@ const Landing = () => {
         {/* Footer */}
         <div className={`${styles.textWrapper_4} ${styles.flexCol}`}>
           <span className={styles.text_10}>
-            上海市无线电协会&nbsp;◎&nbsp;2025.&nbsp;All&nbsp;rights&nbsp;reserved.
+            上海市无线电协会&nbsp;沪ICP备：17039275号
           </span>
         </div>
       </div>
