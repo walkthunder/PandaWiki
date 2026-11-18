@@ -22,11 +22,12 @@ import (
 )
 
 type CTRAG struct {
-	client  *raglite.Client
-	logger  *log.Logger
-	mdConv  *converter.Converter
-	baseURL string
-	apiKey  string
+	client           *raglite.Client
+	logger           *log.Logger
+	mdConv           *converter.Converter
+	baseURL          string
+	apiKey           string
+	directDatasetAPI bool
 }
 
 func NewCTRAG(config *config.Config, logger *log.Logger) (*CTRAG, error) {
@@ -39,15 +40,35 @@ func NewCTRAG(config *config.Config, logger *log.Logger) (*CTRAG, error) {
 		return nil, fmt.Errorf("failed to create raglite client: %w", err)
 	}
 	return &CTRAG{
-		client:  client,
-		logger:  logger.WithModule("store.vector.ct"),
-		mdConv:  NewHTML2MDConverter(),
-		baseURL: config.RAG.CTRAG.BaseURL,
-		apiKey:  config.RAG.CTRAG.APIKey,
+		client:           client,
+		logger:           logger.WithModule("store.vector.ct"),
+		mdConv:           NewHTML2MDConverter(),
+		baseURL:          config.RAG.CTRAG.BaseURL,
+		apiKey:           config.RAG.CTRAG.APIKey,
+		directDatasetAPI: hasIntranetModels(config),
 	}, nil
 }
 
+func hasIntranetModels(cfg *config.Config) bool {
+	if cfg == nil {
+		return false
+	}
+	for _, endpoint := range []config.LocalModelEndpoint{
+		cfg.LocalModels.Chat,
+		cfg.LocalModels.Embedding,
+		cfg.LocalModels.Rerank,
+	} {
+		if strings.TrimSpace(endpoint.BaseURL) != "" {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *CTRAG) CreateKnowledgeBase(ctx context.Context) (string, error) {
+	if s.directDatasetAPI {
+		return s.createDatasetDirect(ctx)
+	}
 	dataset, err := s.client.Datasets.Create(ctx, &raglite.CreateDatasetRequest{
 		Name: uuid.New().String(),
 	})
@@ -55,6 +76,78 @@ func (s *CTRAG) CreateKnowledgeBase(ctx context.Context) (string, error) {
 		return "", err
 	}
 	return dataset.ID, nil
+}
+
+// createDatasetDirect 只给内网 raglite 用。它的创建接口把 ID 包在 data 里，官方 SDK 解析不到。
+func (s *CTRAG) createDatasetDirect(ctx context.Context) (string, error) {
+	payload, err := json.Marshal(map[string]string{
+		"name": uuid.New().String(),
+	})
+	if err != nil {
+		return "", err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.baseURL+"/api/v1/datasets", bytes.NewReader(payload))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if s.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+s.apiKey)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", fmt.Errorf("create dataset status %d: %s", resp.StatusCode, string(respBody))
+	}
+	id, ok := datasetIDFromBody(respBody)
+	if ok {
+		return id, nil
+	}
+	return "", fmt.Errorf("create dataset: unexpected response %s", string(respBody))
+}
+
+func datasetIDFromBody(body []byte) (string, bool) {
+	var parsed struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+		Code    *int   `json:"code"`
+		ID      string `json:"id"`
+		Data    struct {
+			ID        string `json:"id"`
+			DatasetID string `json:"dataset_id"`
+		} `json:"data"`
+		DatasetID string `json:"dataset_id"`
+	}
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return "", false
+	}
+	id := parsed.Data.ID
+	if id == "" {
+		id = parsed.Data.DatasetID
+	}
+	if id == "" {
+		id = parsed.ID
+	}
+	if id == "" {
+		id = parsed.DatasetID
+	}
+	if id == "" {
+		return "", false
+	}
+	if parsed.Code != nil && *parsed.Code != 0 {
+		return "", false
+	}
+	if !parsed.Success && parsed.Message != "" && parsed.Code == nil {
+		return "", false
+	}
+	return id, true
 }
 
 func (s *CTRAG) QueryRecords(ctx context.Context, req *QueryRecordsRequest) (string, []*domain.NodeContentChunk, error) {

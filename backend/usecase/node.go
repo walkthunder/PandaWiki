@@ -77,6 +77,16 @@ func NewNodeUsecase(
 const ragSyncChunkSize = 100
 
 func (u *NodeUsecase) Create(ctx context.Context, req *domain.CreateNodeReq, userId string) (string, error) {
+	if req.NavId == "" {
+		navs, err := u.navRepo.GetList(ctx, req.KBID)
+		if err != nil {
+			return "", err
+		}
+		if len(navs) == 0 {
+			return "", fmt.Errorf("nav not found")
+		}
+		req.NavId = navs[0].ID
+	}
 	nodeID, err := u.nodeRepo.Create(ctx, req, userId)
 	if err != nil {
 		return "", err
