@@ -141,7 +141,7 @@ func (d *NodeMeta) Scan(value any) error {
 
 type CreateNodeReq struct {
 	KBID        string   `json:"kb_id" validate:"required"`
-	NavId       string   `json:"nav_id" validate:"required"`
+	NavId       string   `json:"nav_id"`
 	ParentID    string   `json:"parent_id"`
 	Type        NodeType `json:"type" validate:"required,oneof=1 2"`
 	Name        string   `json:"name" validate:"required"`
