@@ -1,7 +1,7 @@
 import { ChunkResultItem } from '@/assets/type';
 
-// 搜索模式类型 - 扩展以支持 web-search
-export type SearchMode = 'chat' | 'search' | 'web-search';
+// 搜索模式类型。文档检索入口已从外网问答弹窗移除。
+export type SearchMode = 'chat' | 'web-search';
 
 export interface ConversationItem {
   q: string;

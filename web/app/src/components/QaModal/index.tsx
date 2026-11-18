@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { IconZhinengwenda, IconJinsousuo } from '@panda-wiki/icons';
+import { IconZhinengwenda } from '@panda-wiki/icons';
 import { useSearchParams } from 'next/navigation';
 import {
   Box,
@@ -16,7 +16,6 @@ import {
 } from '@mui/material';
 import LanguageIcon from '@mui/icons-material/Language';
 import AiQaContent from './AiQaContent';
-import SearchDocContent from './SearchDocContent';
 import WebSearchContent from './WebSearchContent';
 import { useStore } from '@/provider';
 import { SearchMode } from './types';
@@ -82,7 +81,6 @@ const QaModal: React.FC<QaModalProps> = () => {
   const { qaModalOpen, setQaModalOpen, kbDetail, mobile } = useStore();
   const [searchMode, setSearchMode] = useState<SearchMode>('chat');
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
   const aiQaInputRef = useRef<HTMLInputElement>(null);
   const searchParams = useSearchParams();
   const onClose = () => {
@@ -118,7 +116,7 @@ const QaModal: React.FC<QaModalProps> = () => {
   useEffect(() => {
     if (qaModalOpen) {
       const savedMode = sessionStorage.getItem('qa_modal_mode') as SearchMode;
-      if (savedMode && ['chat', 'search', 'web-search'].includes(savedMode)) {
+      if (savedMode && ['chat', 'web-search'].includes(savedMode)) {
         setSearchMode(savedMode);
         // 清除 sessionStorage 中的 mode，避免影响下次打开
         sessionStorage.removeItem('qa_modal_mode');
@@ -128,13 +126,9 @@ const QaModal: React.FC<QaModalProps> = () => {
 
   // modal打开时自动聚焦
   useEffect(() => {
-    if (qaModalOpen) {
+    if (qaModalOpen && searchMode === 'chat') {
       setTimeout(() => {
-        if (searchMode === 'chat') {
-          aiQaInputRef.current?.querySelector('textarea')?.focus();
-        } else {
-          inputRef.current?.querySelector('input')?.focus();
-        }
+        aiQaInputRef.current?.querySelector('textarea')?.focus();
       }, 100);
     }
   }, [qaModalOpen, searchMode]);
@@ -214,15 +208,6 @@ const QaModal: React.FC<QaModalProps> = () => {
             <StyledTab
               label={
                 <Stack direction='row' gap={0.5} alignItems='center'>
-                  <IconJinsousuo sx={{ fontSize: 16 }} />
-                  {!mobile && <span>文档检索</span>}
-                </Stack>
-              }
-              value='search'
-            />
-            <StyledTab
-              label={
-                <Stack direction='row' gap={0.5} alignItems='center'>
                   <LanguageIcon sx={{ fontSize: 16 }} />
                   {!mobile && <span>互联网检索</span>}
                 </Stack>
@@ -271,24 +256,6 @@ const QaModal: React.FC<QaModalProps> = () => {
               hotSearch={hotSearch}
               placeholder={placeholder}
               inputRef={aiQaInputRef}
-            />
-          </Box>
-        )}
-        {searchMode === 'search' && (
-          <Box
-            sx={{
-              px: 3,
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              opacity: isTransitioning ? 0.5 : 1,
-              transition: 'opacity 0.3s ease-in-out',
-            }}
-          >
-            <SearchDocContent
-              key={qaModalOpen ? 'search-open' : 'search-closed'}
-              inputRef={inputRef}
-              placeholder={placeholder}
             />
           </Box>
         )}

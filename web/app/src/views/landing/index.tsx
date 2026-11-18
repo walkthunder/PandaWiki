@@ -79,7 +79,7 @@ const Landing = () => {
     setQaModalOpen?.(true);
   };
 
-  const openQaModal = (mode: 'chat' | 'search' | 'web-search') => {
+  const openQaModal = (mode: 'chat' | 'web-search') => {
     sessionStorage.setItem('qa_modal_mode', mode);
     setQaModalOpen?.(true);
   };
@@ -140,12 +140,6 @@ const Landing = () => {
       <div className={`${styles.page} ${styles.flexCol}`}>
         {/* Header */}
         <div className={`${styles.box_1} ${styles.flexRow}`}>
-          <img
-            className={styles.image_1}
-            referrerPolicy='no-referrer'
-            src='/img/SketchPng4bd058e493ad33e266b577550a3a7f02786c07cfa7ba304aaab0e8f606b23707.png'
-            alt='Logo'
-          />
           <div className={styles.top_btns}>
             <button
               onClick={() => openQaModal('chat')}
@@ -387,74 +381,6 @@ const Landing = () => {
               />
             </div>
           </div>
-        </div>
-
-        {/* Spacer to push contact section to bottom */}
-        <div className={styles.spacer} />
-
-        {/* Contact Section */}
-        <div className={`${styles.section_4} ${styles.flexRow}`}>
-          <div className={`${styles.group_9} ${styles.flexCol}`}>
-            <span className={styles.text_9}>技术支持与联系我们</span>
-            <div
-              className={`${styles.imageText_13} ${styles.flexRow} ${styles.justifyBetween}`}
-            >
-              <img
-                className={styles.thumbnail_14}
-                referrerPolicy='no-referrer'
-                src='/img/SketchPnge33e963cbb993d732d8b228905a51d25a733e79a4354aabe5ef2cefccdb897a0.png'
-                alt='Location'
-              />
-              <span className={styles.textGroup_5}>
-                联系地址：上海市淮海中路1329号
-              </span>
-            </div>
-            <div
-              className={`${styles.box_12} ${styles.flexRow} ${styles.justifyBetween}`}
-            >
-              <div
-                className={`${styles.imageText_14} ${styles.flexRow} ${styles.justifyBetween}`}
-              >
-                <img
-                  className={styles.thumbnail_7}
-                  referrerPolicy='no-referrer'
-                  src='/img/SketchPngf5326a2d6c0660a99dbd6a7413952e6c569055df0e9b74359fa4c6d49b88f361.png'
-                  alt='Phone'
-                />
-                <span className={styles.textGroup_6}>技术支持： 算启智能</span>
-              </div>
-              <div
-                className={`${styles.imageText_15} ${styles.flexRow} ${styles.justifyBetween}`}
-              >
-                <img
-                  className={styles.thumbnail_8}
-                  referrerPolicy='no-referrer'
-                  src='/img/SketchPng4e3f6404ca892feefb799e424601f09cea5c65778ce80b79aa6da411f6305515.png'
-                  alt='Email'
-                />
-                <span className={styles.textGroup_7}>
-                  邮箱：info@webinfra.cloud
-                </span>
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => openQaModal('chat')}
-            className={`${styles.group_4} ${styles.flexRow} ${styles.actionButton}`}
-          >
-            <div
-              className={`${styles.imageText_16} ${styles.flexRow} ${styles.justifyBetween}`}
-            >
-              <img
-                className={styles.image_12}
-                referrerPolicy='no-referrer'
-                src='/img/SketchPnga4dbb097c40183efd2f28f0a5966ab6c5e4882e721f162ece20f8cdf9a118f9c.png'
-                alt='Chat'
-              />
-              <span className={styles.textGroup_8}>在线咨询</span>
-            </div>
-          </button>
-          <div className={styles.group_5} />
         </div>
 
         {/* Footer */}

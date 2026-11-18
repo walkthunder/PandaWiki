@@ -62,6 +62,7 @@
 }
 
 @media (max-width: 1000px) {
+  .box_1,
   .top_btns {
     display: none;
   }
