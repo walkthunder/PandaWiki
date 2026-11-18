@@ -138,36 +138,6 @@ const Landing = () => {
       )}
 
       <div className={`${styles.page} ${styles.flexCol}`}>
-        {/* Header */}
-        <div className={`${styles.box_1} ${styles.flexRow}`}>
-          <div className={styles.top_btns}>
-            <button
-              onClick={() => openQaModal('chat')}
-              className={`${styles.group_1} ${styles.flexRow} ${styles.actionButton}`}
-            >
-              <img
-                className={styles.thumbnail_1}
-                referrerPolicy='no-referrer'
-                src='/img/SketchPng130af4e6afeb35309844a32c09801e290c073d5baec6dcb33677fb44adf7d0c9.png'
-                alt='Search Icon'
-              />
-              <span className={styles.text_1}>问问AI吧</span>
-              <img
-                className={styles.image_2}
-                referrerPolicy='no-referrer'
-                src='/img/SketchPng541f76058b8d9cff0a0875812a7815db77bfe4ab996112779cd31ceaaf38febe.png'
-                alt='Divider'
-              />
-            </button>
-            <button
-              onClick={() => openQaModal('chat')}
-              className={`${styles.textWrapper_1} ${styles.flexCol} ${styles.actionButton}`}
-            >
-              <span className={styles.text_2}>智能问答</span>
-            </button>
-          </div>
-        </div>
-
         {/* Hero Section */}
         <div
           className={`${styles.section_3} ${styles.flexCol} ${styles.justifyEnd}`}
@@ -386,7 +356,7 @@ const Landing = () => {
         {/* Footer */}
         <div className={`${styles.textWrapper_4} ${styles.flexCol}`}>
           <span className={styles.text_10}>
-            上海市无线电监测站&nbsp;◎&nbsp;2025.&nbsp;All&nbsp;rights&nbsp;reserved.
+            上海市无线电协会&nbsp;◎&nbsp;2025.&nbsp;All&nbsp;rights&nbsp;reserved.
           </span>
         </div>
       </div>
