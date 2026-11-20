@@ -2,13 +2,24 @@ FROM --platform=$BUILDPLATFORM golang:1.24.3-alpine AS builder
 
 WORKDIR /src
 ENV CGO_ENABLED=0
-# ENV GOPROXY=https://goproxy.cn,direct
+ENV GOPROXY=https://goproxy.cn,direct
 
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download
 
 COPY . .
+
+# 构建期校验：ip2region.xdb 由 Git LFS 管理，如果构建前没有执行 git lfs pull，
+# COPY 进来的只是约 133 字节的指针文本，go:embed 编译进二进制后，
+# 运行时 IP 归属地查询会 panic（slice bounds out of range）导致进程崩溃。
+# 这里直接让构建失败，把问题暴露在构建期。
+RUN SIZE=$(stat -c%s store/ipdb/ip2region.xdb) && \
+    if [ "$SIZE" -lt 1048576 ]; then \
+      echo "ERROR: store/ipdb/ip2region.xdb looks like a Git LFS pointer file (${SIZE} bytes)." >&2 && \
+      echo "       Run 'git lfs install && git lfs pull' before building this image." >&2 && \
+      exit 1; \
+    fi
 
 # 添加go mod tidy命令
 # RUN go mod tidy
