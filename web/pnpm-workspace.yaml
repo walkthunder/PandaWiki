@@ -1,4 +1,7 @@
 packages:
-  - 'app'
-  - 'admin'
-  - 'packages/*'
+  - app
+  - admin
+  - packages/*
+
+patchedDependencies:
+  '@cap.js/widget@0.1.31': patches/@cap.js__widget@0.1.31.patch
