@@ -1,0 +1,7 @@
+chrome >= 63
+and_chr >= 63
+ios >= 12
+safari >= 12
+android >= 8
+firefox >= 67
+edge >= 79

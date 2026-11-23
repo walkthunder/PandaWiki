@@ -15,7 +15,20 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  transpilePackages: ['mermaid'],
+  transpilePackages: [
+    'marked',
+    '@mui/material',
+    '@mui/system',
+    '@mui/base',
+    '@mui/utils',
+    '@mui/styled-engine',
+    '@mui/icons-material',
+    '@emotion/react',
+    '@emotion/styled',
+    '@emotion/cache',
+    '@emotion/utils',
+    '@emotion/serialize',
+  ],
   async headers() {
     return [
       {
