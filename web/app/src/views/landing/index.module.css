@@ -1003,3 +1003,209 @@
     transform: rotate(360deg);
   }
 }
+
+/* ===== Mobile / tablet adaptation ===== */
+
+/* Tablet: tighten fixed widths, allow cards to wrap */
+@media (max-width: 1024px) {
+  .paragraph_1,
+  .block_2,
+  .group_7 {
+    width: calc(100% - 48px);
+  }
+
+  .block_2 {
+    max-width: 609px;
+  }
+
+  .list_2 {
+    width: calc(100% - 48px);
+    flex-wrap: wrap;
+  }
+
+  .listItems_1 {
+    flex: 1 1 300px;
+    width: auto;
+  }
+
+  .section_4 {
+    width: calc(100% - 48px);
+  }
+}
+
+/* Phone: single-column layout */
+@media (max-width: 768px) {
+  .box_1 {
+    height: 56px;
+  }
+
+  .image_1 {
+    width: 210px;
+    height: auto;
+    margin: 10px 12px 0;
+  }
+
+  .section_3 {
+    padding-bottom: 36px;
+  }
+
+  .group_6 {
+    width: auto;
+    height: auto;
+    margin: 12px auto 0;
+  }
+
+  .image_8 {
+    width: 215px;
+    height: auto;
+    margin-top: 24px;
+  }
+
+  .box_8 {
+    display: none;
+  }
+
+  .paragraph_1 {
+    width: calc(100% - 32px);
+    max-width: 100%;
+    font-size: 13px;
+    line-height: 20px;
+    margin-top: 14px;
+  }
+
+  .block_2 {
+    width: calc(100% - 32px);
+    height: 42px;
+    margin-top: 22px;
+  }
+
+  .text_3 {
+    font-size: 14px;
+    margin-left: 16px;
+  }
+
+  .image_9 {
+    width: 48px;
+    height: 30px;
+  }
+
+  .group_7 {
+    width: calc(100% - 32px);
+    height: auto;
+    margin-top: 20px;
+  }
+
+  .box_9 {
+    width: 100%;
+    max-width: 320px;
+    height: auto;
+    gap: 12px;
+  }
+
+  .textWrapper_2,
+  .textWrapper_3 {
+    flex: 1;
+    width: auto;
+    height: 38px;
+  }
+
+  .box_10 {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .box_4 {
+    margin-left: 0;
+  }
+
+  .textGroup_1 {
+    font-size: 13px;
+    margin-right: 4px;
+  }
+
+  .robot_container {
+    display: none;
+  }
+
+  .list_2 {
+    width: calc(100% - 32px);
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .listItems_1 {
+    flex: none;
+    width: 100%;
+  }
+
+  .text_7 {
+    width: auto;
+    margin-right: 24px;
+  }
+
+  .section_4 {
+    width: calc(100% - 32px);
+    height: auto;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    background-size: cover;
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .group_9 {
+    width: 100%;
+    height: auto;
+    margin: 0;
+  }
+
+  .box_12 {
+    width: 100%;
+    height: auto;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .imageText_14,
+  .imageText_15 {
+    width: auto;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  .group_4 {
+    margin: 0;
+    align-self: flex-start;
+  }
+
+  .group_5 {
+    display: none;
+  }
+
+  .textWrapper_4 {
+    height: auto;
+    padding: 10px 0;
+  }
+
+  .text_10 {
+    width: auto;
+    white-space: normal;
+    line-height: 18px;
+    padding: 0 12px;
+  }
+}
+
+/* Small phone: keep quick-question pills from overflowing */
+@media (max-width: 380px) {
+  .textGroup_1 {
+    font-size: 12px;
+  }
+
+  .imageText_9 {
+    padding: 0 6px;
+  }
+}
