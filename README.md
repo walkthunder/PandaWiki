@@ -58,6 +58,11 @@ PandaWiki 是一款 AI 驱动的开源知识库搭建系统。
 - [部署指南](DEPLOYMENT_GUIDE.md)
 - [部署总结](DEPLOYMENT_SUMMARY.md)
 
+> **分支与部署环境对应**
+>
+> - `bugfix-0811` —— 部署到**无线电内网**（CentOS 离线环境，仅 HTTP）
+> - `extranet-main` —— 部署到 **ECS 服务器**（公网外网环境）
+
 ## 📚 文档
 
 ### 开发相关
