@@ -12,7 +12,7 @@ import { useStore } from '@/provider';
 import QaModal from '@/components/QaModal';
 
 const DEFAULT_SUBTITLE =
-  '无线一点通，汇集无线电领域的政策法规、技术标准、管理制度与上海本地行政审批流程，帮助你快速查标准、看流程、找依据，借助大模型为你提供智能问答、文档检索、互联网检索等能力。';
+  '上海无线电监测站基于AI+三年行动方案，推出「无线一点通」智能查询平台。平台整合无线电领域的技术标准、管理制度文件及上海本地行政审批流程，输入关键词即可获得精准权威的解答。\n--查标准、看流程，一点就通。';
 
 const Landing = () => {
   const { setQaModalOpen, kbDetail } = useStore();
