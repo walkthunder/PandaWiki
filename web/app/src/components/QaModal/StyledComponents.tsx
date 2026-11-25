@@ -12,18 +12,87 @@ import {
   alpha,
 } from '@mui/material';
 
-// 布局容器组件
-export const StyledMainContainer = styled(Box)(() => ({
+// 布局容器组件 - 白色卡片
+export const StyledMainContainer = styled(Box)(({ theme }) => ({
   flex: 1,
+  minHeight: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  width: '100%',
+  maxWidth: 1080,
+  margin: '0 auto',
+  marginBottom: theme.spacing(2),
+  backgroundColor: theme.palette.background.paper,
+  borderRadius: '16px',
+  border: '1px solid',
+  borderColor: alpha(theme.palette.text.primary, 0.08),
+  boxShadow: `0px 8px 24px 0px ${alpha(theme.palette.text.primary, 0.06)}`,
+  overflow: 'hidden',
 }));
 
-export const StyledConversationContainer = styled(Stack)(() => ({
-  maxHeight: 'calc(100vh - 332px)',
+// 卡片头部 - 助手信息栏
+export const StyledChatHeader = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  padding: theme.spacing(1.5, 3),
+  borderBottom: '1px solid',
+  borderColor: alpha(theme.palette.text.primary, 0.06),
+  flexShrink: 0,
+  [theme.breakpoints.down('sm')]: {
+    padding: theme.spacing(1.5, 2),
+  },
+}));
+
+export const StyledHeaderAvatar = styled(Box)(({ theme }) => ({
+  width: 36,
+  height: 36,
+  borderRadius: '50%',
+  overflow: 'hidden',
+  flexShrink: 0,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: theme.palette.primary.main,
+  color: theme.palette.primary.contrastText,
+  fontSize: 14,
+  fontWeight: 600,
+}));
+
+export const StyledAiAvatar = styled(Box)(({ theme }) => ({
+  width: 28,
+  height: 28,
+  borderRadius: '50%',
+  overflow: 'hidden',
+  flexShrink: 0,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: theme.palette.primary.main,
+  color: theme.palette.primary.contrastText,
+  fontSize: 12,
+  fontWeight: 600,
+}));
+
+export const StyledBubbleTime = styled(Box)(({ theme }) => ({
+  fontSize: 11,
+  lineHeight: 1,
+  color: alpha(theme.palette.text.primary, 0.35),
+}));
+
+export const StyledConversationContainer = styled(Stack)(({ theme }) => ({
+  flex: 1,
+  minHeight: 0,
   overflow: 'auto',
+  padding: theme.spacing(2.5, 3),
+  backgroundColor: alpha(theme.palette.text.primary, 0.02),
   scrollbarWidth: 'none',
   msOverflowStyle: 'none',
   '&::-webkit-scrollbar': {
     display: 'none',
+  },
+  [theme.breakpoints.down('sm')]: {
+    padding: theme.spacing(2, 2),
   },
 }));
 
@@ -37,20 +106,31 @@ export const StyledConversationItem = styled(Box)(({ theme }) => ({
 export const StyledUserBubble = styled(Box)(({ theme }) => ({
   alignSelf: 'flex-end',
   maxWidth: '75%',
-  padding: theme.spacing(1, 2),
-  borderRadius: '10px 10px 0px 10px',
+  padding: theme.spacing(1.25, 2),
+  borderRadius: '12px 12px 4px 12px',
   backgroundColor: theme.palette.primary.main,
   color: theme.palette.primary.contrastText,
   fontSize: 14,
+  lineHeight: 1.7,
   wordBreak: 'break-word',
+  boxShadow: `0px 2px 8px 0px ${alpha(theme.palette.primary.main, 0.25)}`,
 }));
 
 export const StyledAiBubble = styled(Box)(({ theme }) => ({
-  alignSelf: 'flex-start',
   display: 'flex',
   flexDirection: 'column',
   width: '100%',
-  gap: theme.spacing(3),
+  maxWidth: '85%',
+  gap: theme.spacing(2),
+  padding: theme.spacing(2, 2.5),
+  borderRadius: '4px 12px 12px 12px',
+  backgroundColor: theme.palette.background.paper,
+  border: '1px solid',
+  borderColor: alpha(theme.palette.text.primary, 0.08),
+  boxShadow: `0px 2px 8px 0px ${alpha(theme.palette.text.primary, 0.04)}`,
+  [theme.breakpoints.down('sm')]: {
+    maxWidth: '100%',
+  },
 }));
 
 export const StyledAiBubbleContent = styled(Box)(() => ({
@@ -177,6 +257,11 @@ export const StyledInputContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
   gap: theme.spacing(1),
+  padding: theme.spacing(0, 3, 2),
+  flexShrink: 0,
+  [theme.breakpoints.down('sm')]: {
+    padding: theme.spacing(0, 2, 2),
+  },
 }));
 
 export const StyledInputWrapper = styled(Stack)(({ theme }) => ({
