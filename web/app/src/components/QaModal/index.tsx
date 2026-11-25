@@ -279,14 +279,16 @@ const QaModal: React.FC<QaModalProps> = () => {
           </Box>
         )}
 
-        {/* 底部AI生成提示 */}
+        {/* 底部AI生成提示（默认隐藏，仅在配置了自定义版权文字且未隐藏时显示） */}
         <Box
           sx={{
             px: 3,
-            pt: !kbDetail?.settings?.conversation_setting
-              ?.copyright_hide_enabled
-              ? 2
-              : 0,
+            pt:
+              kbDetail?.settings?.conversation_setting
+                ?.copyright_hide_enabled === false &&
+              !!kbDetail?.settings?.conversation_setting?.copyright_info
+                ? 2
+                : 0,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -303,10 +305,9 @@ const QaModal: React.FC<QaModalProps> = () => {
             }}
           >
             <Box>
-              {!kbDetail?.settings?.conversation_setting
-                ?.copyright_hide_enabled &&
-                (kbDetail?.settings?.conversation_setting?.copyright_info ||
-                  '本网站由 PandaWiki 提供技术支持')}
+              {kbDetail?.settings?.conversation_setting
+                ?.copyright_hide_enabled === false &&
+                kbDetail?.settings?.conversation_setting?.copyright_info}
             </Box>
           </Typography>
         </Box>
