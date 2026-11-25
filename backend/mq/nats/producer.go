@@ -30,6 +30,13 @@ func (p *MQProducer) EnsureStreams() error {
 			name:     "scraper",
 			subjects: []string{"apps.panda-wiki.scraper.>"},
 		},
+		{
+			// raglite 发布文档处理事件（raglite.events.doc.update 等），
+			// 全新部署时 raglite 不会预先创建该 stream，
+			// 若缺失 consumer 订阅会报 "no stream matches subject" 并 panic。
+			name:     "raglite",
+			subjects: []string{"raglite.events.>"},
+		},
 	}
 
 	for _, stream := range streams {

@@ -11,7 +11,7 @@
 
 local_models:
   chat:
-    model: deepseek-chat
+    model: deepseek
     base_url: http://172.16.121.2/v1
     path: /chat/completions
     provider: OpenAI
