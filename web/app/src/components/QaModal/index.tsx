@@ -245,6 +245,7 @@ const QaModal: React.FC<QaModalProps> = () => {
             sx={{
               px: 3,
               flex: 1,
+              minHeight: 0,
               display: 'flex',
               flexDirection: 'column',
               opacity: isTransitioning ? 0.5 : 1,
@@ -264,6 +265,7 @@ const QaModal: React.FC<QaModalProps> = () => {
             sx={{
               px: 3,
               flex: 1,
+              minHeight: 0,
               display: 'flex',
               flexDirection: 'column',
               opacity: isTransitioning ? 0.5 : 1,

@@ -762,16 +762,7 @@ const AiQaContent: React.FC<{
       {/* 卡片头部 - 助手信息栏 */}
       <StyledChatHeader>
         <Stack direction='row' alignItems='center' gap={1.5}>
-          <StyledHeaderAvatar>
-            <Image
-              src={getImagePath(kbDetail?.settings?.icon || Logo.src, basePath)}
-              alt='avatar'
-              width={36}
-              height={36}
-              unoptimized
-              style={{ objectFit: 'cover' }}
-            />
-          </StyledHeaderAvatar>
+          <StyledHeaderAvatar>波</StyledHeaderAvatar>
           <Box>
             <Typography
               sx={{
@@ -983,19 +974,7 @@ const AiQaContent: React.FC<{
                 gap={1.5}
                 sx={{ alignSelf: 'flex-start', width: '100%' }}
               >
-                <StyledAiAvatar>
-                  <Image
-                    src={getImagePath(
-                      kbDetail?.settings?.icon || Logo.src,
-                      basePath,
-                    )}
-                    alt='avatar'
-                    width={28}
-                    height={28}
-                    unoptimized
-                    style={{ objectFit: 'cover' }}
-                  />
-                </StyledAiAvatar>
+                <StyledAiAvatar>波</StyledAiAvatar>
                 <Stack gap={0.75} sx={{ flex: 1, minWidth: 0 }}>
                   <StyledAiBubble>
                     {/* 搜索结果 */}
