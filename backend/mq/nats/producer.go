@@ -30,6 +30,13 @@ func (p *MQProducer) EnsureStreams() error {
 			name:     "scraper",
 			subjects: []string{"apps.panda-wiki.scraper.>"},
 		},
+		{
+			// raglite 发布文档处理事件（raglite.events.doc.update 等），
+			// 全新部署时 raglite 不会预先创建该 stream，
+			// 若缺失 consumer 订阅会报 "no stream matches subject" 并 panic。
+			name:     "raglite",
+			subjects: []string{"raglite.events.>"},
+		},
 	}
 
 	for _, stream := range streams {
@@ -55,6 +62,15 @@ func (p *MQProducer) EnsureStreams() error {
 			Duplicates: 120 * time.Second,
 		})
 		if err != nil {
+			// subject 可能已被其它 stream 覆盖（如 raglite 服务自建了同名 subject 的 stream），
+			// 此时订阅/发布都能正常工作，记录日志后跳过即可
+			if existingName, serr := p.js.StreamNameBySubject(stream.subjects[0]); serr == nil && existingName != "" {
+				p.logger.Warn("subjects already covered by existing stream, skip creating",
+					log.String("stream", stream.name),
+					log.String("existing_stream", existingName),
+					log.Any("subjects", stream.subjects))
+				continue
+			}
 			return fmt.Errorf("failed to create stream %s: %w", stream.name, err)
 		}
 
